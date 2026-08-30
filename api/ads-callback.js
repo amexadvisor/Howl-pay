@@ -1,24 +1,58 @@
-export default async function handler(req, res) {
-  // Handle both GET (query parameters) and POST (JSON body) from AdsGalaxy
-  const params = req.method === 'POST' ? req.body : req.query;
-  const { user_id, reward_id, secret } = params;
+import crypto from 'crypto';
 
-  // Choose a private secret phrase to match in your AdsGalaxy dashboard
-  const EXPECTED_SECRET = "SecureAdSecret_2026_x89";
+function verifyTelegramWebAppData(telegramInitData, botToken) {
+  if (!telegramInitData) return null;
+
+  const initData = new URLSearchParams(telegramInitData);
+  const hash = initData.get('hash');
+  if (!hash) return null;
+
+  initData.delete('hash');
+
+  const dataCheckArr = [];
+  for (const [key, value] of initData.entries()) {
+    dataCheckArr.push(`${key}=${value}`);
+  }
+  dataCheckArr.sort();
+
+  const dataCheckString = dataCheckArr.join('\n');
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest();
+  const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+  if (calculatedHash === hash) {
+    const userJson = initData.get('user');
+    return userJson ? JSON.parse(userJson) : null;
+  }
+  return null;
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { initData } = req.body;
   const BOT_TOKEN = "8863906305:AAFduwJfiOkXr2RUAdivUkIGblLKeVI-i1U";
   const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 
-  // 1. Verify signature authenticity
-  if (!secret || secret !== EXPECTED_SECRET) {
-    return res.status(403).json({ error: "Forbidden: Invalid secret key" });
+  // Validate genuine Telegram user
+  const verifiedUser = verifyTelegramWebAppData(initData, BOT_TOKEN);
+  if (!verifiedUser || !verifiedUser.id) {
+    return res.status(401).json({ error: 'Unauthorized request.' });
   }
 
-  if (!user_id || !reward_id) {
-    return res.status(400).json({ error: "Missing required parameters" });
-  }
+  const userId = verifiedUser.id;
 
   try {
-    // 2. Trigger TelebotCreator database update
+    // 1. Increment balance in TelebotCreator
     await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -26,27 +60,26 @@ export default async function handler(req, res) {
         api_key: TELEBOT_API_KEY,
         bot_token: BOT_TOKEN,
         command: "/onbonuscomplete",
-        user_id: user_id,
+        user_id: userId,
         json: {
           action: "CLAIM_BONUS_ADS",
-          reward_id: reward_id,
           amount: 0.002
         }
       })
     });
 
-    // 3. Send Telegram confirmation message
+    // 2. Send instant bot notification
     const messageText = encodeURIComponent(
-      "🎉 <b>Ad Verified & Balance Credited!</b>\n\n" +
-      "➕ Added: <b>$0.005</b>\n" +
-      "<i>Check your updated balance in the main menu.</i>"
+      "🎉 <b>Bonus Verified & Credited!</b>\n\n" +
+      "➕ Added: <b>$0.002</b>\n" +
+      "<i>Check your balance in the main menu!</i>"
     );
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${user_id}&text=${messageText}&parse_mode=html`);
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${userId}&text=${messageText}&parse_mode=html`);
 
-    return res.status(200).send("OK");
+    return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Callback processing error:", error);
-    return res.status(500).send("Internal Server Error");
+    console.error("Reward error:", error);
+    return res.status(500).json({ error: "Failed to process reward." });
   }
 }
