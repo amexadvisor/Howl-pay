@@ -8,10 +8,10 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Ads Galaxy SDK with App ID 57 -->
+  <!-- Ads Galaxy SDK (App ID: 57) -->
   <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
 
-  <!-- Fallback Logic -->
+  <!-- Fallback Protection -->
   <script>
     const previousAdShow = function () {
       return new Promise(function (resolve, reject) {
@@ -133,11 +133,11 @@
     tg.ready();
 
     const BOT_USERNAME = "advancedet_bot";
-    const REQUIRED_ADS = 1;
+    const REQUIRED_ADS = 1; // Change to 3 when ready for production
     let adsCount = 0;
 
     function handleAdClick() {
-      tg.showConfirm("Ready to watch the ad?", function(confirmed) {
+      tg.showConfirm("Ready to watch the sponsored ad?", function(confirmed) {
         if (confirmed) {
           showAd();
         }
@@ -156,7 +156,9 @@
             btn.innerText = "Claiming reward...";
 
             tg.showAlert("🎉 Ad completed! Redirecting back to bot to claim $0.005...", function() {
-              tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=CLAIM_BONUS_ADS`);
+              // Direct message link to /claimbonus without touching /start
+              const customCmd = encodeURIComponent("/claimbonus");
+              tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?text=${customCmd}`);
               tg.close();
             });
           }
