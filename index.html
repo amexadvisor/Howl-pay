@@ -92,10 +92,9 @@
     tg.ready();
 
     const REQUIRED_ADS = 3;
-    const COOLDOWN_MS = 30 * 60 * 1000; // 30 mins
+    const COOLDOWN_MS = 30 * 60 * 1000;
     let adsCount = 0;
 
-    // Check cooldown on Mini-App load
     function checkCooldown() {
       const lastClaim = localStorage.getItem("last_ad_claim_time");
       if (lastClaim) {
@@ -173,11 +172,11 @@
 
         if (response.ok && data.success) {
           localStorage.setItem("last_ad_claim_time", Date.now().toString());
-          tg.showAlert("🎉 $0.002 processed! Check your bot balance.", function() {
+          tg.showAlert("🎉 Bonus verified! Check your bot chat.", function() {
             tg.close();
           });
         } else {
-          tg.showAlert("⚠️ " + (data.error || "Claim failed."));
+          tg.showAlert("⚠️ " + JSON.stringify(data.telebot_response || data.error));
           btn.disabled = false;
           updateBtnText();
         }
