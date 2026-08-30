@@ -12,11 +12,7 @@
   <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--tg-theme-bg-color, #121212);
@@ -36,9 +32,6 @@
       width: 100%;
       max-width: 360px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
     .logo {
       width: 110px;
@@ -47,13 +40,8 @@
       object-fit: cover;
       margin-bottom: 16px;
       border: 3px solid #0088cc;
-      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
     }
-    .title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+    .title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
     .instructions {
       font-size: 14px;
       color: var(--tg-theme-hint-color, #a0a0a0);
@@ -67,11 +55,7 @@
       padding: 12px;
       margin-bottom: 20px;
     }
-    .counter {
-      font-size: 16px;
-      font-weight: 600;
-      color: #00d26a;
-    }
+    .counter { font-size: 16px; font-weight: 600; color: #00d26a; }
     .btn {
       width: 100%;
       background-color: var(--tg-theme-button-color, #0088cc);
@@ -82,16 +66,8 @@
       font-weight: 700;
       border-radius: 12px;
       cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.1s ease;
     }
-    .btn:active {
-      transform: scale(0.98);
-    }
-    .btn:disabled {
-      background-color: #383838;
-      color: #888888;
-      cursor: not-allowed;
-    }
+    .btn:disabled { background-color: #383838; color: #888888; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -116,16 +92,30 @@
     tg.ready();
 
     const REQUIRED_ADS = 3;
+    const COOLDOWN_MS = 30 * 60 * 1000; // 30 mins
     let adsCount = 0;
-    let userClickedAd = false;
 
-    // Detect when the user clicks the ad (browser leaves/blurs the app window)
-    window.addEventListener("blur", function () {
-      userClickedAd = true;
-    });
+    // Check cooldown on Mini-App load
+    function checkCooldown() {
+      const lastClaim = localStorage.getItem("last_ad_claim_time");
+      if (lastClaim) {
+        const elapsed = Date.now() - parseInt(lastClaim);
+        if (elapsed < COOLDOWN_MS) {
+          const minutesLeft = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
+          tg.showAlert(`⏳ Cooldown active! Please wait ${minutesLeft} more minute(s).`, function() {
+            tg.close();
+          });
+          return true;
+        }
+      }
+      return false;
+    }
+
+    checkCooldown();
 
     function handleAdClick() {
-      userClickedAd = false;
+      if (checkCooldown()) return;
+
       const btn = document.getElementById('bonusBtn');
       btn.disabled = true;
       btn.innerText = "Opening ad...";
@@ -138,28 +128,25 @@
         }
 
         window.showAdsGalaxy()
-          .then(function (result) {
-            // Give 1 second for click detection event to register if clicked at end
-            setTimeout(function() {
-              adsCount++;
-              document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
+          .then(function () {
+            adsCount++;
+            document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
 
-              if (adsCount < REQUIRED_ADS) {
-                btn.disabled = false;
-                updateBtnText();
-                tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-              } else {
-                btn.innerText = "Crediting $0.002...";
-                sendReward();
-              }
-            }, 1000);
+            if (adsCount < REQUIRED_ADS) {
+              btn.disabled = false;
+              updateBtnText();
+              tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
+            } else {
+              btn.innerText = "Crediting reward...";
+              sendReward();
+            }
           })
           .catch(function (error) {
             btn.disabled = false;
             updateBtnText();
             if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
             if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-            tg.showAlert("Ad closed early without click interaction.");
+            tg.showAlert("Ad was closed early. Complete the ad to continue.");
           });
       });
     }
@@ -175,37 +162,27 @@
       try {
         const response = await fetch("/api/claim-bonus", {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             user_id: tg.initDataUnsafe?.user?.id,
             initData: tg.initData
           })
         });
 
-        const contentType = response.headers.get("content-type");
-        if (!contentType || !contentType.includes("application/json")) {
-          const text = await response.text();
-          throw new Error("Server returned HTML instead of JSON: " + text.slice(0, 100));
-        }
-
         const data = await response.json();
 
         if (response.ok && data.success) {
-          tg.showAlert("🎉 $0.002 has been added to your balance!", function() {
+          localStorage.setItem("last_ad_claim_time", Date.now().toString());
+          tg.showAlert("🎉 $0.002 processed! Check your bot balance.", function() {
             tg.close();
           });
-        } else if (data.cooldown) {
-          tg.showAlert(`⏳ Cooldown active! Please wait ${data.minutes_left} more minutes.`);
-          tg.close();
         } else {
           tg.showAlert("⚠️ " + (data.error || "Claim failed."));
           btn.disabled = false;
           updateBtnText();
         }
       } catch (err) {
-        tg.showAlert("Error: " + err.message);
+        tg.showAlert("Network error. Please try again.");
         btn.disabled = false;
         updateBtnText();
       }
