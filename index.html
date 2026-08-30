@@ -4,19 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Watch Ads & Earn Bonus</title>
-
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- Ads Galaxy SDK (App ID: 57) -->
   <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--tg-theme-bg-color, #121212);
@@ -45,11 +37,7 @@
       margin-bottom: 16px;
       border: 3px solid #0088cc;
     }
-    .title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
+    .title { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
     .instructions {
       font-size: 14px;
       color: var(--tg-theme-hint-color, #a0a0a0);
@@ -67,11 +55,7 @@
       border-radius: 12px;
       cursor: pointer;
     }
-    .btn:disabled {
-      background-color: #383838;
-      color: #888888;
-      cursor: not-allowed;
-    }
+    .btn:disabled { background-color: #383838; color: #888888; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -80,10 +64,10 @@
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     <div class="title">Bonus Reward</div>
     <div class="instructions">
-      Watch and complete the sponsored ad. Once verified by the ad network, <strong>$0.005</strong> will be credited directly to your bot balance.
+      Watch and interact with the sponsored ad. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
     </div>
 
-    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch Ad & Earn</button>
+    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch Ad & Claim</button>
   </div>
 
   <script>
@@ -91,10 +75,8 @@
     tg.expand();
     tg.ready();
 
-    const USER_ID = tg.initDataUnsafe?.user?.id;
-
     function handleAdClick() {
-      tg.showConfirm("Ready to watch the sponsored ad?", function(confirmed) {
+      tg.showConfirm("Ready to watch the ad?", function(confirmed) {
         if (confirmed) {
           showAd();
         }
@@ -103,20 +85,40 @@
 
     function showAd() {
       const btn = document.getElementById('bonusBtn');
-      btn.disabled = true;
 
-      // Pass user_id to AdsGalaxy for Server-to-Server postback
-      window.showAdsGalaxy({ user_id: USER_ID })
+      window.showAdsGalaxy()
         .then(function (result) {
-          tg.showAlert("🎉 Ad complete! Your reward is being credited via the ad network.", function() {
+          btn.disabled = true;
+          btn.innerText = "Crediting reward...";
+
+          fetch("/api/claim-bonus", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              initData: tg.initData
+            })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.success) {
+              tg.showAlert("🎉 $0.005 added to your balance!", function() {
+                tg.close();
+              });
+            } else {
+              tg.showAlert("⚠️ " + (data.error || "Verification failed."));
+              btn.disabled = false;
+              btn.innerText = "Watch Ad & Claim";
+            }
+          })
+          .catch(err => {
+            console.error(err);
             tg.close();
           });
         })
         .catch(function (error) {
-          btn.disabled = false;
-          if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again later.");
+          if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again in a moment.");
           if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-          tg.showAlert("Ad was closed early. Complete the full ad to receive your reward.");
+          tg.showAlert("Ad was closed early. Watch the full ad to receive your reward.");
         });
     }
   </script>
