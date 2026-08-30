@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watch Ads & Earn Bonus</title>
+  
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://app.adsgalaxy.online/sdk.js?id=25"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--tg-theme-bg-color, #121212);
+      color: var(--tg-theme-text-color, #ffffff);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+      text-align: center;
+    }
+    .card {
+      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      border-radius: 16px;
+      padding: 24px 20px;
+      width: 100%;
+      max-width: 360px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .logo {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-bottom: 16px;
+      border: 3px solid #0088cc;
+      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .instructions {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color, #a0a0a0);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .progress-box {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 20px;
+    }
+    .counter {
+      font-size: 16px;
+      font-weight: 600;
+      color: #00d26a;
+    }
+    .cooldown-text {
+      color: #ffaa00;
+    }
+    .btn {
+      width: 100%;
+      background-color: var(--tg-theme-button-color, #0088cc);
+      color: var(--tg-theme-button-text-color, #ffffff);
+      border: none;
+      padding: 15px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s ease, transform 0.1s ease;
+    }
+    .btn:active {
+      transform: scale(0.98);
+    }
+    .btn:disabled {
+      background-color: #383838;
+      color: #888888;
+      cursor: not-allowed;
+      transform: none;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
+    <div class="title">Bonus Reward</div>
+    <div class="instructions" id="instructionText">
+      Tap the button below to watch and interact with 3 sponsored ads. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
+    </div>
+
+    <div class="progress-box">
+      <div class="counter" id="adCounter">Ads Watched: 0 / 3</div>
+    </div>
+
+    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Get Bonus</button>
+  </div>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    tg.ready();
+
+    const USER_ID = tg.initDataUnsafe?.user?.id || "default_user";
+    const COOLDOWN_DURATION = 30 * 60 * 1000; // 30 minutes
+    let adsCount = 0;
+    let timerInterval = null;
+
+    function formatTime(ms) {
+      const totalSeconds = Math.floor(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function checkCooldown() {
+      const lastClaim = localStorage.getItem(`ads_cooldown_${USER_ID}`);
+      const btn = document.getElementById('bonusBtn');
+      const counter = document.getElementById('adCounter');
+
+      if (lastClaim) {
+        const timePassed = Date.now() - parseInt(lastClaim, 10);
+        const timeLeft = COOLDOWN_DURATION - timePassed;
+
+        if (timeLeft > 0) {
+          btn.disabled = true;
+          btn.innerText = `Cooldown Active`;
+          counter.className = "counter cooldown-text";
+          counter.innerText = `⏳ Next claim in: ${formatTime(timeLeft)}`;
+
+          if (!timerInterval) {
+            timerInterval = setInterval(checkCooldown, 1000);
+          }
+          return true;
+        } else {
+          // Cooldown finished
+          localStorage.removeItem(`ads_cooldown_${USER_ID}`);
+          if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+          }
+        }
+      }
+
+      // Default state when not in cooldown
+      btn.disabled = false;
+      btn.innerText = adsCount === 0 ? "Get Bonus" : `Watch Ad (${adsCount + 1}/3)`;
+      counter.className = "counter";
+      counter.innerText = `Ads Watched: ${adsCount} / 3`;
+      return false;
+    }
+
+    function handleAdClick() {
+      if (checkCooldown()) return;
+
+      tg.showConfirm(`Ready to watch Ad #${adsCount + 1}?`, function(confirmed) {
+        if (confirmed) {
+          showAd();
+        }
+      });
+    }
+
+    function showAd() {
+      if (typeof window.showAdsGalaxy === 'undefined') {
+        tg.showAlert("Ad network is loading. Please try again in a moment.");
+        return;
+      }
+
+      window.showAdsGalaxy()
+        .then(function(result) {
+          adsCount++;
+
+          if (adsCount < 3) {
+            document.getElementById('adCounter').innerText = `Ads Watched: ${adsCount} / 3`;
+            document.getElementById('bonusBtn').innerText = `Watch Ad (${adsCount + 1}/3)`;
+            tg.showAlert(`Ad complete! Watch ${3 - adsCount} more to claim your reward.`);
+          } else {
+            // 3 Ads completed - Set 30 min cooldown timestamp
+            localStorage.setItem(`ads_cooldown_${USER_ID}`, Date.now().toString());
+            
+            // Send trigger to TelebotCreator bot
+            tg.sendData("CLAIM_BONUS_ADS_0005");
+
+            tg.showAlert("🎉 Congratulations! $0.005 added to your balance. 30-minute cooldown started.", function() {
+              tg.close();
+            });
+          }
+        })
+        .catch(function(error) {
+          tg.showAlert("Ad was skipped or closed early. Complete the ad interaction to count progress.");
+          console.error(error);
+        });
+    }
+
+    // Run check immediately on load
+    checkCooldown();
+  </script>
+</body>
+</html>
