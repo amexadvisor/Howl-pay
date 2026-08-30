@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 
   try {
-    // Forward command execution to TelebotCreator
+    // Send standard TelebotCreator API payload
     const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,14 +46,12 @@ export default async function handler(req, res) {
         bot_token: BOT_TOKEN,
         command: "/onbonuscomplete",
         user_id: targetUserId,
-        chat_id: targetUserId,
-        params: `${targetUserId}`
+        params: String(targetUserId)
       })
     });
 
-    const telebotData = await telebotRes.json().catch(() => ({ status: "invalid_response" }));
+    const telebotData = await telebotRes.json().catch(() => ({}));
 
-    // Return the response from TelebotCreator directly to the client
     return res.status(200).json({
       success: telebotRes.ok,
       telebot_response: telebotData
