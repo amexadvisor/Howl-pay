@@ -11,23 +11,6 @@
   <!-- Ads Galaxy SDK (App ID: 57) -->
   <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
 
-  <!-- Fallback Protection -->
-  <script>
-    const previousAdShow = function () {
-      return new Promise(function (resolve, reject) {
-        reject({ code: "FALLBACK_EMPTY", message: "No fallback provider configured." });
-      });
-    };
-
-    window.AdsGalaxyFallback = previousAdShow;
-
-    if (window.showAdsGalaxy === undefined) {
-      window.showAdsGalaxy = function () {
-        return window.AdsGalaxyFallback();
-      };
-    }
-  </script>
-
   <style>
     * {
       box-sizing: border-box;
@@ -53,9 +36,6 @@
       width: 100%;
       max-width: 360px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
     }
     .logo {
       width: 110px;
@@ -64,7 +44,6 @@
       object-fit: cover;
       margin-bottom: 16px;
       border: 3px solid #0088cc;
-      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
     }
     .title {
       font-size: 20px;
@@ -77,18 +56,6 @@
       margin-bottom: 20px;
       line-height: 1.5;
     }
-    .progress-box {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 20px;
-    }
-    .counter {
-      font-size: 16px;
-      font-weight: 600;
-      color: #00d26a;
-    }
     .btn {
       width: 100%;
       background-color: var(--tg-theme-button-color, #0088cc);
@@ -99,10 +66,6 @@
       font-weight: 700;
       border-radius: 12px;
       cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-    }
-    .btn:active {
-      transform: scale(0.98);
     }
     .btn:disabled {
       background-color: #383838;
@@ -117,14 +80,10 @@
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     <div class="title">Bonus Reward</div>
     <div class="instructions">
-      Watch and interact with the sponsored ad. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
+      Watch and complete the sponsored ad. Once verified by the ad network, <strong>$0.005</strong> will be credited directly to your bot balance.
     </div>
 
-    <div class="progress-box">
-      <div class="counter" id="adCounter">Ads Watched: 0 / 1</div>
-    </div>
-
-    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Get Bonus</button>
+    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch Ad & Earn</button>
   </div>
 
   <script>
@@ -132,9 +91,7 @@
     tg.expand();
     tg.ready();
 
-    const BOT_USERNAME = "advancedet_bot";
-    const REQUIRED_ADS = 1; // Change to 3 when ready for production
-    let adsCount = 0;
+    const USER_ID = tg.initDataUnsafe?.user?.id;
 
     function handleAdClick() {
       tg.showConfirm("Ready to watch the sponsored ad?", function(confirmed) {
@@ -145,39 +102,21 @@
     }
 
     function showAd() {
-      window.showAdsGalaxy()
+      const btn = document.getElementById('bonusBtn');
+      btn.disabled = true;
+
+      // Pass user_id to AdsGalaxy for Server-to-Server postback
+      window.showAdsGalaxy({ user_id: USER_ID })
         .then(function (result) {
-          adsCount++;
-          document.getElementById('adCounter').innerText = `Ads Watched: ${adsCount} / ${REQUIRED_ADS}`;
-
-          if (adsCount >= REQUIRED_ADS) {
-            const btn = document.getElementById('bonusBtn');
-            btn.disabled = true;
-            btn.innerText = "Claiming reward...";
-
-            tg.showAlert("🎉 Ad completed! Redirecting back to bot to claim $0.005...", function() {
-              // Direct message link to /claimbonus without touching /start
-              const customCmd = encodeURIComponent("/claimbonus");
-              tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?text=${customCmd}`);
-              tg.close();
-            });
-          }
+          tg.showAlert("🎉 Ad complete! Your reward is being credited via the ad network.", function() {
+            tg.close();
+          });
         })
         .catch(function (error) {
-          if (error.code === "NO_FILL") {
-            tg.showAlert("No ad available right now. Please try again in a moment.");
-            return;
-          }
-          if (error.code === "INVALID_INIT_DATA") {
-            tg.showAlert("Please launch this app inside Telegram.");
-            return;
-          }
-          if (error.code === "APP_NOT_READY") {
-            tg.showAlert("App is not ready for ads. Please try again later.");
-            return;
-          }
-          tg.showAlert("Ad was closed early or failed to complete.");
-          console.log(error.message);
+          btn.disabled = false;
+          if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again later.");
+          if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
+          tg.showAlert("Ad was closed early. Complete the full ad to receive your reward.");
         });
     }
   </script>
