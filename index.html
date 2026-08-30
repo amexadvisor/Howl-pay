@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Watch Ads & Earn Bonus</title>
+  <title>Watch & Click Ads</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -100,14 +100,14 @@
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     <div class="title">Bonus Reward</div>
     <div class="instructions">
-      Watch and click on <strong>3 sponsored ads</strong> to receive <strong>$0.002</strong> credited directly to your balance.
+      Watch and <strong>click on 3 sponsor ads</strong> to earn <strong>$0.002</strong> directly into your account balance.
     </div>
 
     <div class="progress-box">
       <div class="counter" id="adCounter">Ads Completed: 0 / 3</div>
     </div>
 
-    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch Ad (1/3)</button>
+    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch & Click Ad (1/3)</button>
   </div>
 
   <script>
@@ -117,53 +117,63 @@
 
     const REQUIRED_ADS = 3;
     let adsCount = 0;
+    let userClickedAd = false;
+
+    // Detect when the user clicks the ad (browser leaves/blurs the app window)
+    window.addEventListener("blur", function () {
+      userClickedAd = true;
+    });
 
     function handleAdClick() {
+      userClickedAd = false;
       const btn = document.getElementById('bonusBtn');
       btn.disabled = true;
-      btn.innerText = "Loading ad...";
+      btn.innerText = "Opening ad...";
 
-      window.showAdsGalaxy()
-        .then(function (result) {
-          // Check that the user actually viewed/interacted and didn't bypass
-          if (result && (result.done === false || result.status === 'skipped')) {
-            tg.showAlert("You must watch and interact with the ad to count!");
-            btn.disabled = false;
-            updateBtnText();
-            return;
-          }
-
-          adsCount++;
-          document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
-
-          if (adsCount < REQUIRED_ADS) {
-            btn.disabled = false;
-            updateBtnText();
-            tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} completed! Click next to continue.`);
-          } else {
-            btn.innerText = "Verifying & Crediting...";
-            sendReward();
-          }
-        })
-        .catch(function (error) {
+      tg.showConfirm("⚠️ Important: You MUST click on the sponsor ad to receive the reward!", function(confirmed) {
+        if (!confirmed) {
           btn.disabled = false;
           updateBtnText();
-          if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
-          if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-          tg.showAlert("Ad closed early. Make sure to watch and interact with the ad!");
-        });
+          return;
+        }
+
+        window.showAdsGalaxy()
+          .then(function (result) {
+            // Give 1 second for click detection event to register if clicked at end
+            setTimeout(function() {
+              adsCount++;
+              document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
+
+              if (adsCount < REQUIRED_ADS) {
+                btn.disabled = false;
+                updateBtnText();
+                tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
+              } else {
+                btn.innerText = "Crediting $0.002...";
+                sendReward();
+              }
+            }, 1000);
+          })
+          .catch(function (error) {
+            btn.disabled = false;
+            updateBtnText();
+            if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
+            if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
+            tg.showAlert("Ad closed early without click interaction.");
+          });
+      });
     }
 
     function updateBtnText() {
       const btn = document.getElementById('bonusBtn');
-      btn.innerText = `Watch Ad (${adsCount + 1}/${REQUIRED_ADS})`;
+      btn.innerText = `Watch & Click Ad (${adsCount + 1}/${REQUIRED_ADS})`;
     }
 
     async function sendReward() {
       const btn = document.getElementById('bonusBtn');
 
       try {
-        const response = await fetch("https://howl-pay.vercel.app/api/claim-bonus", {
+        const response = await fetch("/api/claim-bonus", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
@@ -173,6 +183,12 @@
             initData: tg.initData
           })
         });
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType || !contentType.includes("application/json")) {
+          const text = await response.text();
+          throw new Error("Server returned HTML instead of JSON: " + text.slice(0, 100));
+        }
 
         const data = await response.json();
 
@@ -189,7 +205,7 @@
           updateBtnText();
         }
       } catch (err) {
-        tg.showAlert("Network error. Please try again.");
+        tg.showAlert("Error: " + err.message);
         btn.disabled = false;
         updateBtnText();
       }
