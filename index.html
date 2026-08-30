@@ -89,9 +89,6 @@
       font-weight: 600;
       color: #00d26a;
     }
-    .cooldown-text {
-      color: #ffaa00;
-    }
     .btn {
       width: 100%;
       background-color: var(--tg-theme-button-color, #0088cc);
@@ -111,7 +108,6 @@
       background-color: #383838;
       color: #888888;
       cursor: not-allowed;
-      transform: none;
     }
   </style>
 </head>
@@ -121,7 +117,7 @@
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     <div class="title">Bonus Reward</div>
     <div class="instructions">
-      Watch and interact with 3 sponsored ads. Once finished, <strong>$0.005</strong> will be credited directly to your bot balance.
+      Watch and interact with 3 sponsored ads. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
     </div>
 
     <div class="progress-box">
@@ -136,56 +132,13 @@
     tg.expand();
     tg.ready();
 
+    // Clears any previously stored cooldowns for smooth testing
     const USER_ID = tg.initDataUnsafe?.user?.id || "guest";
-    const COOLDOWN_DURATION = 30 * 60 * 1000; // 30 minutes in milliseconds
+    localStorage.removeItem(`ads_cooldown_${USER_ID}`);
+
     let adsCount = 0;
-    let timerInterval = null;
-
-    function formatTime(ms) {
-      const totalSeconds = Math.floor(ms / 1000);
-      const minutes = Math.floor(totalSeconds / 60);
-      const seconds = totalSeconds % 60;
-      return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-
-    function checkCooldown() {
-      const lastClaim = localStorage.getItem(`ads_cooldown_${USER_ID}`);
-      const btn = document.getElementById('bonusBtn');
-      const counter = document.getElementById('adCounter');
-
-      if (lastClaim) {
-        const timePassed = Date.now() - parseInt(lastClaim, 10);
-        const timeLeft = COOLDOWN_DURATION - timePassed;
-
-        if (timeLeft > 0) {
-          btn.disabled = true;
-          btn.innerText = "Cooldown Active";
-          counter.className = "counter cooldown-text";
-          counter.innerText = `⏳ Next claim in: ${formatTime(timeLeft)}`;
-
-          if (!timerInterval) {
-            timerInterval = setInterval(checkCooldown, 1000);
-          }
-          return true;
-        } else {
-          localStorage.removeItem(`ads_cooldown_${USER_ID}`);
-          if (timerInterval) {
-            clearInterval(timerInterval);
-            timerInterval = null;
-          }
-        }
-      }
-
-      btn.disabled = false;
-      btn.innerText = adsCount === 0 ? "Get Bonus" : `Watch Ad (${adsCount + 1}/3)`;
-      counter.className = "counter";
-      counter.innerText = `Ads Watched: ${adsCount} / 3`;
-      return false;
-    }
 
     function handleAdClick() {
-      if (checkCooldown()) return;
-
       tg.showConfirm(`Ready to watch Ad #${adsCount + 1}?`, function(confirmed) {
         if (confirmed) {
           showAd();
@@ -203,20 +156,23 @@
             document.getElementById('bonusBtn').innerText = `Watch Ad (${adsCount + 1}/3)`;
             tg.showAlert(`Ad complete! Watch ${3 - adsCount} more to claim your reward.`);
           } else {
-            // Save local cooldown timestamp
-            localStorage.setItem(`ads_cooldown_${USER_ID}`, Date.now().toString());
+            // Send JSON matching your TelebotCreator receiver format
+            const payload = JSON.stringify({
+              action: "CLAIM_BONUS_ADS",
+              status: "completed",
+              amount: 0.005
+            });
 
-            // Send trigger payload to TelebotCreator bot
-            tg.sendData("CLAIM_BONUS_ADS_0005");
+            tg.sendData(payload);
 
-            tg.showAlert("🎉 Congratulations! $0.005 added to your balance. Cooldown active for 30 minutes.", function() {
+            tg.showAlert("🎉 Congratulations! $0.005 added to your balance.", function() {
               tg.close();
             });
           }
         })
         .catch(function (error) {
           if (error.code === "NO_FILL") {
-            tg.showAlert("No ad available right now. Please try again in a few moments.");
+            tg.showAlert("No ad available right now. Please try again in a moment.");
             return;
           }
           if (error.code === "INVALID_INIT_DATA") {
@@ -231,8 +187,6 @@
           console.log(error.message);
         });
     }
-
-    checkCooldown();
   </script>
 </body>
 </html>
