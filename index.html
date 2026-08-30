@@ -117,11 +117,11 @@
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     <div class="title">Bonus Reward</div>
     <div class="instructions">
-      Watch and interact with 3 sponsored ads. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
+      Watch and interact with the sponsored ad. Once completed, <strong>$0.005</strong> will be credited directly to your bot balance.
     </div>
 
     <div class="progress-box">
-      <div class="counter" id="adCounter">Ads Watched: 0 / 3</div>
+      <div class="counter" id="adCounter">Ads Watched: 0 / 1</div>
     </div>
 
     <button class="btn" id="bonusBtn" onclick="handleAdClick()">Get Bonus</button>
@@ -132,14 +132,12 @@
     tg.expand();
     tg.ready();
 
-    const API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
-    const BOT_TOKEN = "8863906305:AAFduwJfiOkXr2RUAdivUkIGblLKeVI-i1U";
-    const USER_ID = tg.initDataUnsafe?.user?.id;
-
+    const BOT_USERNAME = "advancedet_bot";
+    const REQUIRED_ADS = 1;
     let adsCount = 0;
 
     function handleAdClick() {
-      tg.showConfirm(`Ready to watch Ad #${adsCount + 1}?`, function(confirmed) {
+      tg.showConfirm("Ready to watch the ad?", function(confirmed) {
         if (confirmed) {
           showAd();
         }
@@ -150,44 +148,16 @@
       window.showAdsGalaxy()
         .then(function (result) {
           adsCount++;
+          document.getElementById('adCounter').innerText = `Ads Watched: ${adsCount} / ${REQUIRED_ADS}`;
 
-          if (adsCount < 3) {
-            document.getElementById('adCounter').innerText = `Ads Watched: ${adsCount} / 3`;
-            document.getElementById('bonusBtn').innerText = `Watch Ad (${adsCount + 1}/3)`;
-            tg.showAlert(`Ad complete! Watch ${3 - adsCount} more to claim your reward.`);
-          } else {
+          if (adsCount >= REQUIRED_ADS) {
             const btn = document.getElementById('bonusBtn');
             btn.disabled = true;
-            btn.innerText = "Crediting reward...";
+            btn.innerText = "Claiming reward...";
 
-            // Send webhook request directly to TelebotCreator
-            fetch(`https://api.telebotcreator.com/api/v1/runCommand`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json"
-              },
-              body: JSON.stringify({
-                api_key: API_KEY,
-                bot_token: BOT_TOKEN,
-                command: "/onwebhook",
-                user_id: USER_ID,
-                json: {
-                  action: "CLAIM_BONUS_ADS",
-                  status: "completed",
-                  amount: 0.005
-                }
-              })
-            })
-            .then(function() {
-              tg.showAlert("🎉 Congratulations! $0.005 added to your balance.", function() {
-                tg.close();
-              });
-            })
-            .catch(function(err) {
-              console.error(err);
-              tg.showAlert("Reward processed! Check your bot.", function() {
-                tg.close();
-              });
+            tg.showAlert("🎉 Ad completed! Redirecting back to bot to claim $0.005...", function() {
+              tg.openTelegramLink(`https://t.me/${BOT_USERNAME}?start=CLAIM_BONUS_ADS`);
+              tg.close();
             });
           }
         })
