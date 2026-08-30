@@ -37,7 +37,7 @@ export default async function handler(req, res) {
   const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 
   try {
-    // 1. Run TelebotCreator command to credit $0.002 and enforce 30m cooldown
+    // Forward directly to TelebotCreator to execute balance & cooldown checks
     await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -52,15 +52,6 @@ export default async function handler(req, res) {
         }
       })
     });
-
-    // 2. Send instant Telegram push notification
-    const messageText = encodeURIComponent(
-      "🎉 <b>3 Ads Verified & Credited!</b>\n\n" +
-      "➕ Added: <b>$0.002</b>\n" +
-      "⏳ <i>Next bonus available in 30 minutes!</i>"
-    );
-
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${targetUserId}&text=${messageText}&parse_mode=html`);
 
     return res.status(200).json({ success: true });
   } catch (error) {
