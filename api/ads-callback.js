@@ -41,45 +41,38 @@ export default async function handler(req, res) {
 
   const { initData } = req.body;
   const BOT_TOKEN = "8863906305:AAFduwJfiOkXr2RUAdivUkIGblLKeVI-i1U";
-  const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 
-  // Validate genuine Telegram user
+  // Verify Telegram InitData
   const verifiedUser = verifyTelegramWebAppData(initData, BOT_TOKEN);
   if (!verifiedUser || !verifiedUser.id) {
-    return res.status(401).json({ error: 'Unauthorized request.' });
+    console.error("Auth Failed. Received initData:", initData);
+    return res.status(401).json({ error: 'Unauthorized request. Open in Telegram.' });
   }
 
   const userId = verifiedUser.id;
 
   try {
-    // 1. Increment balance in TelebotCreator
-    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    // Send message using standard JSON POST to Telegram Bot API
+    const telegramRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        api_key: TELEBOT_API_KEY,
-        bot_token: BOT_TOKEN,
-        command: "/onbonuscomplete",
-        user_id: userId,
-        json: {
-          action: "CLAIM_BONUS_ADS",
-          amount: 0.002
-        }
+        chat_id: userId,
+        text: "🎉 <b>Bonus Verified & Credited!</b>\n\n➕ Added: <b>$0.005</b>\n<i>Check your balance in the bot!</i>",
+        parse_mode: "HTML"
       })
     });
 
-    // 2. Send instant bot notification
-    const messageText = encodeURIComponent(
-      "🎉 <b>Bonus Verified & Credited!</b>\n\n" +
-      "➕ Added: <b>$0.002</b>\n" +
-      "<i>Check your balance in the main menu!</i>"
-    );
+    const telegramData = await telegramRes.json();
+    console.log("Telegram API Response:", telegramData);
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage?chat_id=${userId}&text=${messageText}&parse_mode=html`);
+    if (!telegramData.ok) {
+      return res.status(400).json({ error: telegramData.description });
+    }
 
     return res.status(200).json({ success: true });
   } catch (error) {
-    console.error("Reward error:", error);
-    return res.status(500).json({ error: "Failed to process reward." });
+    console.error("Serverless execution error:", error);
+    return res.status(500).json({ error: error.message });
   }
 }
