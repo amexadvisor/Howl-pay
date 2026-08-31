@@ -1,4 +1,5 @@
 export default async function handler(req, res) {
+  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
@@ -11,7 +12,24 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: "API is online" });
   }
 
-  const { user_id, initData } = req.body || {};
+  const { webhook, user_id, initData } = req.body || {};
+
+  // 1. If a TelebotCreator webhook URL is provided, forward the request directly
+  if (webhook) {
+    try {
+      const forwardRes = await fetch(webhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true, timestamp: Date.now() })
+      });
+
+      return res.status(200).json({ success: true, forwarded: forwardRes.ok });
+    } catch (err) {
+      return res.status(500).json({ error: "Webhook forwarding failed: " + err.message });
+    }
+  }
+
+  // 2. Fallback: Parse user ID if calling TelebotCreator API directly
   let targetUserId = user_id;
 
   if (initData) {
@@ -30,32 +48,31 @@ export default async function handler(req, res) {
   }
 
   if (!targetUserId) {
-    return res.status(400).json({ error: "Missing user ID" });
+    return res.status(400).json({ error: "Missing user identification or webhook URL" });
   }
 
   const BOT_TOKEN = "8863906305:AAFduwJfiOkXr2RUAdivUkIGblLKeVI-i1U";
   const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 
   try {
-    // 1. Run TelebotCreator command
     const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         api_key: TELEBOT_API_KEY,
         bot_token: BOT_TOKEN,
-        command: "/onbonuscomplete",
+        command: "/adsreward",
         user_id: targetUserId,
-        params: String(targetUserId),
-        json: {
-          action: "CLAIM_BONUS_ADS",
-          user_id: targetUserId,
-          amount: 0.002
-        }
+        params: String(targetUserId)
       })
     });
 
-    return res.status(200).json({ success: true });
+    const telebotData = await telebotRes.json().catch(() => ({}));
+
+    return res.status(200).json({
+      success: telebotRes.ok,
+      telebot_response: telebotData
+    });
   } catch (error) {
     return res.status(500).json({ error: error.message });
   }
