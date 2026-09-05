@@ -26,16 +26,16 @@
       align-items: center;
       justify-content: center;
       min-height: 100vh;
-      padding: 24px;
+      padding: 16px;
       text-align: center;
-      overflow: hidden;
+      overflow-y: auto;
     }
     .card {
       background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
       border-radius: 16px;
       padding: 24px 20px;
       width: 100%;
-      max-width: 360px;
+      max-width: 380px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       display: flex;
       flex-direction: column;
@@ -101,18 +101,67 @@
     }
     .back-btn {
       background-color: #383838;
-      margin-top: 8px;
+      margin-top: 12px;
       margin-bottom: 0;
     }
     .hidden {
       display: none !important;
     }
-    #pollmatic-frame {
+    
+    /* Survey List Specific Styles */
+    .survey-list {
       width: 100%;
-      height: 420px;
+      max-height: 450px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 5px;
+    }
+    .survey-item {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      padding: 14px;
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .survey-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      color: var(--tg-theme-hint-color, #a0a0a0);
+    }
+    .survey-reward {
+      color: #00d26a;
+      font-weight: 600;
+    }
+    .survey-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--tg-theme-text-color, #ffffff);
+    }
+    .start-survey-btn {
+      background-color: var(--tg-theme-button-color, #0088cc);
+      color: var(--tg-theme-button-text-color, #ffffff);
       border: none;
-      border-radius: 12px;
-      background: #fff;
+      padding: 8px 12px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: inline-block;
+      margin-top: 4px;
+    }
+    .loading-text, .empty-text {
+      font-size: 14px;
+      color: var(--tg-theme-hint-color, #a0a0a0);
+      padding: 20px 0;
     }
   </style>
 </head>
@@ -147,11 +196,14 @@
 
   <!-- SURVEY VIEW -->
   <div class="card hidden" id="surveyView" style="max-width: 400px;">
-    <div class="title" style="margin-bottom: 12px;">Pollmatic Surveys</div>
+    <div class="title" style="margin-bottom: 4px;">Available Surveys</div>
+    <div class="instructions" style="margin-bottom: 12px;">Complete surveys below to earn rewards.</div>
     
-    <iframe id="pollmatic-frame" src=""></iframe>
+    <div id="surveyContainer" class="survey-list">
+      <div class="loading-text">Loading available surveys...</div>
+    </div>
 
-    <button class="btn back-btn" style="margin-top: 12px;" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
+    <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
   <script>
@@ -174,10 +226,12 @@
 
     const USER_ID = tg.initDataUnsafe?.user?.id || "guest";
     const CLOUD_STORAGE_KEY = "ad_cooldown_" + USER_ID;
-    const POLLMATIC_API_KEY = "YOUR_POLLMATIC_API_KEY"; // Replace with your actual Pollmatic API key
+    const API_KEY = "6cosfuqw2wk6m7d8zoqmow2tuampqt";
 
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
+
+    let surveysLoaded = false;
 
     function switchView(viewId) {
       document.getElementById('mainMenu').classList.add('hidden');
@@ -186,12 +240,60 @@
 
       document.getElementById(viewId).classList.remove('hidden');
 
-      // Load survey iframe dynamically when opening survey view
-      if (viewId === 'surveyView') {
-        const iframe = document.getElementById('pollmatic-frame');
-        if (!iframe.src || iframe.src === "about:blank") {
-          iframe.src = `https://pollmatic.io/offerwall?api_key=${POLLMATIC_API_KEY}&user_id=${USER_ID}`;
+      // Fetch surveys dynamically via API when opening the survey tab
+      if (viewId === 'surveyView' && !surveysLoaded) {
+        fetchSurveys();
+      }
+    }
+
+    async function fetchSurveys() {
+      const container = document.getElementById('surveyContainer');
+      try {
+        // Construct API URL with user id
+        const apiUrl = `https://pollmatic.io/api/surveys.php?key=${API_KEY}&sub_id=${USER_ID}`;
+        const response = await fetch(apiUrl);
+        const data = await response.json();
+
+        surveysLoaded = true;
+        container.innerHTML = "";
+
+        // Adjust depending on API response structure (checking common patterns like data array or direct array)
+        const surveys = Array.isArray(data) ? data : (data.surveys || data.data || []);
+
+        if (surveys.length === 0) {
+          container.innerHTML = `<div class="empty-text">No surveys available right now. Please check back later!</div>`;
+          return;
         }
+
+        surveys.forEach(survey => {
+          const title = survey.title || survey.name || "Paid Survey";
+          const reward = survey.reward || survey.payout || "$0.00";
+          const duration = survey.duration || survey.time || "5 mins";
+          const link = survey.url || survey.link;
+
+          const item = document.createElement('div');
+          item.className = 'survey-item';
+          item.innerHTML = `
+            <div class="survey-info">
+              <span>⏱ ${duration}</span>
+              <span class="survey-reward">${reward}</span>
+            </div>
+            <div class="survey-title">${title}</div>
+            ${link ? `<a href="${link}" target="_blank" class="start-survey-btn" onclick="openSurveyLink(event, '${link}')">Start Survey</a>` : ''}
+          `;
+          container.appendChild(item);
+        });
+      } catch (err) {
+        container.innerHTML = `<div class="empty-text">Failed to load surveys. Please try again.</div>`;
+      }
+    }
+
+    function openSurveyLink(event, url) {
+      event.preventDefault();
+      if (tg.openLink) {
+        tg.openLink(url);
+      } else {
+        window.open(url, '_blank');
       }
     }
 
