@@ -244,8 +244,7 @@
     async function fetchSurveysSecurely() {
       const container = document.getElementById('surveyContainer');
       try {
-        // Send the cryptographically signed Telegram initData in headers
-        const response = await fetch(`https://api.yourdomain.com/api/surveys`, {
+        const response = await fetch('/api/surveys', {
           method: 'GET',
           headers: {
             'X-Telegram-Init-Data': tg.initData
