@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Bonus Reward Menu</title>
+  <title>Earning Hub Mini App</title>
 
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -107,8 +107,6 @@
     .hidden {
       display: none !important;
     }
-    
-    /* Survey List Specific Styles */
     .survey-list {
       width: 100%;
       max-height: 450px;
@@ -221,13 +219,11 @@
     }
 
     const REQUIRED_ADS = 3;
-    const COOLDOWN_MS = 0 * 60 * 1000; 
     let adsCount = 0;
 
     const USER_ID = tg.initDataUnsafe?.user?.id || "guest";
     const CLOUD_STORAGE_KEY = "ad_cooldown_" + USER_ID;
-    const API_KEY = "6cosfuqw2wk6m7d8zoqmow2tuampqt";
-
+    
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
 
@@ -240,24 +236,30 @@
 
       document.getElementById(viewId).classList.remove('hidden');
 
-      // Fetch surveys dynamically via API when opening the survey tab
       if (viewId === 'surveyView' && !surveysLoaded) {
-        fetchSurveys();
+        fetchSurveysSecurely();
       }
     }
 
-    async function fetchSurveys() {
+    async function fetchSurveysSecurely() {
       const container = document.getElementById('surveyContainer');
       try {
-        // Construct API URL with user id
-        const apiUrl = `https://pollmatic.io/api/surveys.php?key=${API_KEY}&sub_id=${USER_ID}`;
-        const response = await fetch(apiUrl);
-        const data = await response.json();
+        // Send the cryptographically signed Telegram initData in headers
+        const response = await fetch(`https://api.yourdomain.com/api/surveys`, {
+          method: 'GET',
+          headers: {
+            'X-Telegram-Init-Data': tg.initData
+          }
+        });
 
+        if (!response.ok) {
+          throw new Error("Unauthorized request");
+        }
+
+        const data = await response.json();
         surveysLoaded = true;
         container.innerHTML = "";
 
-        // Adjust depending on API response structure (checking common patterns like data array or direct array)
         const surveys = Array.isArray(data) ? data : (data.surveys || data.data || []);
 
         if (surveys.length === 0) {
@@ -284,7 +286,7 @@
           container.appendChild(item);
         });
       } catch (err) {
-        container.innerHTML = `<div class="empty-text">Failed to load surveys. Please try again.</div>`;
+        container.innerHTML = `<div class="empty-text">Authentication failed or failed to load surveys.</div>`;
       }
     }
 
@@ -297,65 +299,39 @@
       }
     }
 
-    function checkUserCooldown(callback) {
-      if (tg.CloudStorage && tg.CloudStorage.getItem) {
-        tg.CloudStorage.getItem(CLOUD_STORAGE_KEY, function(err, val) {
-          if (!err && val) {
-            const elapsed = Date.now() - parseInt(val);
-            if (elapsed < COOLDOWN_MS) {
-              const minutesLeft = Math.ceil((COOLDOWN_MS - elapsed) / 60000);
-              tg.showAlert(`⏳ Cooldown active for this account! Please wait ${minutesLeft} more minute(s).`, function() {
-                tg.close();
-              });
-              return callback(true);
-            }
-          }
-          callback(false);
-        });
-      } else {
-        callback(false);
-      }
-    }
-
-    checkUserCooldown(function() {});
-
     function handleAdClick() {
-      checkUserCooldown(function(isCoolingDown) {
-        if (isCoolingDown) return;
+      const btn = document.getElementById('bonusBtn');
+      btn.disabled = true;
+      btn.innerText = "Opening ad...";
 
-        const btn = document.getElementById('bonusBtn');
-        btn.disabled = true;
-        btn.innerText = "Opening ad...";
+      tg.showConfirm("⚠️ Important: Make sure to click on the sponsor ad!", function(confirmed) {
+        if (!confirmed) {
+          btn.disabled = false;
+          updateBtnText();
+          return;
+        }
 
-        tg.showConfirm("⚠️ Important: Make sure to click on the sponsor ad!", function(confirmed) {
-          if (!confirmed) {
-            btn.disabled = false;
-            updateBtnText();
-            return;
-          }
+        window.showAdsGalaxy()
+          .then(function () {
+            adsCount++;
+            document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
 
-          window.showAdsGalaxy()
-            .then(function () {
-              adsCount++;
-              document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
-
-              if (adsCount < REQUIRED_ADS) {
-                btn.disabled = false;
-                updateBtnText();
-                tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-              } else {
-                btn.innerText = "Crediting reward...";
-                sendReward();
-              }
-            })
-            .catch(function (error) {
+            if (adsCount < REQUIRED_ADS) {
               btn.disabled = false;
               updateBtnText();
-              if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
-              if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-              tg.showAlert("Ad closed early. Complete the full ad to continue.");
-            });
-        });
+              tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
+            } else {
+              btn.innerText = "Crediting reward...";
+              sendReward();
+            }
+          })
+          .catch(function (error) {
+            btn.disabled = false;
+            updateBtnText();
+            if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
+            if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
+            tg.showAlert("Ad closed early. Complete the full ad to continue.");
+          });
       });
     }
 
@@ -374,14 +350,13 @@
         return;
       }
 
-      if (tg.CloudStorage && tg.CloudStorage.setItem) {
-        tg.CloudStorage.setItem(CLOUD_STORAGE_KEY, Date.now().toString());
-      }
-
       try {
         await fetch(webhookUrl, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": tg.initData
+          },
           body: JSON.stringify({ completed: true })
         });
 
