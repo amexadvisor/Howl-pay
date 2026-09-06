@@ -9,7 +9,7 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <!-- AdsBitVex SDK (App ID: 000402) -->
-  <script src="https://adsbitvex.com/sdk.js?id=000402"></script>
+  <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
 
   <style>
     * {
@@ -321,8 +321,8 @@
           return;
         }
 
-        // Updated function call to trigger AdsBitVex SDK (App ID: 000402)
-        window.showAdsBitVex()
+        // AdsBitVex exact function call syntax implementation
+        window.showadsbitvex()
           .then(function () {
             adsCount++;
             document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
@@ -339,9 +339,7 @@
           .catch(function (error) {
             btn.disabled = false;
             updateBtnText();
-            if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
-            if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-            tg.showAlert("Ad closed early. Complete the full ad to continue.");
+            tg.showAlert("Ad closed early or unavailable. Complete the full ad to continue.");
           });
       });
     }
