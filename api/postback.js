@@ -2,6 +2,7 @@ const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
 const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
+const TELEBOT_API_KEY = "tgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24"; // Replace with the correct API key for your new bot
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
@@ -31,31 +32,53 @@ module.exports = async function handler(req, res) {
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
-    console.warn(`Signature mismatch for user ${userId}`);
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  // 2. Format Telegram Notification Message
-  let messageText = "";
-  if (status == "2") {
-    messageText = `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed by the provider.`;
-  } else {
-    messageText = `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt will automatically unlock and move to your main balance after 7 days!`;
-  }
+  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
 
-  // 3. Dispatch message directly via Telegram Bot API
+  // 2. Dispatch Telegram notification directly
+  let messageText = status == "2" 
+    ? `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed.`
+    : `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt unlocks automatically after 7 days!`;
+
   try {
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: userId, text: messageText, parse_mode: "HTML" })
+    });
+
+    // 3. Trigger TelebotCreator resource command using matching API key
+    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        chat_id: userId,
-        text: messageText,
-        parse_mode: "HTML"
+        api_key: TELEBOT_API_KEY,
+        bot_token: BOT_TOKEN,
+        command: commandName,
+        user_id: String(userId),
+        params: `${reward}|${transactionId}`
       })
     });
+
+    // Schedule 7-day release if valid credit
+    if (status != "2") {
+      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TELEBOT_API_KEY,
+          bot_token: BOT_TOKEN,
+          timeout: HOLD_SECONDS,
+          command: "/releasereward",
+          user_id: String(userId),
+          params: `${reward}|${transactionId}`
+        })
+      });
+    }
   } catch (err) {
-    console.error("Failed to send Telegram notification:", err.message);
+    console.error("Pipeline error:", err.message);
   }
 
   return res.status(200).send("ok");
