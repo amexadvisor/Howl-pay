@@ -289,12 +289,20 @@
       <div id="tasks-view" class="view">
         <div class="earn-category-tabs" id="earn-tabs" style="--active-index: 0;">
           <div class="tab-pill"></div>
-          <button class="category-tab active" id="tab-ads" onclick="switchEarnTab('ads')">Ads</button>
-          <button class="category-tab" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
+          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
+          <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')">Ads</button>
         </div>
 
-        <!-- ADS PANEL -->
-        <div id="panel-ads" class="earn-section-panel active">
+        <!-- OFFERWALL PANEL (First) -->
+        <div id="panel-offerwall" class="earn-section-panel active">
+          <h2 class="section-title"><i class="fa-solid fa-gift"></i> Partner Offerwall</h2>
+          <div class="offerwall-iframe-container">
+            <iframe id="offerwall-iframe" src="" title="Offerwall"></iframe>
+          </div>
+        </div>
+
+        <!-- ADS PANEL (Second) -->
+        <div id="panel-ads" class="earn-section-panel">
           <h2 class="section-title"><i class="fa-solid fa-rectangle-ad"></i> Active Ad Modules</h2>
           
           <div class="task-card" id="adsbitvexCard" onclick="startAdsBitvexTask()">
@@ -307,14 +315,6 @@
                 <span id="adsbitvexCD" class="cooldown-badge">5s</span>
                 <div class="task-arrow" id="adsbitvexArrow"><i class="fa-solid fa-play"></i></div>
               </div>
-          </div>
-        </div>
-
-        <!-- OFFERWALL PANEL -->
-        <div id="panel-offerwall" class="earn-section-panel">
-          <h2 class="section-title"><i class="fa-solid fa-gift"></i> Partner Offerwall</h2>
-          <div class="offerwall-iframe-container">
-            <iframe id="offerwall-iframe" src="" title="Offerwall"></iframe>
           </div>
         </div>
       </div>
@@ -402,7 +402,7 @@
         if (activeBtn) activeBtn.classList.add('active');
     }
 
-    const TAB_ORDER = ['ads', 'offerwall'];
+    const TAB_ORDER = ['offerwall', 'ads'];
 
     function switchEarnTab(tabName) {
         document.querySelectorAll('#tasks-view .category-tab').forEach(tab => tab.classList.remove('active'));
@@ -568,7 +568,7 @@
     function shareApp() {
         const botUsername = "howl_paybot"; 
         const referralLink = `https://t.me/${botUsername}?start=${currentUserId}`;
-        const text = `🚀 Join HOWL Rewards and earn instant payouts using survey, ads and simple tasks. Launch now!`;
+        const text = `🚀 Join HOWL Rewards and earn instant payouts using offerwall, survey, ads, and simple tasks. Launch now!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
             Telegram.WebApp.openTelegramLink(shareUrl);
