@@ -13,6 +13,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { completed, initData } = req.body || {};
   const BOT_TOKEN = process.env.BOT_TOKEN;
   const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
@@ -20,38 +21,38 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server configuration error: missing environment variables" });
   }
 
-  // Extract initData from body or headers
-  const initData = req.body?.initData || req.headers['x-telegram-init-data'];
+  const rawInitData = initData || req.headers['x-telegram-init-data'];
+  let targetUserId = null;
 
-  if (!initData || typeof initData !== 'string') {
+  if (!rawInitData || typeof rawInitData !== 'string') {
     return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
   }
 
-  let targetUserId = null;
-
   try {
-    const pairs = initData.split('&');
-    const hashIndex = pairs.findIndex(str => str.startsWith('hash='));
+    const params = new URLSearchParams(rawInitData);
+    const hash = params.get('hash');
 
-    if (hashIndex === -1) {
+    if (!hash) {
       return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
     }
 
-    const receivedHash = pairs.splice(hashIndex)[0].split('=')[1];
+    params.delete('hash');
+    params.sort();
 
-    pairs.sort((a, b) => a.localeCompare(b));
-    const dataCheckString = pairs.join('\n');
+    const dataCheckArr = [];
+    for (const [key, value] of params.entries()) {
+      dataCheckArr.push(`${key}=${value}`);
+    }
+    const dataCheckString = dataCheckArr.join('\n');
 
-    // Generate secret key using HMAC-SHA-256 with "WebAppData" as key and BOT_TOKEN as message
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-    if (calculatedHash !== receivedHash) {
+    if (calculatedHash !== hash) {
       return res.status(403).json({ error: "Forbidden: Invalid Telegram signature" });
     }
 
-    const urlParams = new URLSearchParams(initData);
-    const userStr = urlParams.get('user');
+    const userStr = params.get('user');
     if (userStr) {
       const parsed = JSON.parse(userStr);
       if (parsed && parsed.id) {
@@ -72,7 +73,7 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         user_id: String(targetUserId),
-        completed: true, 
+        completed: completed !== undefined ? completed : true, 
         timestamp: Date.now() 
       })
     });
