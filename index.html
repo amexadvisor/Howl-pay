@@ -293,6 +293,8 @@
     }
 
     const OFFERWALL_API_KEY = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
+    const urlParams = new URLSearchParams(window.location.search);
+    const webhookUrl = urlParams.get('webhook');
 
     function switchView(viewId) {
       document.getElementById('mainMenu').classList.add('hidden');
@@ -319,7 +321,7 @@
           return;
         }
 
-        // AdsBitVex standalone function invocation without webhook requirements
+        // AdsBitVex exact SDK function invocation
         window.showadsbitvex()
           .then(function () {
             adsCount++;
@@ -330,10 +332,8 @@
               updateBtnText();
               tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
             } else {
-              btn.innerText = "Completed!";
-              tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
-                tg.close();
-              });
+              btn.innerText = "Crediting reward...";
+              sendReward();
             }
           })
           .catch(function (error) {
@@ -347,6 +347,37 @@
     function updateBtnText() {
       const btn = document.getElementById('bonusBtn');
       btn.innerText = `Watch & Click Ad (${adsCount + 1}/${REQUIRED_ADS})`;
+    }
+
+    async function sendReward() {
+      const btn = document.getElementById('bonusBtn');
+
+      if (!webhookUrl) {
+        tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
+          tg.close();
+        });
+        return;
+      }
+
+      try {
+        await fetch(webhookUrl, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Telegram-Init-Data": tg.initData
+          },
+          body: JSON.stringify({ completed: true })
+        });
+
+        tg.showAlert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
+          tg.close();
+        });
+      } catch (err) {
+        new Image().src = webhookUrl;
+        tg.showAlert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
+          tg.close();
+        });
+      }
     }
   </script>
 </body>
