@@ -24,7 +24,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: flex-start;
+      justify-content: center;
       min-height: 100vh;
       padding: 16px;
       text-align: center;
@@ -142,29 +142,52 @@
       margin-top: 12px;
       margin-bottom: 0;
     }
-    .iframe-card {
-      width: 100%;
-      max-width: 380px;
-      height: 75vh;
-      padding: 12px;
+    .hidden {
+      display: none !important;
+    }
+
+    /* FULLSCREEN OFFERWALL IFRAME STYLES */
+    #offerwallView {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: var(--tg-theme-bg-color, #121212);
       display: flex;
       flex-direction: column;
+      z-index: 999;
+      padding: 0;
+      margin: 0;
     }
-    .offerwall-container {
+    .offerwall-header {
+      width: 100%;
+      padding: 10px 16px;
+      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    .offerwall-back-btn {
+      background-color: #383838;
+      color: #ffffff;
+      border: none;
+      padding: 8px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .offerwall-iframe-container {
       width: 100%;
       flex-grow: 1;
-      border-radius: 12px;
       overflow: hidden;
-      background: #ffffff;
-      margin-bottom: 12px;
     }
-    iframe {
+    #offerwallFrame {
       width: 100%;
       height: 100%;
       border: none;
-    }
-    .hidden {
-      display: none !important;
     }
   </style>
 </head>
@@ -207,13 +230,14 @@
     <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
-  <!-- OFFERWALL IFRAME VIEW -->
-  <div class="card iframe-card hidden" id="offerwallView">
-    <div class="title" style="font-size: 18px; margin-bottom: 8px;">Offerwall & Surveys</div>
-    <div class="offerwall-container">
+  <!-- OFFERWALL FULLSCREEN VIEW -->
+  <div class="hidden" id="offerwallView">
+    <div class="offerwall-header">
+      <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back</button>
+    </div>
+    <div class="offerwall-iframe-container">
       <iframe id="offerwallFrame" src="" allowpaymentrequest></iframe>
     </div>
-    <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
   <script>
