@@ -3,70 +3,71 @@ import crypto from 'crypto';
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
-  if (req.method === 'GET') {
-    return res.status(200).json({ status: "API is online" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { userId, completed, initData, testMode } = req.body || {};
+  const { initData } = req.body || {};
   const BOT_TOKEN = process.env.BOT_TOKEN;
   const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
-  if (!targetWebhook) {
-    return res.status(500).json({ error: "Missing ADS_WEBHOOK_URL environment variable configuration" });
+  if (!BOT_TOKEN || !targetWebhook) {
+    return res.status(500).json({ error: "Server configuration error: missing environment variables" });
   }
 
-  let targetUserId = userId;
+  if (!initData) {
+    return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
+  }
 
-  // 1. Cryptographic Telegram InitData Verification
-  if (initData && BOT_TOKEN) {
-    try {
-      const urlParams = new URLSearchParams(initData);
-      const hash = urlParams.get('hash');
-      urlParams.delete('hash');
+  let targetUserId = null;
 
-      // Sort parameters alphabetically as required by Telegram WebApp auth spec
-      const paramsList = [];
-      urlParams.sort();
-      for (const [key, value] of urlParams.entries()) {
-        paramsList.push(`${key}=${value}`);
-      }
-      const dataCheckString = paramsList.join('\n');
+  try {
+    const urlParams = new URLSearchParams(initData);
+    const hash = urlParams.get('hash');
+    
+    if (!hash) {
+      return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
+    }
 
-      // Compute secret key: HMAC-SHA-256 of "WebAppData" using BOT_TOKEN
-      const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-      
-      // Compute signature
-      const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+    urlParams.delete('hash');
 
-      if (calculatedHash !== hash && !testMode) {
-        return res.status(403).json({ error: "Unauthorized: Invalid Telegram Mini App signature" });
-      }
+    // 1. Sort keys alphabetically as mandated by Telegram WebApp authentication specifications
+    const paramsList = [];
+    urlParams.sort();
+    for (const [key, value] of urlParams.entries()) {
+      paramsList.push(`${key}=${value}`);
+    }
+    const dataCheckString = paramsList.join('\n');
 
-      // Extract verified user id from initData
-      const userStr = urlParams.get('user');
-      if (userStr) {
-        const parsed = JSON.parse(userStr);
-        if (parsed && parsed.id) {
-          targetUserId = parsed.id;
-        }
-      }
-    } catch (e) {
-      if (!testMode) {
-        return res.status(403).json({ error: "Unauthorized: Failed to parse or verify initData" });
+    // 2. Compute HMAC-SHA-256 signature using "WebAppData" as key and BOT_TOKEN as message
+    const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+
+    // 3. Cryptographically verify the signature
+    if (calculatedHash !== hash) {
+      return res.status(403).json({ error: "Forbidden: Invalid Telegram signature (unauthorized bot context)" });
+    }
+
+    // 4. Safely extract verified user ID directly from the validated payload
+    const userStr = urlParams.get('user');
+    if (userStr) {
+      const parsed = JSON.parse(userStr);
+      if (parsed && parsed.id) {
+        targetUserId = parsed.id;
       }
     }
-  } else if (!testMode) {
-    return res.status(403).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
+  } catch (e) {
+    return res.status(400).json({ error: "Bad Request: Failed to process validation parameters" });
   }
 
   if (!targetUserId) {
-    return res.status(400).json({ error: "Missing user identification" });
+    return res.status(400).json({ error: "Missing user identification within validated context" });
   }
 
   try {
@@ -75,7 +76,7 @@ export default async function handler(req, res) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
         user_id: String(targetUserId),
-        completed: completed !== undefined ? completed : true, 
+        completed: true, 
         timestamp: Date.now() 
       })
     });
