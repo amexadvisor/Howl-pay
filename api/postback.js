@@ -33,16 +33,18 @@ module.exports = async function handler(req, res) {
 
   const userId = subId;
   const transactionId = transId;
-  const rawReward = parseFloat(reward || 0);
-  const rewardAmount = parseFloat(rawReward.toFixed(2)); // Normalize floats like 1.6 or 2.0
+  
+  // Keep reward as an exact raw string (e.g. "1.21", "2.0", "1.6") to preserve Offerwall's exact hash formatting
+  const rawRewardStr = reward ? String(reward) : "0";
+  const rewardAmount = parseFloat(rawRewardStr) || 0;
   const txStatus = String(status || "1");
 
   if (!userId || !transactionId || isNaN(rewardAmount) || !signature) {
     return res.status(400).json({ success: false, error: "Missing required postback parameters" });
   }
 
-  // MD5 Security Verification using normalized reward string
-  const stringToHash = `${userId}${transactionId}${rewardAmount}${OFFERWALL_SECRET_KEY}`;
+  // Use the exact raw string provided by Offerwall in the signature hash
+  const stringToHash = `${userId}${transactionId}${rawRewardStr}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
