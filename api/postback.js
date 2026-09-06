@@ -37,20 +37,8 @@ module.exports = async function handler(req, res) {
 
   const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
 
-  // 2. Format Notification Message
-  let messageText = status == "2" 
-    ? `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed.`
-    : `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt unlocks automatically after 7 days!`;
-
   try {
-    // Dispatch direct Telegram message
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: userId, text: messageText, parse_mode: "HTML" })
-    });
-
-    // 3. Trigger TelebotCreator resource command using correct matching new API key
+    // 2. Trigger TelebotCreator to execute command and send message natively
     await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -63,7 +51,7 @@ module.exports = async function handler(req, res) {
       })
     });
 
-    // Schedule 7-day release if valid credit
+    // 3. Schedule 7-day release if valid credit
     if (status != "2") {
       await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
         method: "POST",
@@ -79,7 +67,7 @@ module.exports = async function handler(req, res) {
       });
     }
   } catch (err) {
-    console.error("Pipeline error:", err.message);
+    console.error("TelebotCreator API execution error:", err.message);
   }
 
   return res.status(200).send("ok");
