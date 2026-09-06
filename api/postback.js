@@ -1,7 +1,6 @@
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-// The static webhook URL strictly tied to your /surveyreward command
 const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
 
 module.exports = async function handler(req, res) {
@@ -19,9 +18,6 @@ module.exports = async function handler(req, res) {
 
   const { webhook, subId, transId, reward, status, signature } = data;
 
-  // ==========================================
-  // 1. MINI APP DYNAMIC WEBHOOK LOGIC (ADS BOT)
-  // ==========================================
   if (webhook) {
     try {
       const forwardRes = await fetch(webhook, {
@@ -35,19 +31,17 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // ==========================================
-  // 2. OFFERWALL S2S POSTBACK LOGIC
-  // ==========================================
   const userId = subId;
   const transactionId = transId;
-  const rewardAmount = parseFloat(reward || 0);
-  const txStatus = status || "1";
+  const rawReward = parseFloat(reward || 0);
+  const rewardAmount = parseFloat(rawReward.toFixed(2)); // Normalize floats like 1.6 or 2.0
+  const txStatus = String(status || "1");
 
   if (!userId || !transactionId || isNaN(rewardAmount) || !signature) {
     return res.status(400).json({ success: false, error: "Missing required postback parameters" });
   }
 
-  // MD5 Security Verification
+  // MD5 Security Verification using normalized reward string
   const stringToHash = `${userId}${transactionId}${rewardAmount}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -55,7 +49,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  // Forward the verified Offerwall payload to your TelebotCreator Webhook
   try {
     const webhookRes = await fetch(SURVEY_WEBHOOK_URL, {
       method: "POST",
@@ -64,7 +57,7 @@ module.exports = async function handler(req, res) {
         user_id: String(userId),
         reward: rewardAmount,
         transactionId: String(transactionId),
-        status: String(txStatus)
+        status: txStatus
       })
     });
 
