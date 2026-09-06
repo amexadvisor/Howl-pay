@@ -2,7 +2,7 @@ import crypto from 'crypto';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -13,7 +13,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { initData } = req.body || {};
   const BOT_TOKEN = process.env.BOT_TOKEN;
   const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
@@ -21,14 +20,16 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Server configuration error: missing environment variables" });
   }
 
+  // Extract initData from body or headers
+  const initData = req.body?.initData || req.headers['x-telegram-init-data'];
+
   if (!initData || typeof initData !== 'string') {
-    return res.status(401).json({ error: "Unauthorized: Missing or invalid Telegram WebApp security context" });
+    return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
   }
 
   let targetUserId = null;
 
   try {
-    // 1. Parse raw initData segments
     const pairs = initData.split('&');
     const hashIndex = pairs.findIndex(str => str.startsWith('hash='));
 
@@ -36,24 +37,19 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
     }
 
-    // Extract the client hash and remove it from the array for validation
     const receivedHash = pairs.splice(hashIndex)[0].split('=')[1];
 
-    // 2. Sort remaining key-value pairs alphabetically
     pairs.sort((a, b) => a.localeCompare(b));
     const dataCheckString = pairs.join('\n');
 
-    // 3. Compute secret key: HMAC-SHA-256 of "WebAppData" using BOT_TOKEN
+    // Generate secret key using HMAC-SHA-256 with "WebAppData" as key and BOT_TOKEN as message
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-    
-    // 4. Compute signature: HMAC-SHA-256 of dataCheckString using secretKey
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
     if (calculatedHash !== receivedHash) {
       return res.status(403).json({ error: "Forbidden: Invalid Telegram signature" });
     }
 
-    // 5. Extract user ID safely from the validated payload parameters
     const urlParams = new URLSearchParams(initData);
     const userStr = urlParams.get('user');
     if (userStr) {
@@ -63,7 +59,7 @@ export default async function handler(req, res) {
       }
     }
   } catch (e) {
-    return res.status(400).json({ error: "Bad Request: Failed to process validation parameters: " + e.message });
+    return res.status(400).json({ error: "Bad Request: " + e.message });
   }
 
   if (!targetUserId) {
