@@ -1,270 +1,94 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Earning Hub Mini App</title>
-
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- Ads Galaxy SDK (App ID: 57) -->
-  <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--tg-theme-bg-color, #121212);
-      color: var(--tg-theme-text-color, #ffffff);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      padding: 16px;
-      text-align: center;
-      overflow-y: auto;
-    }
-    .card {
-      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
-      border-radius: 16px;
-      padding: 24px 20px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .logo {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-bottom: 16px;
-      border: 3px solid #0088cc;
-      box-shadow: 0 4px 12px rgba(0, 136, 204, 0.3);
-    }
-    .title {
-      font-size: 20px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .instructions {
-      font-size: 14px;
-      color: var(--tg-theme-hint-color, #a0a0a0);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .progress-box {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 10px;
-      padding: 12px;
-      margin-bottom: 20px;
-    }
-    .counter {
-      font-size: 16px;
-      font-weight: 600;
-      color: #00d26a;
-    }
-    .btn {
-      width: 100%;
-      background-color: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #ffffff);
-      border: none;
-      padding: 15px;
-      font-size: 16px;
-      font-weight: 700;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: opacity 0.2s ease, transform 0.1s ease;
-      margin-bottom: 12px;
-    }
-    .btn:active {
-      transform: scale(0.98);
-    }
-    .btn:disabled {
-      background-color: #383838;
-      color: #888888;
-      cursor: not-allowed;
-    }
-    .btn-secondary {
-      background-color: transparent;
-      border: 2px solid var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #ffffff);
-    }
-    .back-btn {
-      background-color: #383838;
-      margin-top: 12px;
-      margin-bottom: 0;
-    }
-    .hidden {
-      display: none !important;
-    }
-    #offerwall-frame {
-      width: 100%;
-      height: 600px;
-      border: 0;
-      border-radius: 12px;
-      background: #ffffff;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offerwall Dashboard</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--tg-theme-bg-color, #ffffff);
+            color: var(--tg-theme-text-color, #000000);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .profile-card {
+            background: var(--tg-theme-secondary-bg-color, #f1f1f1);
+            border-radius: 12px;
+            padding: 20px;
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+        }
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 12px;
+            border: 2px solid var(--tg-theme-button-color, #2481cc);
+        }
+        .name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .userid {
+            font-size: 0.9rem;
+            color: var(--tg-theme-hint-color, #707579);
+            margin-bottom: 15px;
+        }
+        .offerwall-btn {
+            display: inline-block;
+            background-color: var(--tg-theme-button-color, #2481cc);
+            color: var(--tg-theme-button-text-color, #ffffff);
+            padding: 12px 24px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            width: 100%;
+            box-sizing: border-box;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
 
-  <!-- MAIN MENU VIEW -->
-  <div class="card" id="mainMenu">
-    <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
-    <div class="title">Earning Hub</div>
-    <div class="instructions">
-      Choose an option below to start earning rewards directly to your account.
+    <div class="profile-card">
+        <img id="avatar" class="avatar" src="https://via.placeholder.com/80" alt="Profile Photo">
+        <div id="name" class="name">Loading user...</div>
+        <div id="userid" class="userid">ID: --</div>
+        <a id="offerwallLink" href="#" class="offerwall-btn" target="_blank">Open Offerwall</a>
     </div>
 
-    <button class="btn" onclick="switchView('adsView')">📺 Watch Ads</button>
-    <button class="btn btn-secondary" onclick="switchView('offerwallView')">📋 Offerwall & Surveys</button>
-  </div>
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.ready();
 
-  <!-- ADS VIEW -->
-  <div class="card hidden" id="adsView">
-    <div class="title">Watch & Click Ads</div>
-    <div class="instructions">
-      Watch and <strong>click on 3 sponsor ads</strong> to receive rewards.
-    </div>
+        const user = tg.initDataUnsafe && tg.initDataUnsafe.user;
 
-    <div class="progress-box">
-      <div class="counter" id="adCounter">Ads Completed: 0 / 3</div>
-    </div>
-
-    <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch & Click Ad (1/3)</button>
-    <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
-  </div>
-
-  <!-- OFFERWALL VIEW -->
-  <div class="card hidden" id="offerwallView" style="max-width: 420px; width: 100%;">
-    <div class="title" style="margin-bottom: 8px;">Offerwall.me</div>
-    
-    <iframe id="offerwall-frame" src=""></iframe>
-
-    <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
-  </div>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-
-    if (tg.requestFullscreen) {
-      tg.requestFullscreen();
-    } else {
-      tg.expand();
-    }
-
-    if (tg.disableVerticalSwipes) {
-      tg.disableVerticalSwipes();
-    }
-
-    const REQUIRED_ADS = 3;
-    let adsCount = 0;
-
-    const USER_ID = tg.initDataUnsafe?.user?.id || "guest";
-    const OFFERWALL_API_KEY = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const webhookUrl = urlParams.get('webhook');
-
-    let offerwallLoaded = false;
-
-    function switchView(viewId) {
-      document.getElementById('mainMenu').classList.add('hidden');
-      document.getElementById('adsView').classList.add('hidden');
-      document.getElementById('offerwallView').classList.add('hidden');
-
-      document.getElementById(viewId).classList.remove('hidden');
-
-      // Dynamically load the Offerwall.me iframe with the Telegram user ID
-      if (viewId === 'offerwallView' && !offerwallLoaded) {
-        offerwallLoaded = true;
-        const iframe = document.getElementById('offerwall-frame');
-        iframe.src = `https://offerwall.me/offerwall/${OFFERWALL_API_KEY}/${USER_ID}`;
-      }
-    }
-
-    function handleAdClick() {
-      const btn = document.getElementById('bonusBtn');
-      btn.disabled = true;
-      btn.innerText = "Opening ad...";
-
-      tg.showConfirm("⚠️ Important: Make sure to click on the sponsor ad!", function(confirmed) {
-        if (!confirmed) {
-          btn.disabled = false;
-          updateBtnText();
-          return;
-        }
-
-        window.showAdsGalaxy()
-          .then(function () {
-            adsCount++;
-            document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
-
-            if (adsCount < REQUIRED_ADS) {
-              btn.disabled = false;
-              updateBtnText();
-              tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-            } else {
-              btn.innerText = "Crediting reward...";
-              sendReward();
+        if (user) {
+            document.getElementById('name').textContent = `${user.first_name} ${user.lastName || ''}`.trim();
+            document.getElementById('userid').textContent = `ID: ${user.id}`;
+            
+            if (user.photo_url) {
+                document.getElementById('avatar').src = user.photo_url;
             }
-          })
-          .catch(function (error) {
-            btn.disabled = false;
-            updateBtnText();
-            if (error.code === "NO_FILL") return tg.showAlert("No ad available right now. Please try again shortly.");
-            if (error.code === "INVALID_INIT_DATA") return tg.showAlert("Please launch this app inside Telegram.");
-            tg.showAlert("Ad closed early. Complete the full ad to continue.");
-          });
-      });
-    }
 
-    function updateBtnText() {
-      const btn = document.getElementById('bonusBtn');
-      btn.innerText = `Watch & Click Ad (${adsCount + 1}/${REQUIRED_ADS})`;
-    }
-
-    async function sendReward() {
-      const btn = document.getElementById('bonusBtn');
-
-      if (!webhookUrl) {
-        tg.showAlert("Webhook link missing. Please open the Mini-App from the bot button.");
-        btn.disabled = false;
-        updateBtnText();
-        return;
-      }
-
-      try {
-        await fetch(webhookUrl, {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "X-Telegram-Init-Data": tg.initData
-          },
-          body: JSON.stringify({ completed: true })
-        });
-
-        tg.showAlert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
-          tg.close();
-        });
-      } catch (err) {
-        new Image().src = webhookUrl;
-        tg.showAlert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
-          tg.close();
-        });
-      }
-    }
-  </script>
+            const appId = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
+            const offerwallUrl = `https://offerwall.me/?appid=${appId}&subid=${user.id}`;
+            document.getElementById('offerwallLink').href = offerwallUrl;
+        } else {
+            document.getElementById('name').textContent = "Web Preview Mode";
+            document.getElementById('userid').textContent = "ID: 123456789 (Test)";
+            document.getElementById('offerwallLink').href = "https://offerwall.me/?appid=YOUR_APP_ID&subid=123456789";
+        }
+    </script>
 </body>
 </html>
