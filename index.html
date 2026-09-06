@@ -5,10 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Earning Hub Mini App</title>
 
-  <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- AdsBitvex SDK (App ID: 000402) -->
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
 
   <style>
@@ -205,11 +203,9 @@
 </head>
 <body>
 
-  <!-- MAIN MENU VIEW -->
   <div class="card" id="mainMenu">
     <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
     
-    <!-- User Profile Dashboard Card -->
     <div class="profile-section" id="userProfileCard" style="display: none;">
       <img id="userAvatar" class="avatar" src="" alt="Avatar">
       <div class="user-info">
@@ -227,7 +223,6 @@
     <button class="btn btn-secondary" onclick="openOfferwall()">📋 Offerwall & Surveys</button>
   </div>
 
-  <!-- ADS VIEW -->
   <div class="card hidden" id="adsView">
     <div class="title">Watch & Click Ads</div>
     <div class="instructions">
@@ -242,7 +237,6 @@
     <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
-  <!-- REDUCED OFFERWALL MODAL/CONTAINER VIEW -->
   <div class="hidden" id="offerwallView">
     <div class="offerwall-wrapper">
       <div class="offerwall-iframe-container">
@@ -312,35 +306,36 @@
       btn.disabled = true;
       btn.innerText = "Opening ad...";
 
-      // Fallback-safe invocation matching your proven old bot pattern
-      const showAdFunc = window.showadsbitvex || window.showAdsBitvex;
-
-      if (typeof showAdFunc !== 'function') {
+      // Directly invoke the exact SDK method provided by AdsBitVex documentation
+      if (typeof window.showadsbitvex !== 'function') {
         btn.disabled = false;
         updateBtnText();
-        tg.showAlert("AdsBitVex SDK is still loading or unavailable. Please check your connection.");
+        tg.showAlert("AdsBitVex SDK script is still loading. Please try again in a moment.");
         return;
       }
 
-      showAdFunc().then(function () {
-        adsCount++;
-        document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
+      window.showadsbitvex()
+        .then(() => {
+          adsCount++;
+          document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
 
-        if (adsCount < REQUIRED_ADS) {
+          if (adsCount < REQUIRED_ADS) {
+            btn.disabled = false;
+            updateBtnText();
+            tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
+          } else {
+            btn.innerText = "Completed!";
+            tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
+              tg.close();
+            });
+          }
+        })
+        .catch(e => {
           btn.disabled = false;
           updateBtnText();
-          tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-        } else {
-          btn.innerText = "Completed!";
-          tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
-            tg.close();
-          });
-        }
-      }).catch(function (error) {
-        btn.disabled = false;
-        updateBtnText();
-        tg.showAlert("Ad closed early or unavailable. Please try again.");
-      });
+          console.error("Ad error:", e);
+          tg.showAlert("Ad closed early or inventory currently unavailable.");
+        });
     }
 
     function updateBtnText() {
