@@ -146,7 +146,7 @@
       display: none !important;
     }
 
-    /* FULLSCREEN OFFERWALL IFRAME STYLES */
+    /* FULLSCREEN OFFERWALL VIEW WITH BOTTOM BAR */
     #offerwallView {
       position: fixed;
       top: 0;
@@ -160,25 +160,6 @@
       padding: 0;
       margin: 0;
     }
-    .offerwall-header {
-      width: 100%;
-      padding: 10px 16px;
-      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
-      display: flex;
-      align-items: center;
-      justify-content: flex-start;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    .offerwall-back-btn {
-      background-color: #383838;
-      color: #ffffff;
-      border: none;
-      padding: 8px 16px;
-      font-size: 14px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-    }
     .offerwall-iframe-container {
       width: 100%;
       flex-grow: 1;
@@ -188,6 +169,26 @@
       width: 100%;
       height: 100%;
       border: none;
+    }
+    .offerwall-footer {
+      width: 100%;
+      padding: 12px 16px;
+      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      display: flex;
+      justify-content: center;
+      box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+    }
+    .offerwall-back-btn {
+      background-color: #383838;
+      color: #ffffff;
+      border: none;
+      padding: 12px 24px;
+      font-size: 15px;
+      font-weight: 700;
+      border-radius: 12px;
+      cursor: pointer;
+      width: 100%;
+      max-width: 380px;
     }
   </style>
 </head>
@@ -232,11 +233,11 @@
 
   <!-- OFFERWALL FULLSCREEN VIEW -->
   <div class="hidden" id="offerwallView">
-    <div class="offerwall-header">
-      <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back</button>
-    </div>
     <div class="offerwall-iframe-container">
       <iframe id="offerwallFrame" src="" allowpaymentrequest></iframe>
+    </div>
+    <div class="offerwall-footer">
+      <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
     </div>
   </div>
 
