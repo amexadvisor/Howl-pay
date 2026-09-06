@@ -1,9 +1,7 @@
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
-const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days hold window
+const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -20,14 +18,14 @@ module.exports = async function handler(req, res) {
   const userId = data.subId;
   const transactionId = data.transId;
   const reward = parseFloat(data.reward || 0);
-  const status = data.status;
+  const status = data.status || "1";
   const signature = data.signature;
 
   if (!userId || !transactionId || isNaN(reward) || !signature) {
     return res.status(400).send("ERROR: Missing parameters");
   }
 
-  // 1. Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
+  // Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -36,39 +34,22 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
-
-  // 2. Trigger TelebotCreator's native command execution endpoint directly
+  // Forward payload to TelebotCreator webhook using 'options' wrapper
   try {
-    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    await fetch(SURVEY_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        api_key: TELEBOT_API_KEY,
-        bot_token: BOT_TOKEN,
-        command: commandName,
         user_id: String(userId),
-        params: `${reward}|${transactionId}`
+        options: {
+          status: status,
+          reward: reward,
+          transactionId: transactionId
+        }
       })
     });
-
-    // If it's a valid credit, schedule the 7-day release command
-    if (status != "2") {
-      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TELEBOT_API_KEY,
-          bot_token: BOT_TOKEN,
-          timeout: HOLD_SECONDS,
-          command: "/releasereward",
-          user_id: String(userId),
-          params: `${reward}|${transactionId}`
-        })
-      });
-    }
   } catch (err) {
-    console.error("Telebot dispatch error:", err.message);
+    console.error("Failed to forward postback to Telebot webhook:", err.message);
   }
 
   return res.status(200).send("ok");
