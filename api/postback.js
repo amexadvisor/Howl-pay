@@ -1,7 +1,11 @@
+// api/postback.js (Vercel Serverless Function for Offerwall.me S2S Postbacks)
+
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
+const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
+const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
+const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days security hold window
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -10,7 +14,7 @@ module.exports = async function handler(req, res) {
 
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method === 'GET' && !req.query.subId) {
-    return res.status(200).json({ status: "Postback gateway active" });
+    return res.status(200).json({ status: "Offerwall postback gateway active" });
   }
 
   const data = req.method === 'POST' ? (req.body || {}) : req.query;
@@ -22,34 +26,56 @@ module.exports = async function handler(req, res) {
   const signature = data.signature;
 
   if (!userId || !transactionId || isNaN(reward) || !signature) {
+    console.error("Missing parameters in postback request:", data);
     return res.status(400).send("ERROR: Missing parameters");
   }
 
-  // Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
+  // Exact Offerwall.me MD5 signature validation formula: md5(subId + transId + reward + secretKey)
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
-    console.warn(`Signature mismatch for user ${userId}`);
+    console.warn(`[SECURITY] Signature mismatch for user ${userId}, TxID: ${transactionId}`);
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  // Forward payload to TelebotCreator webhook using 'options' wrapper
+  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
+
   try {
-    await fetch(SURVEY_WEBHOOK_URL, {
+    // Replicate working TelebotCreator API execution pipeline
+    const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        api_key: TELEBOT_API_KEY,
+        bot_token: BOT_TOKEN,
+        command: commandName,
         user_id: String(userId),
-        options: {
-          status: status,
-          reward: reward,
-          transactionId: transactionId
-        }
+        params: `${reward}|${transactionId}`
       })
     });
+
+    if (!telebotRes.ok) {
+      console.error("TelebotCreator API rejection response:", await telebotRes.text());
+    }
+
+    // Schedule 7-day hold release if it's a valid credit completion
+    if (status != "2") {
+      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TELEBOT_API_KEY,
+          bot_token: BOT_TOKEN,
+          timeout: HOLD_SECONDS,
+          command: "/releasereward",
+          user_id: String(userId),
+          params: `${reward}|${transactionId}`
+        })
+      });
+    }
   } catch (err) {
-    console.error("Failed to forward postback to Telebot webhook:", err.message);
+    console.error("Failed to execute Telebot command trigger:", err.message);
   }
 
   return res.status(200).send("ok");
