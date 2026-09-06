@@ -272,7 +272,7 @@
 
         <div class="progress-section">
           <div class="progress-info">
-            <span>Ads Clicked Today</span>
+            <span>Current Batch Progress</span>
             <span id="adsbitvex-count-today">0 / 3</span>
           </div>
         </div>
@@ -301,7 +301,7 @@
               <div class="task-icon"><i class="fa-solid fa-fire"></i></div>
               <div class="task-details">
                 <h3>Watch & Click Ad (<span id="adStepIndicator">1/3</span>)</h3>
-                <p>⚠️ Switch to the opened ad page to complete verification!</p>
+                <p>⚠️ Click inside the opened ad page to count towards your reward!</p>
               </div>
               <div class="task-action-meta">
                 <span id="adsbitvexCD" class="cooldown-badge">5s</span>
@@ -450,12 +450,13 @@
     }
 
     function updateDisplayCounters() {
-        const countDisplay = `${Math.min(adsCountToday, 3)} / 3`;
+        const currentProgress = adsCountToday % 3;
+        const countDisplay = `${currentProgress} / 3`;
         const countEl = document.getElementById('adsbitvex-count-today');
         const stepEl = document.getElementById('adStepIndicator');
         
         if (countEl) countEl.textContent = countDisplay;
-        if (stepEl) stepEl.textContent = `${Math.min((adsCountToday % 3) + 1, 3)}/3`;
+        if (stepEl) stepEl.textContent = `${currentProgress + 1}/3`;
     }
 
     function loadTelegramUser() {
@@ -483,11 +484,6 @@
     function startAdsBitvexTask() {
         if (adsbitvexInFlight) return;
 
-        // Hard cap at 3 completions per session/day
-        if (adsCountToday >= 3) {
-            return alert('🎉 You have already completed your 3 ad clicks for today!');
-        }
-
         const now = Date.now();
         if (now - adsbitvexLastRun < 5000) {
             const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
@@ -501,13 +497,12 @@
         adsbitvexInFlight = true;
         let userSwitchedContext = false;
 
-        // Track user focus shift (blur / visibility hidden) to ensure they actually opened/interacted with the external ad popup
         const focusLossHandler = () => {
             userSwitchedContext = true;
         };
 
         window.addEventListener('blur', focusLossHandler);
-        document.addEventListener('visibilitychange', () => {
+        window.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'hidden') {
                 userSwitchedContext = true;
             }
@@ -520,22 +515,22 @@
             localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
 
-            // Require explicit focus/tab shift away from the mini-app to prove interaction
             if (!userSwitchedContext) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                 }
-                return alert('⚠️ Action not verified! You must switch to and view the opened ad page to earn credit.');
+                return alert('⚠️ Ad interaction ignored! You must click through to the opened ad page to verify your click.');
             }
 
             adsCountToday += 1;
             localStorage.setItem(`howl_ads_count_${currentUserId}`, adsCountToday.toString());
             updateDisplayCounters();
 
-            if (adsCountToday === 3) {
+            if (adsCountToday % 3 === 0) {
                 sendRewardWebhook();
             } else {
-                alert(`✅ Ad click ${adsCountToday}/3 verified! Complete the next one.`);
+                const currentProgress = adsCountToday % 3;
+                alert(`✅ Ad click verified! Progress: ${currentProgress}/3 completed.`);
             }
         }).catch((e) => {
             window.removeEventListener('blur', focusLossHandler);
@@ -548,7 +543,7 @@
 
     async function sendRewardWebhook() {
         if (!webhookUrl) {
-            alert("🎉 3 Ad Clicks Verified Successfully! Check your Telegram bot balance.");
+            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your Telegram bot balance.");
             if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
             return;
         }
@@ -562,11 +557,11 @@
                 },
                 body: JSON.stringify({ completed: true })
             });
-            alert("🎉 3 Ad Clicks Verified! Check your bot balance in Telegram.");
+            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your bot balance in Telegram.");
             if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
         } catch (err) {
             new Image().src = webhookUrl;
-            alert("🎉 3 Ad Clicks Verified! Check your bot balance in Telegram.");
+            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your bot balance in Telegram.");
             if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
         }
     }
