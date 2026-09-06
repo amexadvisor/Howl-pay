@@ -555,25 +555,27 @@
 
     async function sendRewardWebhook() {
         const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
+        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
 
         try {
             const response = await fetch(bonusEndpoint, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
+                    "X-Telegram-Init-Data": initDataPayload
                 },
-                body: JSON.stringify({ userId: currentUserId, completed: true })
+                body: JSON.stringify({ userId: currentUserId, completed: true, initData: initDataPayload })
             });
             const data = await response.json().catch(() => ({}));
             alert(`🎉 Bonus Claimed! Response: ${JSON.stringify(data)}`);
         } catch (err) {
-            alert(`🎉 Bonus Claimed Successfully! (Dispatched to API)`);
+            alert(`🎉 Bonus Claimed Successfully!`);
         }
     }
 
     async function testClaimBonusTrigger() {
         const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
+        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
         
         try {
             alert("⏳ Sending test request to api/claim-bonus...");
@@ -581,9 +583,9 @@
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
+                    "X-Telegram-Init-Data": initDataPayload
                 },
-                body: JSON.stringify({ userId: currentUserId, completed: true, testMode: true })
+                body: JSON.stringify({ userId: currentUserId, completed: true, initData: initDataPayload })
             });
 
             const data = await response.json().catch(() => ({}));
@@ -594,7 +596,7 @@
     }
 
     function shareApp() {
-        const botUsername = "ultrasonic_pay_bot"; 
+        const botUsername = "howl_paybot"; 
         const referralLink = `https://t.me/${botUsername}?startapp=${currentUserId}`;
         const text = `🚀 Join HOWL Rewards and earn instant payouts. Launch now!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
