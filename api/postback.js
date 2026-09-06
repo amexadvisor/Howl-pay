@@ -22,7 +22,7 @@ module.exports = async function handler(req, res) {
 
   const { webhook, subId, transId, reward, status, signature } = data;
 
-  // 1. Handle dynamic frontend webhook forwarding (like your old ads bot)
+  // 1. Handle dynamic frontend webhook forwarding (Miniapp logic)
   if (webhook) {
     try {
       const forwardRes = await fetch(webhook, {
@@ -49,7 +49,7 @@ module.exports = async function handler(req, res) {
     });
   }
 
-  // MD5 Security Verification: md5(subId + transId + reward + secretKey)
+  // MD5 Security Verification
   const stringToHash = `${userId}${transactionId}${rewardAmount}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -72,14 +72,16 @@ module.exports = async function handler(req, res) {
       })
     });
 
+    // Read the body exactly once as text, then try parsing it
+    const rawText = await telebotRes.text();
     let telebotData = {};
     try {
-      telebotData = await telebotRes.json();
+      telebotData = JSON.parse(rawText);
     } catch (e) {
-      telebotData = { raw: await telebotRes.text() };
+      telebotData = { raw: rawText };
     }
 
-    // Schedule 7-day hold release if it's a valid credit completion
+    // Schedule 7-day hold release if valid credit completion
     if (txStatus != "2") {
       await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
         method: "POST",
