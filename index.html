@@ -8,8 +8,8 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- Ads Galaxy SDK (App ID: 57) -->
-  <script src="https://app.adsgalaxy.online/sdk.js?id=57"></script>
+  <!-- AdsBitVex SDK (App ID: 000402) -->
+  <script src="https://adsbitvex.com/sdk.js?id=000402"></script>
 
   <style>
     * {
@@ -321,7 +321,8 @@
           return;
         }
 
-        window.showAdsGalaxy()
+        // Updated function call to trigger AdsBitVex SDK (App ID: 000402)
+        window.showAdsBitVex()
           .then(function () {
             adsCount++;
             document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
