@@ -308,18 +308,6 @@
                 <div class="task-arrow" id="adsbitvexArrow"><i class="fa-solid fa-play"></i></div>
               </div>
           </div>
-
-          <!-- Developer Test Trigger Button -->
-          <div class="task-card" onclick="testClaimBonusTrigger()" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(18, 25, 27, 0.8);">
-              <div class="task-icon" style="color: var(--amber);"><i class="fa-solid fa-vial"></i></div>
-              <div class="task-details">
-                <h3>Test Claim Bonus API</h3>
-                <p>⚡ Force trigger api/claim-bonus instantly without ads</p>
-              </div>
-              <div class="task-action-meta">
-                <div class="task-arrow"><i class="fa-solid fa-bolt" style="color: var(--amber);"></i></div>
-              </div>
-          </div>
         </div>
 
         <!-- OFFERWALL PANEL -->
@@ -564,34 +552,16 @@
                     "Content-Type": "application/json",
                     "X-Telegram-Init-Data": initDataPayload
                 },
-                body: JSON.stringify({ userId: currentUserId, completed: true, initData: initDataPayload })
+                body: JSON.stringify({ completed: true, initData: initDataPayload })
             });
             const data = await response.json().catch(() => ({}));
-            alert(`🎉 Bonus Claimed! Response: ${JSON.stringify(data)}`);
+            if (response.ok) {
+                alert(`🎉 Bonus Claimed Successfully! Check your Telegram bot balance.`);
+            } else {
+                alert(`⚠️ Claim failed: ${data.error || 'Unauthorized context'}`);
+            }
         } catch (err) {
-            alert(`🎉 Bonus Claimed Successfully!`);
-        }
-    }
-
-    async function testClaimBonusTrigger() {
-        const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
-        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
-        
-        try {
-            alert("⏳ Sending test request to api/claim-bonus...");
-            const response = await fetch(bonusEndpoint, {
-                method: "POST",
-                headers: { 
-                    "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": initDataPayload
-                },
-                body: JSON.stringify({ userId: currentUserId, completed: true, initData: initDataPayload })
-            });
-
-            const data = await response.json().catch(() => ({}));
-            alert(`⚡ Test Result (${response.status}): ${JSON.stringify(data)}`);
-        } catch (err) {
-            alert(`❌ Test Error: ${err.message}`);
+            alert(`❌ Network Error: Could not reach claim endpoint.`);
         }
     }
 
