@@ -1,11 +1,9 @@
 const crypto = require('crypto');
 
-const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j");
+const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
+const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
+const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days hold window
-
-// Temporary in-memory store mapping user_id -> TelebotCreator webhook URL
-// (For production scale across serverless cold starts, map this to Vercel KV / Upstash Redis)
-global.userWebhooks = global.userWebhooks || {};
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -13,13 +11,6 @@ module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-
-  // Endpoint to register the user's native webhook URL when they open the Mini App
-  if (req.method === 'POST' && req.body && req.body.webhook && req.body.user_id) {
-    global.userWebhooks[req.body.user_id] = req.body.webhook;
-    return res.status(200).json({ success: true });
-  }
-
   if (req.method === 'GET' && !req.query.subId) {
     return res.status(200).json({ status: "Postback gateway active" });
   }
@@ -45,35 +36,39 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  const targetWebhook = global.userWebhooks[userId];
-  if (!targetWebhook) {
-    console.warn(`No registered webhook found for user ${userId}. User needs to reopen the Mini App.`);
-    return res.status(200).send("ok"); // Return ok so offerwall doesn't flag failure, but log warning
-  }
+  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
 
-  // Handle Reversal / Chargeback (Status 2)
-  if (status == "2") {
-    try {
-      await fetch(targetWebhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: false, reversed: true, reward, transactionId })
-      });
-    } catch (e) {
-      console.error("Failed to trigger reversal webhook:", e);
-    }
-    return res.status(200).send("ok");
-  }
-
-  // Handle Valid Credit via Native Webhook Trigger
+  // Trigger TelebotCreator's native command execution endpoint directly
   try {
-    await fetch(targetWebhook, {
+    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completed: true, reward, transactionId })
+      body: JSON.stringify({
+        api_key: TELEBOT_API_KEY,
+        bot_token: BOT_TOKEN,
+        command: commandName,
+        user_id: String(userId),
+        params: `${reward}|${transactionId}`
+      })
     });
+
+    // If it's a valid credit, also schedule the 7-day release command
+    if (status != "2") {
+      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          api_key: TELEBOT_API_KEY,
+          bot_token: BOT_TOKEN,
+          timeout: HOLD_SECONDS,
+          command: "/releasereward",
+          user_id: String(userId),
+          params: `${reward}|${transactionId}`
+        })
+      });
+    }
   } catch (err) {
-    console.error("Failed to trigger reward webhook:", err.message);
+    console.error("Telebot dispatch error:", err.message);
   }
 
   return res.status(200).send("ok");
