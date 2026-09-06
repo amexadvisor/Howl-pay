@@ -8,38 +8,55 @@ const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method === 'GET' && !req.query.subId) {
-    return res.status(200).json({ status: "Postback gateway active" });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  const data = req.method === 'POST' ? (req.body || {}) : req.query;
-
-  const userId = data.subId;
-  const transactionId = data.transId;
-  const reward = parseFloat(data.reward || 0);
-  const status = data.status || "1";
-  const signature = data.signature;
-
-  if (!userId || !transactionId || isNaN(reward) || !signature) {
-    return res.status(400).send("ERROR: Missing parameters");
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: "Offerwall postback API is online" });
   }
 
-  // 1. Verify Offerwall.me MD5 signature
-  const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
+  const { webhook, subId, transId, reward, status, signature } = req.method === 'POST' ? (req.body || {}) : req.query;
+
+  // 1. If a dynamic TelebotCreator webhook URL is provided (like your old ads bot logic), forward directly
+  if (webhook) {
+    try {
+      const forwardRes = await fetch(webhook, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completed: true, timestamp: Date.now() })
+      });
+      return res.status(200).json({ success: true, forwarded: forwardRes.ok });
+    } catch (err) {
+      return res.status(500).json({ error: "Webhook forwarding failed: " + err.message });
+    }
+  }
+
+  // 2. Otherwise, process Offerwall.me S2S postback
+  const userId = subId;
+  const transactionId = transId;
+  const rewardAmount = parseFloat(reward || 0);
+  const txStatus = status || "1";
+
+  if (!userId || !transactionId || isNaN(rewardAmount) || !signature) {
+    return res.status(400).json({ error: "Missing required postback parameters" });
+  }
+
+  // MD5 Security Verification
+  const stringToHash = `${userId}${transactionId}${rewardAmount}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
-    return res.status(400).send("ERROR: Signature doesn't match");
+    return res.status(400).json({ error: "Signature doesn't match" });
   }
 
-  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
+  const commandName = txStatus == "2" ? "/surveyreversed" : "/surveyreward";
 
   try {
-    // 2. Trigger TelebotCreator to execute command and send message natively
-    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    // Execute command via TelebotCreator API using your new credentials
+    const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -47,12 +64,12 @@ module.exports = async function handler(req, res) {
         bot_token: BOT_TOKEN,
         command: commandName,
         user_id: String(userId),
-        params: `${reward}|${transactionId}`
+        params: `${rewardAmount}|${transactionId}`
       })
     });
 
-    // 3. Schedule 7-day release if valid credit
-    if (status != "2") {
+    // Schedule 7-day hold release if valid credit
+    if (txStatus != "2") {
       await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -62,13 +79,17 @@ module.exports = async function handler(req, res) {
           timeout: HOLD_SECONDS,
           command: "/releasereward",
           user_id: String(userId),
-          params: `${reward}|${transactionId}`
+          params: `${rewardAmount}|${transactionId}`
         })
       });
     }
-  } catch (err) {
-    console.error("TelebotCreator API execution error:", err.message);
-  }
 
-  return res.status(200).send("ok");
+    const telebotData = await telebotRes.json().catch(() => ({}));
+    return res.status(200).json({
+      success: telebotRes.ok,
+      telebot_response: telebotData
+    });
+  } catch (error) {
+    return res.status(500).json({ error: error.message });
+  }
 };
