@@ -1,5 +1,4 @@
 export default async function handler(req, res) {
-  // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
@@ -14,7 +13,6 @@ export default async function handler(req, res) {
 
   const { userId, completed, initData } = req.body || {};
 
-  // Retrieve the custom TelebotCreator command webhook URL from Vercel environment variables
   const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
   if (!targetWebhook) {
