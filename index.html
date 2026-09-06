@@ -272,7 +272,7 @@
 
         <div class="progress-section">
           <div class="progress-info">
-            <span>Ads Completed Today</span>
+            <span>Ads Clicked Today</span>
             <span id="adsbitvex-count-today">0 / 3</span>
           </div>
         </div>
@@ -301,7 +301,7 @@
               <div class="task-icon"><i class="fa-solid fa-fire"></i></div>
               <div class="task-details">
                 <h3>Watch & Click Ad (<span id="adStepIndicator">1/3</span>)</h3>
-                <p>Complete 3 ad views to trigger reward.</p>
+                <p>⚠️ Make sure to <strong>click on the ad page</strong> or you won't get credit!</p>
               </div>
               <div class="task-action-meta">
                 <span id="adsbitvexCD" class="cooldown-badge">5s</span>
@@ -494,11 +494,28 @@
         }
 
         adsbitvexInFlight = true;
+        let redirectDetected = false;
+
+        const blurHandler = () => { redirectDetected = true; };
+        const visibilityHandler = () => { if (document.hidden) redirectDetected = true; };
+
+        window.addEventListener('blur', blurHandler);
+        document.addEventListener('visibilitychange', visibilityHandler);
 
         window.showadsbitvex().then(() => {
+            window.removeEventListener('blur', blurHandler);
+            document.removeEventListener('visibilitychange', visibilityHandler);
+
             adsbitvexLastRun = Date.now();
             localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
+
+            if (!redirectDetected) {
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                }
+                return alert('⚠️ No ad click detected! Please make sure to click/interact with the sponsor ad page before closing it.');
+            }
 
             adsCountToday += 1;
             localStorage.setItem(`howl_ads_count_${currentUserId}`, adsCountToday.toString());
@@ -507,9 +524,12 @@
             if (adsCountToday >= 3) {
                 sendRewardWebhook();
             } else {
-                alert(`✅ Ad ${adsCountToday}/3 completed! Watch the next one.`);
+                alert(`✅ Ad click ${adsCountToday}/3 verified! Complete the next one.`);
             }
         }).catch((e) => {
+            window.removeEventListener('blur', blurHandler);
+            document.removeEventListener('visibilitychange', visibilityHandler);
+
             adsbitvexLastRun = Date.now();
             localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
@@ -519,7 +539,7 @@
 
     async function sendRewardWebhook() {
         if (!webhookUrl) {
-            alert("🎉 3 Ads Verified Successfully! Check your Telegram bot balance.");
+            alert("🎉 3 Ad Clicks Verified Successfully! Check your Telegram bot balance.");
             if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
             return;
         }
@@ -533,12 +553,12 @@
                 },
                 body: JSON.stringify({ completed: true })
             });
-            alert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
+            alert("🎉 3 Ad Clicks Verified! Check your bot balance in Telegram.", function() {
                 if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
             });
         } catch (err) {
             new Image().src = webhookUrl;
-            alert("🎉 3 Ads Verified! Check your bot balance in Telegram.", function() {
+            alert("🎉 3 Ad Clicks Verified! Check your bot balance in Telegram.", function() {
                 if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
             });
         }
