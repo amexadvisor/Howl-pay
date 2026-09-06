@@ -146,19 +146,31 @@
       display: none !important;
     }
 
-    /* FULLSCREEN OFFERWALL VIEW WITH BOTTOM BAR */
+    /* REDUCED SIZE OFFERWALL VIEW WITH BOTTOM BACK BUTTON */
     #offerwallView {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background-color: var(--tg-theme-bg-color, #121212);
+      background-color: rgba(0, 0, 0, 0.85);
       display: flex;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
       z-index: 999;
-      padding: 0;
-      margin: 0;
+      padding: 16px;
+    }
+    .offerwall-wrapper {
+      width: 100%;
+      max-width: 380px;
+      height: 75vh;
+      background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
+      border-radius: 16px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
     }
     .offerwall-iframe-container {
       width: 100%;
@@ -176,7 +188,7 @@
       background-color: var(--tg-theme-secondary-bg-color, #1e1e1e);
       display: flex;
       justify-content: center;
-      box-shadow: 0 -2px 8px rgba(0,0,0,0.3);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
     }
     .offerwall-back-btn {
       background-color: #383838;
@@ -188,7 +200,6 @@
       border-radius: 12px;
       cursor: pointer;
       width: 100%;
-      max-width: 380px;
     }
   </style>
 </head>
@@ -231,13 +242,15 @@
     <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
-  <!-- OFFERWALL FULLSCREEN VIEW -->
+  <!-- REDUCED OFFERWALL MODAL/CONTAINER VIEW -->
   <div class="hidden" id="offerwallView">
-    <div class="offerwall-iframe-container">
-      <iframe id="offerwallFrame" src="" allowpaymentrequest></iframe>
-    </div>
-    <div class="offerwall-footer">
-      <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
+    <div class="offerwall-wrapper">
+      <div class="offerwall-iframe-container">
+        <iframe id="offerwallFrame" src="" allowpaymentrequest></iframe>
+      </div>
+      <div class="offerwall-footer">
+        <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
+      </div>
     </div>
   </div>
 
