@@ -1,17 +1,15 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
   <title>HOWL | Elite Earning Platform</title>
-
-  <!-- Telegram WebApp SDK -->
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-  <!-- AdsBitVex SDK with correct App ID: 000402 -->
-  <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- AdsBitvex SDK Load -->
+  <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     :root {
@@ -23,6 +21,7 @@
       --mint-dim: #10b981;
       --mint-soft: rgba(52, 211, 153, 0.12);
       --mint-glow: rgba(52, 211, 153, 0.28);
+      --amber: #f5b942;
       --text: #f5f7f8;
       --text-muted: #8b959a;
     }
@@ -97,7 +96,7 @@
     }
     .splash-percentage { font-family: 'Inter', monospace; font-size: 11px; color: var(--text-muted); font-weight: 600; }
 
-    /* ============ Main Container Layout ============ */
+    /* ============ Shell Layout ============ */
     .container {
       width: 100%; height: 100%; max-width: 410px; background: var(--bg);
       display: flex; flex-direction: column; overflow: hidden; position: relative;
@@ -107,194 +106,134 @@
     .live-dashboard-bg { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
     .live-grid { position: absolute; top: -10%; left: 0; width: 100%; height: 240px; background: radial-gradient(ellipse at 50% 0%, var(--mint-soft) 0%, transparent 70%); }
 
-    main { flex-grow: 1; overflow-y: auto; padding: 18px; padding-bottom: 40px; z-index: 1; position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    main { flex-grow: 1; overflow-y: auto; padding: 18px; padding-bottom: 100px; z-index: 1; position: relative; }
+    main::-webkit-scrollbar { width: 3px; }
+    main::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); }
 
-    .card {
-      background-color: var(--card);
-      border-radius: 18px;
-      padding: 24px 20px;
-      width: 100%;
-      max-width: 380px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border: 1px solid var(--hairline);
-    }
-    .logo {
-      width: 90px;
-      height: 90px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-bottom: 16px;
-      border: 3px solid var(--mint);
-      box-shadow: 0 4px 12px var(--mint-glow);
-    }
-    .profile-section {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 14px;
-      padding: 12px 16px;
-      width: 100%;
-      margin-bottom: 16px;
-      text-align: left;
-      border: 1px solid var(--hairline);
-    }
-    .avatar {
-      width: 50px;
-      height: 50px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid var(--mint);
-      background-color: var(--card-alt);
-      flex-shrink: 0;
-    }
-    .user-info {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .name {
-      font-size: 16px;
-      font-weight: 700;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: var(--text);
-    }
-    .userid {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-family: monospace;
-      margin-top: 2px;
-    }
-    .title {
-      font-size: 20px;
-      font-weight: 800;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-    .instructions {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-    .progress-box {
-      width: 100%;
-      background: rgba(255, 255, 255, 0.03);
-      border-radius: 12px;
-      padding: 12px;
-      margin-bottom: 20px;
-      border: 1px solid var(--hairline);
-    }
-    .counter {
-      font-size: 15px;
-      font-weight: 700;
-      color: var(--mint);
-    }
-    .btn {
-      width: 100%;
-      background: linear-gradient(135deg, var(--mint), var(--mint-dim));
-      color: #06120e;
-      border: none;
-      padding: 15px;
-      font-size: 15px;
-      font-weight: 800;
-      border-radius: 14px;
-      cursor: pointer;
-      transition: transform 0.15s ease, box-shadow 0.25s ease;
-      box-shadow: 0 8px 20px var(--mint-glow);
-      margin-bottom: 12px;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn:disabled {
-      background: rgba(255, 255, 255, 0.06);
-      color: var(--text-muted);
-      box-shadow: none;
-      cursor: not-allowed;
-    }
-    .btn-secondary {
-      background-color: transparent;
-      border: 2px solid var(--mint);
-      color: var(--mint);
-    }
-    .back-btn {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: var(--text);
-      border: 1px solid var(--hairline);
-      margin-top: 12px;
-      margin-bottom: 0;
-      box-shadow: none;
-    }
-    .hidden {
-      display: none !important;
-    }
+    .view { display: none; }
+    .view.active { display: block; }
 
-    /* Fullscreen Offerwall Modal View */
-    #offerwallView {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: rgba(7, 12, 14, 0.95);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-      padding: 16px;
+    @keyframes riseIn { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes carveIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+    .view.active > * { animation: riseIn 0.45s cubic-bezier(0.16,1,0.3,1) both; }
+
+    /* ============ Tabs ============ */
+    .earn-category-tabs {
+      display: flex; gap: 4px; margin-bottom: 16px; background: var(--card);
+      padding: 4px; border-radius: 14px; border: 1px solid var(--hairline); position: relative;
     }
-    .offerwall-wrapper {
-      width: 100%;
-      max-width: 380px;
-      height: 78vh;
-      background-color: var(--card);
-      border-radius: 18px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-      border: 1px solid var(--hairline);
+    .tab-pill {
+      position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 2);
+      background: var(--mint); border-radius: 10px;
+      transform: translateX(calc(var(--active-index, 0) * 100%));
+      transition: transform 0.35s cubic-bezier(0.65,0,0.35,1);
     }
+    .category-tab {
+      flex: 1; padding: 10px 4px; text-align: center; font-size: 12px; font-weight: 700;
+      color: var(--text-muted); background: transparent; border: none; border-radius: 10px;
+      cursor: pointer; transition: color 0.25s ease; position: relative; z-index: 1;
+    }
+    .category-tab:hover { color: var(--text); }
+    .category-tab.active { color: #06120e; }
+
+    .earn-section-panel { display: none; }
+    .earn-section-panel.active { display: block; }
+
     .offerwall-iframe-container {
-      width: 100%;
-      flex-grow: 1;
-      overflow: hidden;
+      width: calc(100% + 36px); margin-left: -18px; height: 480px; background: var(--card);
+      border-radius: 16px; border: 1px solid var(--hairline); overflow: hidden; position: relative;
     }
-    #offerwallFrame {
-      width: 100%;
-      height: 100%;
-      border: none;
-      background: transparent;
+    .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; background: transparent; }
+
+    /* ============ User header ============ */
+    .user-header-card {
+      background: var(--card); border-radius: 18px; padding: 16px; margin-bottom: 18px;
+      display: flex; align-items: center; border: 1px solid var(--hairline);
     }
-    .offerwall-footer {
-      width: 100%;
-      padding: 12px 16px;
-      background-color: var(--card);
-      display: flex;
-      justify-content: center;
-      border-top: 1px solid var(--hairline);
+    .user-avatar {
+      width: 48px; height: 48px; border-radius: 14px; margin-right: 14px; overflow: hidden;
+      background: var(--card-alt);
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 18px; color: var(--mint);
+      border: 1px solid var(--hairline); flex-shrink: 0;
     }
-    .offerwall-back-btn {
-      background-color: rgba(255, 255, 255, 0.05);
-      color: var(--text);
+    .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .user-info .username { font-size: 16px; font-weight: 800; margin: 0; color: var(--text); }
+    .user-info .badge-container { display: flex; align-items: center; gap: 8px; margin-top: 5px; }
+    .user-info .title { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+    .live-indicator {
+      display: inline-flex; align-items: center; gap: 5px; font-size: 10px; font-weight: 700;
+      color: var(--mint); background: var(--mint-soft); padding: 3px 9px; border-radius: 20px;
+    }
+    .live-dot { width: 5px; height: 5px; background: var(--mint); border-radius: 50%; animation: pulseDot 1.8s infinite; }
+    @keyframes pulseDot { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+    /* ============ Progress ============ */
+    .progress-section { background: var(--card); border-radius: 16px; padding: 16px; margin-bottom: 18px; border: 1px solid var(--hairline); }
+    .progress-info { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: var(--text-muted); }
+    .progress-info span:last-child { color: var(--mint); }
+
+    .section-title { font-size: 15px; font-weight: 800; margin-bottom: 12px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+    .section-title i { color: var(--mint); font-size: 13px; }
+
+    /* ============ Task cards ============ */
+    .task-card {
+      background: var(--card); border-radius: 16px; padding: 15px; margin-bottom: 10px;
+      display: flex; align-items: center; cursor: pointer;
+      transition: border-color 0.2s ease, transform 0.15s ease;
+      border: 1px solid var(--hairline); border-left: 3px solid transparent;
+    }
+    .task-card:hover { border-color: var(--mint-glow); }
+    .task-card:active { transform: scale(0.985); }
+    .task-card.cooldown-active { opacity: 0.5; cursor: not-allowed; }
+
+    .task-icon {
+      font-size: 18px; color: var(--mint); background: var(--card-alt);
+      width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center;
+      margin-right: 14px; flex-shrink: 0;
+    }
+    .task-details { flex-grow: 1; }
+    .task-details h3 { margin: 0; font-size: 14px; font-weight: 700; color: var(--text); }
+    .task-details p { margin: 4px 0 0; font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+    .task-action-meta { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; margin-left: 10px; flex-shrink: 0; }
+    .task-arrow {
+      width: 30px; height: 30px; border-radius: 50%; background: rgba(255,255,255,0.04);
+      display: flex; align-items: center; justify-content: center; font-size: 11px; color: var(--text-muted);
       border: 1px solid var(--hairline);
-      padding: 12px 24px;
-      font-size: 14px;
-      font-weight: 700;
-      border-radius: 12px;
-      cursor: pointer;
-      width: 100%;
+    }
+    .cooldown-badge {
+      font-size: 10px; font-weight: 700; color: var(--mint); background: var(--mint-soft);
+      padding: 3px 9px; border-radius: 20px; display: none; white-space: nowrap;
+    }
+
+    /* ============ Footer nav ============ */
+    .footer-nav {
+      position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 410px; margin: 0 auto;
+      display: flex; background: rgba(7, 12, 14, 0.94);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      padding: 10px 4px 16px 4px; border-top: 1px solid var(--hairline); z-index: 100;
+    }
+    .nav-button {
+      flex: 1; display: flex; flex-direction: column; align-items: center; color: var(--text-muted);
+      background: transparent; border: none; font-size: 10px; font-weight: 700; cursor: pointer; padding: 8px 2px;
+      transition: color 0.2s ease;
+    }
+    .nav-button .icon { font-size: 17px; margin-bottom: 5px; }
+    .nav-button:hover { color: var(--text); }
+    .nav-button.active { color: var(--mint); }
+
+    .btn {
+      display: block; width: 100%; margin: 10px auto; padding: 16px; font-size: 14px; font-weight: 800;
+      background: linear-gradient(135deg, var(--mint), var(--mint-dim));
+      color: #06120e; border: none; border-radius: 16px; cursor: pointer;
+      box-shadow: 0 8px 20px var(--mint-glow);
     }
   </style>
 </head>
 <body>
 
-  <!-- Opening Splash Screen with original HOWL image & animation -->
+  <!-- Opening Splash Screen with Original Animation & Image -->
   <div id="splash-screen">
     <div class="howl-glow"></div>
     <div class="howl-rings">
@@ -323,173 +262,262 @@
       <div class="live-grid"></div>
     </div>
 
-    <main>
-      <!-- MAIN MENU VIEW -->
-      <div class="card" id="mainMenu">
-        <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Logo" class="logo">
-        
-        <!-- User Profile Dashboard Card -->
-        <div class="profile-section" id="userProfileCard" style="display: none;">
-          <img id="userAvatar" class="avatar" src="" alt="Avatar">
+    <main id="main-content">
+      <!-- HOME VIEW -->
+      <div id="home-view" class="view active">
+        <div class="user-header-card">
+          <div class="user-avatar" id="profile-pic">
+            <img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Avatar">
+          </div>
           <div class="user-info">
-            <div id="userName" class="name">Loading...</div>
-            <div id="userId" class="userid">ID: --</div>
+            <h2 class="username" id="username">Loading...</h2>
+            <div class="badge-container">
+              <span class="title"><i class="fa-solid fa-shield-halved" style="color:var(--mint);"></i> Verified Earner</span>
+              <div class="live-indicator"><span class="live-dot"></span> LIVE</div>
+            </div>
           </div>
         </div>
 
-        <div class="title">Earning Hub</div>
-        <div class="instructions">
-          Choose an option below to start earning rewards directly to your account.
+        <div class="progress-section">
+          <div class="progress-info">
+            <span>Ads Watched Today</span>
+            <span id="adsbitvex-count-today">0</span>
+          </div>
         </div>
 
-        <button class="btn" onclick="switchView('adsView')">📺 Watch Ads</button>
-        <button class="btn btn-secondary" onclick="openOfferwall()">📋 Offerwall & Surveys</button>
+        <h2 class="section-title"><i class="fa-solid fa-bolt"></i> Quick Navigation</h2>
+        <div class="task-card" onclick="showView('tasks-view')">
+            <div class="task-icon"><i class="fa-solid fa-rocket"></i></div>
+            <div class="task-details"><h3>Launch Earning Hub</h3><p>Execute monetization tasks and collect rewards.</p></div>
+            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
       </div>
 
-      <!-- ADS VIEW -->
-      <div class="card hidden" id="adsView">
-        <div class="title">Watch Ads</div>
-        <div class="instructions">
-          Watch and complete <strong>3 sponsor ads</strong> to unlock bonuses.
+      <!-- TASKS VIEW -->
+      <div id="tasks-view" class="view">
+        <div class="earn-category-tabs" id="earn-tabs" style="--active-index: 0;">
+          <div class="tab-pill"></div>
+          <button class="category-tab active" id="tab-ads" onclick="switchEarnTab('ads')">Ads</button>
+          <button class="category-tab" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
         </div>
 
-        <div class="progress-box">
-          <div class="counter" id="adCounter">Ads Completed: 0 / 3</div>
+        <!-- ADS PANEL -->
+        <div id="panel-ads" class="earn-section-panel active">
+          <h2 class="section-title"><i class="fa-solid fa-rectangle-ad"></i> Active Ad Modules</h2>
+          
+          <div class="task-card" id="adsbitvexCard" onclick="startAdsBitvexTask()">
+              <div class="task-icon"><i class="fa-solid fa-fire"></i></div>
+              <div class="task-details">
+                <h3>AdsBitvex Reward Ad</h3>
+                <p>Watched today: <span id="adsbitvex-limit-text">0</span> (5s cooldown)</p>
+              </div>
+              <div class="task-action-meta">
+                <span id="adsbitvexCD" class="cooldown-badge">5s</span>
+                <div class="task-arrow" id="adsbitvexArrow"><i class="fa-solid fa-play"></i></div>
+              </div>
+          </div>
         </div>
 
-        <button class="btn" id="bonusBtn" onclick="handleAdClick()">Watch Ad (1/3)</button>
-        <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
+        <!-- OFFERWALL PANEL -->
+        <div id="panel-offerwall" class="earn-section-panel">
+          <h2 class="section-title"><i class="fa-solid fa-gift"></i> Partner Offerwall</h2>
+          <div class="offerwall-iframe-container">
+            <iframe id="offerwall-iframe" src="" title="Offerwall"></iframe>
+          </div>
+        </div>
       </div>
     </main>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="footer-nav">
+      <button class="nav-button active" onclick="showView('home-view')"><div class="icon"><i class="fa-solid fa-house"></i></div>Home</button>
+      <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div>Earn</button>
+      <button class="nav-button" onclick="shareApp()"><div class="icon"><i class="fa-solid fa-share-nodes"></i></div>Share</button>
+    </nav>
   </div>
 
-  <!-- REDUCED OFFERWALL MODAL/CONTAINER VIEW -->
-  <div class="hidden" id="offerwallView">
-    <div class="offerwall-wrapper">
-      <div class="offerwall-iframe-container">
-        <iframe id="offerwallFrame" src="" allowpaymentrequest></iframe>
-      </div>
-      <div class="offerwall-footer">
-        <button class="offerwall-back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
-      </div>
-    </div>
-  </div>
+<script>
+    let adsbitvexCountToday = 0;
+    let tgUser = null;
+    let currentUserId = 'guest_user';
+    let adsbitvexInFlight = false;
+    let adsbitvexLastRun = 0;
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
+    document.addEventListener('DOMContentLoaded', () => {
+        initApp();
+        setInterval(updateCooldownTimers, 1000);
+        
+        let percentTracker = 0;
+        const percentEl = document.getElementById('loaderPercent');
+        const barEl = document.getElementById('loaderBar');
+        const splashEl = document.getElementById('splash-screen');
 
-    if (tg.requestFullscreen) {
-      tg.requestFullscreen();
-    } else {
-      tg.expand();
+        function tickSplash() {
+            percentTracker += Math.floor(Math.random() * 8) + 4;
+            if (percentTracker >= 100) percentTracker = 100;
+
+            if (percentEl) percentEl.textContent = `${percentTracker}%`;
+            if (barEl) barEl.style.width = `${percentTracker}%`;
+
+            if (percentTracker >= 100) {
+                setTimeout(() => {
+                    if (splashEl) splashEl.classList.add('fade-out');
+                }, 350);
+            } else {
+                setTimeout(tickSplash, 180);
+            }
+        }
+        tickSplash();
+    });
+
+    function initApp() {
+        try {
+            if (window.Telegram && Telegram.WebApp) {
+                Telegram.WebApp.ready();
+                Telegram.WebApp.expand();
+                if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+                    tgUser = Telegram.WebApp.initDataUnsafe.user;
+                }
+            }
+        } catch (e) {}
+
+        currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
+        loadTelegramUser();
+        setupOfferwallIframe();
+        showView('home-view');
+        checkStoredCooldowns();
     }
 
-    if (tg.disableVerticalSwipes) {
-      tg.disableVerticalSwipes();
+    function setupOfferwallIframe() {
+        const iframe = document.getElementById('offerwall-iframe');
+        if (iframe) {
+            const offerwallApiKey = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
+            iframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
+        }
     }
 
-    // Splash Screen Loading Simulation
-    let percentTracker = 0;
-    const percentEl = document.getElementById('loaderPercent');
-    const barEl = document.getElementById('loaderBar');
-    const splashEl = document.getElementById('splash-screen');
-
-    function tickSplash() {
-      percentTracker += Math.floor(Math.random() * 8) + 5;
-      if (percentTracker >= 100) percentTracker = 100;
-
-      if (percentEl) percentEl.textContent = `${percentTracker}%`;
-      if (barEl) barEl.style.width = `${percentTracker}%`;
-
-      if (percentTracker >= 100) {
-        setTimeout(() => {
-          if (splashEl) splashEl.classList.add('fade-out');
-        }, 300);
-      } else {
-        setTimeout(tickSplash, 150);
-      }
-    }
-    tickSplash();
-
-    const REQUIRED_ADS = 3;
-    let adsCount = 0;
-
-    const tgUser = tg.initDataUnsafe?.user;
-    const USER_ID = tgUser?.id || "guest";
-    const userFirstName = tgUser?.first_name || "User";
-    const userPhotoUrl = tgUser?.photo_url || "";
-
-    const profileCard = document.getElementById('userProfileCard');
-    const userNameEl = document.getElementById('userName');
-    const userIdEl = document.getElementById('userId');
-    const userAvatarEl = document.getElementById('userAvatar');
-
-    userNameEl.textContent = userFirstName;
-    userIdEl.textContent = `ID: ${USER_ID}`;
-
-    if (userPhotoUrl) {
-      userAvatarEl.src = userPhotoUrl;
-      profileCard.style.display = 'flex';
-    } else {
-      userAvatarEl.style.display = 'none';
-      profileCard.style.display = 'flex';
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
+        const targetView = document.getElementById(viewId);
+        if (targetView) targetView.classList.add('active');
+        
+        document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+        const activeBtn = document.querySelector(`.nav-button[onclick="showView('${viewId}')"]`);
+        if (activeBtn) activeBtn.classList.add('active');
     }
 
-    const OFFERWALL_API_KEY = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
+    const TAB_ORDER = ['ads', 'offerwall'];
 
-    function switchView(viewId) {
-      document.getElementById('mainMenu').classList.add('hidden');
-      document.getElementById('adsView').classList.add('hidden');
-      document.getElementById('offerwallView').classList.add('hidden');
-      document.getElementById(viewId).classList.remove('hidden');
+    function switchEarnTab(tabName) {
+        document.querySelectorAll('#tasks-view .category-tab').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('#tasks-view .earn-section-panel').forEach(panel => panel.classList.remove('active'));
+
+        const targetTab = document.getElementById(`tab-${tabName}`);
+        const targetPanel = document.getElementById(`panel-${tabName}`);
+        if (targetTab) targetTab.classList.add('active');
+        if (targetPanel) targetPanel.classList.add('active');
+        
+        const tabsContainer = document.getElementById('earn-tabs');
+        if (tabsContainer) {
+            tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
+        }
     }
 
-    function openOfferwall() {
-      const offerwallUrl = `https://offerwall.me/offerwall/${OFFERWALL_API_KEY}/${USER_ID}`;
-      document.getElementById('offerwallFrame').src = offerwallUrl;
-      switchView('offerwallView');
+    function checkStoredCooldowns() {
+        const storedAdsbitvex = localStorage.getItem(`howl_adsbitvex_cd_${currentUserId}`);
+        if (storedAdsbitvex) adsbitvexLastRun = parseInt(storedAdsbitvex) || 0;
     }
 
-    function handleAdClick() {
-      const btn = document.getElementById('bonusBtn');
-      btn.disabled = true;
-      btn.innerText = "Opening ad...";
+    function updateCooldownTimers() {
+        const now = Date.now();
+        const adsbitvexDiff = Math.floor((now - adsbitvexLastRun) / 1000);
+        const adsbitvexCard = document.getElementById('adsbitvexCard');
+        const adsbitvexCD = document.getElementById('adsbitvexCD');
+        const adsbitvexArrow = document.getElementById('adsbitvexArrow');
 
-      if (typeof window.showadsbitvex !== 'function') {
-        btn.disabled = false;
-        updateBtnText();
-        tg.showAlert("AdsBitVex SDK is loading. Please try again.");
-        return;
-      }
+        if (adsbitvexCard && adsbitvexCD && adsbitvexArrow) {
+            if (adsbitvexInFlight || adsbitvexDiff < 5) {
+                const left = Math.max(0, 5 - adsbitvexDiff);
+                adsbitvexCard.classList.add('cooldown-active');
+                adsbitvexCD.style.display = 'inline-block';
+                adsbitvexCD.textContent = adsbitvexInFlight ? '…' : `${left}s`;
+                adsbitvexArrow.style.display = 'none';
+            } else {
+                adsbitvexCard.classList.remove('cooldown-active');
+                adsbitvexCD.style.display = 'none';
+                adsbitvexArrow.style.display = 'flex';
+            }
+        }
+    }
 
-      window.showadsbitvex()
-        .then(() => {
-          adsCount++;
-          document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
+    function loadTelegramUser() {
+        const profilePicDiv = document.getElementById('profile-pic');
+        const usernameDiv = document.getElementById('username');
 
-          if (adsCount < REQUIRED_ADS) {
-            btn.disabled = false;
-            updateBtnText();
-            tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-          } else {
-            btn.innerText = "Completed!";
-            tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
-              tg.close();
-            });
-          }
-        })
-        .catch(e => {
-          btn.disabled = false;
-          updateBtnText();
-          tg.showAlert("Ad closed early or unavailable.");
+        if (tgUser) {
+            const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
+            if (usernameDiv) usernameDiv.textContent = fullName || 'Telegram User';
+            if (profilePicDiv) {
+                if (tgUser.photo_url) {
+                    profilePicDiv.innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar">`;
+                } else {
+                    profilePicDiv.innerHTML = `<span>${(tgUser.first_name || 'U').charAt(0)}</span>`;
+                }
+            }
+        } else {
+            if (usernameDiv) usernameDiv.textContent = 'Web Operator';
+            if (profilePicDiv) {
+                profilePicDiv.innerHTML = `<img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="Avatar">`;
+            }
+        }
+    }
+
+    function startAdsBitvexTask() {
+        if (adsbitvexInFlight) return;
+
+        const now = Date.now();
+        if (now - adsbitvexLastRun < 5000) {
+            const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
+            return alert(`⏳ Cooldown active! Please wait ${left}s.`);
+        }
+
+        if (typeof window.showadsbitvex !== 'function') {
+            return alert('AdsBitvex SDK not loaded properly. Please refresh or check connection.');
+        }
+
+        adsbitvexInFlight = true;
+
+        window.showadsbitvex().then(() => {
+            adsbitvexLastRun = Date.now();
+            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
+            adsbitvexInFlight = false;
+
+            adsbitvexCountToday += 1;
+            const countEl = document.getElementById('adsbitvex-count-today');
+            const limitTextEl = document.getElementById('adsbitvex-limit-text');
+            if (countEl) countEl.textContent = adsbitvexCountToday;
+            if (limitTextEl) limitTextEl.textContent = adsbitvexCountToday;
+
+            alert(`🎉 Ad watched successfully!`);
+        }).catch((e) => {
+            adsbitvexLastRun = Date.now();
+            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
+            adsbitvexInFlight = false;
+            alert('⚠️ Ad closed early or failed to load.');
         });
     }
 
-    function updateBtnText() {
-      const btn = document.getElementById('bonusBtn');
-      btn.innerText = `Watch Ad (${adsCount + 1}/${REQUIRED_ADS})`;
+    function shareApp() {
+        const botUsername = "ultrasonic_pay_bot"; 
+        const referralLink = `https://t.me/${botUsername}?startapp=${currentUserId}`;
+        const text = `🚀 Join HOWL Rewards and earn instant payouts. Launch now!`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+            Telegram.WebApp.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
     }
-  </script>
+</script>
 </body>
 </html>
