@@ -1,12 +1,8 @@
-// /api/postback.js (Vercel Serverless Function)
-
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
+const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
-
-// Your verified native TelebotCreator command webhook URL
-const TELEBOT_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnQ8sA4zkpAID7j2S2EEbg4dNnmpSu64zpJHhcmjDmktcWzLjYXSNbQscLaGVyo-wzzNXA4tusn0HupSomAyJ0OO05USEJGwbcAEUB63XOmVp-mubhF5fHvq8uX2jC2N-oHWziNI3dUeEnlJsLNi1MVH_6ddb75W_WLtA3SRkKIM_s6QSSt_JxoGKyo4cV5dMhTEu";
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -30,7 +26,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Missing parameters");
   }
 
-  // Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
+  // 1. Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -39,21 +35,26 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  // Push payload directly through TelebotCreator's native command bridge
+  // 2. Send Telegram Message directly via Bot API
+  let messageText = "";
+  if (status == "2") {
+    messageText = `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed by the provider.`;
+  } else {
+    messageText = `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt will automatically unlock and move to your main balance after 7 days!`;
+  }
+
   try {
-    await fetch(TELEBOT_WEBHOOK_URL, {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        user_id: String(userId),
-        status: status || "1",
-        reward: reward,
-        transactionId: transactionId,
-        release_delay: status == "2" ? 0 : HOLD_SECONDS
+        chat_id: userId,
+        text: messageText,
+        parse_mode: "HTML"
       })
     });
   } catch (err) {
-    console.error("Failed to push postback to Telebot webhook:", err.message);
+    console.error("Failed to send Telegram notification:", err.message);
   }
 
   return res.status(200).send("ok");
