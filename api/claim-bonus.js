@@ -35,26 +35,23 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
     }
 
-    urlParams.delete('hash');
+    // Split raw initData by '&', remove the hash parameter, sort alphabetically, and join with '\n'
+    const pairs = initData.split('&');
+    const filteredPairs = pairs.filter(pair => !pair.startsWith('hash='));
+    filteredPairs.sort();
+    const dataCheckString = filteredPairs.join('\n');
 
-    // 1. Sort keys alphabetically as mandated by Telegram WebApp authentication specifications
-    const paramsList = [];
-    urlParams.sort();
-    for (const [key, value] of urlParams.entries()) {
-      paramsList.push(`${key}=${value}`);
-    }
-    const dataCheckString = paramsList.join('\n');
-
-    // 2. Compute HMAC-SHA-256 signature using "WebAppData" as key and BOT_TOKEN as message
+    // Compute secret key: HMAC-SHA-256 of "WebAppData" using BOT_TOKEN
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
+    
+    // Compute signature: HMAC-SHA-256 of dataCheckString using secretKey
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-    // 3. Cryptographically verify the signature
     if (calculatedHash !== hash) {
       return res.status(403).json({ error: "Forbidden: Invalid Telegram signature (unauthorized bot context)" });
     }
 
-    // 4. Safely extract verified user ID directly from the validated payload
+    // Extract user id safely from the parsed parameters
     const userStr = urlParams.get('user');
     if (userStr) {
       const parsed = JSON.parse(userStr);
@@ -63,7 +60,7 @@ export default async function handler(req, res) {
       }
     }
   } catch (e) {
-    return res.status(400).json({ error: "Bad Request: Failed to process validation parameters" });
+    return res.status(400).json({ error: "Bad Request: Failed to process validation parameters: " + e.message });
   }
 
   if (!targetUserId) {
