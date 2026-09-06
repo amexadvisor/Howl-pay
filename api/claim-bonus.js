@@ -12,27 +12,18 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: "API is online" });
   }
 
-  const { webhook, user_id, initData } = req.body || {};
+  const { userId, completed, initData } = req.body || {};
 
-  // 1. If a TelebotCreator webhook URL is provided, forward the request directly
-  if (webhook) {
-    try {
-      const forwardRes = await fetch(webhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, timestamp: Date.now() })
-      });
+  // Retrieve the custom TelebotCreator command webhook URL from Vercel environment variables
+  const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
-      return res.status(200).json({ success: true, forwarded: forwardRes.ok });
-    } catch (err) {
-      return res.status(500).json({ error: "Webhook forwarding failed: " + err.message });
-    }
+  if (!targetWebhook) {
+    return res.status(500).json({ error: "Missing ADS_WEBHOOK_URL environment variable configuration" });
   }
 
-  // 2. Fallback: Parse user ID if calling TelebotCreator API directly
-  let targetUserId = user_id;
+  let targetUserId = userId;
 
-  if (initData) {
+  if (!targetUserId && initData) {
     try {
       const params = new URLSearchParams(initData);
       const userStr = params.get('user');
@@ -48,32 +39,27 @@ export default async function handler(req, res) {
   }
 
   if (!targetUserId) {
-    return res.status(400).json({ error: "Missing user identification or webhook URL" });
+    return res.status(400).json({ error: "Missing user identification" });
   }
 
-  const BOT_TOKEN = "8863906305:AAFduwJfiOkXr2RUAdivUkIGblLKeVI-i1U";
-  const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
-
   try {
-    const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    const forwardRes = await fetch(targetWebhook, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        api_key: TELEBOT_API_KEY,
-        bot_token: BOT_TOKEN,
-        command: "/adsreward",
-        user_id: targetUserId,
-        params: String(targetUserId)
+      body: JSON.stringify({ 
+        user_id: String(targetUserId),
+        completed: completed !== undefined ? completed : true, 
+        timestamp: Date.now() 
       })
     });
 
-    const telebotData = await telebotRes.json().catch(() => ({}));
+    const responseText = await forwardRes.text();
 
     return res.status(200).json({
-      success: telebotRes.ok,
-      telebot_response: telebotData
+      success: forwardRes.ok,
+      telebot_response: responseText
     });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    return res.status(500).json({ error: "Webhook forwarding failed: " + err.message });
   }
 }
