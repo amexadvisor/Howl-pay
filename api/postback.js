@@ -1,28 +1,27 @@
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const TELEBOT_API_KEY = "Cz_DphAzc0dVIea8NxQpj3VugRg0w8lS0hksiyC4VX0";
-const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
+// The static webhook URL strictly tied to your /surveyreward command
+const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS, GET');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const data = req.method === 'POST' ? (req.body || {}) : req.query;
 
   if (req.method === 'GET' && !data.subId && !data.webhook) {
-    return res.status(200).json({ status: "Offerwall postback API is online" });
+    return res.status(200).json({ status: "Gateway is online" });
   }
 
   const { webhook, subId, transId, reward, status, signature } = data;
 
-  // 1. Handle dynamic frontend webhook forwarding (Miniapp logic)
+  // ==========================================
+  // 1. MINI APP DYNAMIC WEBHOOK LOGIC (ADS BOT)
+  // ==========================================
   if (webhook) {
     try {
       const forwardRes = await fetch(webhook, {
@@ -36,17 +35,16 @@ module.exports = async function handler(req, res) {
     }
   }
 
-  // 2. Handle Offerwall.me S2S Postbacks
+  // ==========================================
+  // 2. OFFERWALL S2S POSTBACK LOGIC
+  // ==========================================
   const userId = subId;
   const transactionId = transId;
   const rewardAmount = parseFloat(reward || 0);
   const txStatus = status || "1";
 
   if (!userId || !transactionId || isNaN(rewardAmount) || !signature) {
-    return res.status(400).json({ 
-      success: false, 
-      error: "Missing required postback parameters (subId, transId, reward, signature)" 
-    });
+    return res.status(400).json({ success: false, error: "Missing required postback parameters" });
   }
 
   // MD5 Security Verification
@@ -57,49 +55,24 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  const commandName = txStatus == "2" ? "/surveyreversed" : "/surveyreward";
-
+  // Forward the verified Offerwall payload to your TelebotCreator Webhook
   try {
-    const telebotRes = await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    const webhookRes = await fetch(SURVEY_WEBHOOK_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        api_key: TELEBOT_API_KEY,
-        bot_token: BOT_TOKEN,
-        command: commandName,
         user_id: String(userId),
-        params: `${rewardAmount}|${transactionId}`
+        reward: rewardAmount,
+        transactionId: String(transactionId),
+        status: String(txStatus)
       })
     });
 
-    // Read the body exactly once as text, then try parsing it
-    const rawText = await telebotRes.text();
-    let telebotData = {};
-    try {
-      telebotData = JSON.parse(rawText);
-    } catch (e) {
-      telebotData = { raw: rawText };
-    }
-
-    // Schedule 7-day hold release if valid credit completion
-    if (txStatus != "2") {
-      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TELEBOT_API_KEY,
-          bot_token: BOT_TOKEN,
-          timeout: HOLD_SECONDS,
-          command: "/releasereward",
-          user_id: String(userId),
-          params: `${rewardAmount}|${transactionId}`
-        })
-      });
-    }
+    const responseText = await webhookRes.text();
 
     return res.status(200).json({
-      success: telebotRes.ok,
-      telebot_response: telebotData
+      success: webhookRes.ok,
+      telebot_response: responseText
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
