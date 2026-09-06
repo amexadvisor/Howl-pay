@@ -1,20 +1,25 @@
+// api/postback.js (Vercel Serverless Function with Detailed Error Handling & Webhook Forwarding)
+
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
-const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
+const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
 
 module.exports = async function handler(req, res) {
+  // CORS Headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS');
 
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method === 'GET' && !req.query.subId) {
-    return res.status(200).json({ status: "Postback gateway active" });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
+  if (req.method === 'GET' && !req.query.subId) {
+    return res.status(200).json({ status: "Offerwall postback gateway is active and healthy" });
+  }
+
+  // Extract parameters from POST body or GET query string
   const data = req.method === 'POST' ? (req.body || {}) : req.query;
 
   const userId = data.subId;
@@ -22,64 +27,52 @@ module.exports = async function handler(req, res) {
   const reward = parseFloat(data.reward || 0);
   const status = data.status || "1";
   const signature = data.signature;
-  const clientWebhook = data.webhook; // Captured from frontend query string if passed
 
+  // 1. Parameter Validation Error Handling
   if (!userId || !transactionId || isNaN(reward) || !signature) {
-    return res.status(400).send("ERROR: Missing parameters");
+    console.error("[ERROR] Missing required postback parameters:", { userId, transactionId, reward, signature });
+    return res.status(400).send("ERROR: Missing required parameters (subId, transId, reward, signature)");
   }
 
-  // 1. Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
+  // 2. MD5 Signature Security Verification
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
-    console.warn(`Signature mismatch for user ${userId}`);
-    return res.status(400).send("ERROR: Signature doesn't match");
+    console.warn(`[SECURITY WARNING] Signature mismatch! Expected: ${calculatedSignature}, Received: ${signature}, User: ${userId}`);
+    return res.status(400).send("ERROR: Cryptographic signature verification failed");
   }
 
-  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
-
+  // 3. Forward Payload to TelebotCreator Webhook with Comprehensive Error Catching
   try {
-    // 2. If client passed a direct webhook URL, call it directly (like your working ads bot)
-    if (clientWebhook) {
-      await fetch(clientWebhook, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ completed: true, reward, transactionId })
-      });
-    } else {
-      // Fallback to direct TelebotCreator API execution engine
-      await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TELEBOT_API_KEY,
-          bot_token: BOT_TOKEN,
-          command: commandName,
-          user_id: String(userId),
-          params: `${reward}|${transactionId}`
-        })
-      });
+    console.log(`[INFO] Forwarding postback to TelebotCreator for User: ${userId}, TxID: ${transactionId}, Reward: ${reward}`);
+    
+    const webhookResponse = await fetch(SURVEY_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: String(userId),
+        options: {
+          status: String(status),
+          reward: reward,
+          transactionId: String(transactionId)
+        }
+      })
+    });
+
+    const responseText = await webhookResponse.text();
+
+    if (!webhookResponse.ok) {
+      console.error(`[ERROR] TelebotCreator webhook rejected request. Status: ${webhookResponse.status}, Response: ${responseText}`);
+      return res.status(502).send(`ERROR: TelebotCreator gateway error: ${webhookResponse.status}`);
     }
 
-    // Schedule 7-day hold release if valid credit
-    if (status != "2") {
-      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TELEBOT_API_KEY,
-          bot_token: BOT_TOKEN,
-          timeout: HOLD_SECONDS,
-          command: "/releasereward",
-          user_id: String(userId),
-          params: `${reward}|${transactionId}`
-        })
-      });
-    }
-  } catch (err) {
-    console.error("Failed to execute bot trigger:", err.message);
+    console.log(`[SUCCESS] Postback successfully delivered to TelebotCreator. Response: ${responseText}`);
+  } catch (netError) {
+    console.error("[CRITICAL ERROR] Network or fetch failure while connecting to TelebotCreator webhook:", netError.message);
+    return res.status(500).send("ERROR: Internal server error dispatching webhook request");
   }
 
+  // Always return 200 ok to prevent Offerwall.me from endlessly retrying valid postbacks
   return res.status(200).send("ok");
 };
