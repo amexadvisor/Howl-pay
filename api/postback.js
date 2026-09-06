@@ -2,7 +2,6 @@ const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
 const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const TELEBOT_API_KEY = "TgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24";
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
@@ -27,47 +26,36 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Missing parameters");
   }
 
-  // Verify Offerwall.me MD5 signature
+  // 1. Verify Offerwall.me MD5 signature
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
   if (calculatedSignature !== signature) {
+    console.warn(`Signature mismatch for user ${userId}`);
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
+  // 2. Format Telegram Notification Message
+  let messageText = "";
+  if (status == "2") {
+    messageText = `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed by the provider.`;
+  } else {
+    messageText = `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt will automatically unlock and move to your main balance after 7 days!`;
+  }
 
+  // 3. Dispatch message directly via Telegram Bot API
   try {
-    // Trigger TelebotCreator API with explicit user_id and parameters
-    await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        api_key: TELEBOT_API_KEY,
-        bot_token: BOT_TOKEN,
-        command: commandName,
-        user_id: String(userId),
-        params: `${reward}|${transactionId}`
+        chat_id: userId,
+        text: messageText,
+        parse_mode: "HTML"
       })
     });
-
-    // Schedule 7-day release if valid credit
-    if (status != "2") {
-      await fetch("https://api.telebotcreator.com/api/v1/runCommandAfter", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          api_key: TELEBOT_API_KEY,
-          bot_token: BOT_TOKEN,
-          timeout: HOLD_SECONDS,
-          command: "/releasereward",
-          user_id: String(userId),
-          params: `${reward}|${transactionId}`
-        })
-      });
-    }
   } catch (err) {
-    console.error("API dispatch error:", err.message);
+    console.error("Failed to send Telegram notification:", err.message);
   }
 
   return res.status(200).send("ok");
