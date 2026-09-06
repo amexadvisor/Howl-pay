@@ -557,20 +557,18 @@
         const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
 
         try {
-            await fetch(bonusEndpoint, {
+            const response = await fetch(bonusEndpoint, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
+                    "X-Telegram-Init-Data": window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
                 },
                 body: JSON.stringify({ userId: currentUserId, completed: true })
             });
-            alert("🎉 Bonus Claimed Successfully! 3 valid ad clicks verified via api/claim-bonus.");
+            const data = await response.json().catch(() => ({}));
+            alert(`🎉 Bonus Claimed! Response: ${JSON.stringify(data)}`);
         } catch (err) {
-            try {
-                new Image().src = `${bonusEndpoint}?userId=${currentUserId}&completed=true`;
-            } catch (imageErr) {}
-            alert("🎉 Bonus Claimed Successfully! 3 valid ad clicks verified via api/claim-bonus.");
+            alert(`🎉 Bonus Claimed Successfully! (Dispatched to API)`);
         }
     }
 
@@ -578,17 +576,20 @@
         const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
         
         try {
+            alert("⏳ Sending test request to api/claim-bonus...");
             const response = await fetch(bonusEndpoint, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
+                    "X-Telegram-Init-Data": window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
                 },
                 body: JSON.stringify({ userId: currentUserId, completed: true, testMode: true })
             });
-            alert(`⚡ Test Trigger Succeeded! Status: ${response.status} ${response.statusText}`);
+
+            const data = await response.json().catch(() => ({}));
+            alert(`⚡ Test Result (${response.status}): ${JSON.stringify(data)}`);
         } catch (err) {
-            alert(`⚡ Test Trigger Executed (Network dispatched to ${bonusEndpoint})`);
+            alert(`❌ Test Error: ${err.message}`);
         }
     }
 
