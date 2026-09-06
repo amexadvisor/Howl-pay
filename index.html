@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta name="offerwall-verification" content="6a9cf545373d65cfef6ea334">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>Earning Hub Mini App</title>
@@ -108,59 +107,12 @@
     .hidden {
       display: none !important;
     }
-    .survey-list {
+    #offerwall-frame {
       width: 100%;
-      max-height: 450px;
-      overflow-y: auto;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-      margin-top: 5px;
-    }
-    .survey-item {
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      padding: 14px;
-      text-align: left;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .survey-info {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 13px;
-      color: var(--tg-theme-hint-color, #a0a0a0);
-    }
-    .survey-reward {
-      color: #00d26a;
-      font-weight: 600;
-    }
-    .survey-title {
-      font-size: 15px;
-      font-weight: 600;
-      color: var(--tg-theme-text-color, #ffffff);
-    }
-    .start-survey-btn {
-      background-color: var(--tg-theme-button-color, #0088cc);
-      color: var(--tg-theme-button-text-color, #ffffff);
-      border: none;
-      padding: 8px 12px;
-      font-size: 13px;
-      font-weight: 600;
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      display: inline-block;
-      margin-top: 4px;
-    }
-    .loading-text, .empty-text {
-      font-size: 14px;
-      color: var(--tg-theme-hint-color, #a0a0a0);
-      padding: 20px 0;
+      height: 600px;
+      border: 0;
+      border-radius: 12px;
+      background: #ffffff;
     }
   </style>
 </head>
@@ -175,7 +127,7 @@
     </div>
 
     <button class="btn" onclick="switchView('adsView')">📺 Watch Ads</button>
-    <button class="btn btn-secondary" onclick="switchView('surveyView')">📋 Complete Surveys</button>
+    <button class="btn btn-secondary" onclick="switchView('offerwallView')">📋 Offerwall & Surveys</button>
   </div>
 
   <!-- ADS VIEW -->
@@ -193,14 +145,11 @@
     <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
 
-  <!-- SURVEY VIEW -->
-  <div class="card hidden" id="surveyView" style="max-width: 400px;">
-    <div class="title" style="margin-bottom: 4px;">Available Surveys</div>
-    <div class="instructions" style="margin-bottom: 12px;">Complete surveys below to earn rewards.</div>
+  <!-- OFFERWALL VIEW -->
+  <div class="card hidden" id="offerwallView" style="max-width: 420px; width: 100%;">
+    <div class="title" style="margin-bottom: 8px;">Offerwall.me</div>
     
-    <div id="surveyContainer" class="survey-list">
-      <div class="loading-text">Loading available surveys...</div>
-    </div>
+    <iframe id="offerwall-frame" src=""></iframe>
 
     <button class="btn back-btn" onclick="switchView('mainMenu')">⬅ Back to Menu</button>
   </div>
@@ -223,79 +172,25 @@
     let adsCount = 0;
 
     const USER_ID = tg.initDataUnsafe?.user?.id || "guest";
-    const CLOUD_STORAGE_KEY = "ad_cooldown_" + USER_ID;
-    
+    const OFFERWALL_API_KEY = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
+
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
 
-    let surveysLoaded = false;
+    let offerwallLoaded = false;
 
     function switchView(viewId) {
       document.getElementById('mainMenu').classList.add('hidden');
       document.getElementById('adsView').classList.add('hidden');
-      document.getElementById('surveyView').classList.add('hidden');
+      document.getElementById('offerwallView').classList.add('hidden');
 
       document.getElementById(viewId).classList.remove('hidden');
 
-      if (viewId === 'surveyView' && !surveysLoaded) {
-        fetchSurveysSecurely();
-      }
-    }
-
-    async function fetchSurveysSecurely() {
-      const container = document.getElementById('surveyContainer');
-      try {
-        const response = await fetch('/api/surveys', {
-          method: 'GET',
-          headers: {
-            'X-Telegram-Init-Data': tg.initData
-          }
-        });
-
-        if (!response.ok) {
-          throw new Error("Unauthorized request");
-        }
-
-        const data = await response.json();
-        surveysLoaded = true;
-        container.innerHTML = "";
-
-        const surveys = Array.isArray(data) ? data : (data.surveys || data.data || []);
-
-        if (surveys.length === 0) {
-          container.innerHTML = `<div class="empty-text">No surveys available right now. Please check back later!</div>`;
-          return;
-        }
-
-        surveys.forEach(survey => {
-          const title = survey.title || survey.name || "Paid Survey";
-          const reward = survey.reward || survey.payout || "$0.00";
-          const duration = survey.duration || survey.time || "5 mins";
-          const link = survey.url || survey.link;
-
-          const item = document.createElement('div');
-          item.className = 'survey-item';
-          item.innerHTML = `
-            <div class="survey-info">
-              <span>⏱ ${duration}</span>
-              <span class="survey-reward">${reward}</span>
-            </div>
-            <div class="survey-title">${title}</div>
-            ${link ? `<a href="${link}" target="_blank" class="start-survey-btn" onclick="openSurveyLink(event, '${link}')">Start Survey</a>` : ''}
-          `;
-          container.appendChild(item);
-        });
-      } catch (err) {
-        container.innerHTML = `<div class="empty-text">Authentication failed or failed to load surveys.</div>`;
-      }
-    }
-
-    function openSurveyLink(event, url) {
-      event.preventDefault();
-      if (tg.openLink) {
-        tg.openLink(url);
-      } else {
-        window.open(url, '_blank');
+      // Dynamically load the Offerwall.me iframe with the Telegram user ID
+      if (viewId === 'offerwallView' && !offerwallLoaded) {
+        offerwallLoaded = true;
+        const iframe = document.getElementById('offerwall-frame');
+        iframe.src = `https://offerwall.me/offerwall/${OFFERWALL_API_KEY}/${USER_ID}`;
       }
     }
 
