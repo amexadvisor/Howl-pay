@@ -1,8 +1,8 @@
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-// Your native TelebotCreator webhook URL generated via libs.Webhook.getUrlFor()
-const TELEBOT_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnQ8sA4zkpAID7j2S2EEbg4dNnmpSu64zpJHhcmjDmktcWzLjYXSNbQscLaGVyo-wzzNXA4tusn0HupSomAyJ0OO05USEJGwbcAEUB63XOmVp-mubhF5fHvq8uX2jC2N-oHWziNI3dUeEnlJsLNi1MVH_6ddb75W_WLtA3SRkKIM_s6QSSt_JxoGKyo4cV5dMhTEu";
+const BOT_TOKEN = "YOUR_NEW_BOT_TOKEN_HERE"; // Replace with your current active bot token
+const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,7 +26,7 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Missing parameters");
   }
 
-  // Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
+  // 1. Verify Offerwall.me MD5 signature: md5(subId + transId + reward + secretKey)
   const stringToHash = `${userId}${transactionId}${reward}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -35,21 +35,27 @@ module.exports = async function handler(req, res) {
     return res.status(400).send("ERROR: Signature doesn't match");
   }
 
-  // Forward payload to TelebotCreator webhook using 'json' property mapping
+  // 2. Format Telegram Notification Message
+  let messageText = "";
+  if (status == "2") {
+    messageText = `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed by the provider.`;
+  } else {
+    messageText = `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt will automatically unlock and move to your main balance after 7 days!`;
+  }
+
+  // 3. Dispatch message directly via Telegram Bot API
   try {
-    await fetch(TELEBOT_WEBHOOK_URL, {
+    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        json: {
-          status: status || "1",
-          reward: reward,
-          transactionId: transactionId
-        }
+        chat_id: userId,
+        text: messageText,
+        parse_mode: "HTML"
       })
     });
   } catch (err) {
-    console.error("Failed to forward postback:", err.message);
+    console.error("Failed to send Telegram notification:", err.message);
   }
 
   return res.status(200).send("ok");
