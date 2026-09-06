@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
-const BOT_TOKEN = "YOUR_NEW_BOT_TOKEN_HERE"; // Replace with your current active bot token
+const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU"; // Replace with your current active bot token
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
