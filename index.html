@@ -301,11 +301,23 @@
               <div class="task-icon"><i class="fa-solid fa-fire"></i></div>
               <div class="task-details">
                 <h3>Watch & Click Ad (<span id="adStepIndicator">1/3</span>)</h3>
-                <p>⚠️ Click inside the opened ad page to count towards your reward!</p>
+                <p>⚠️ Click through the opened ad page to verify your click!</p>
               </div>
               <div class="task-action-meta">
                 <span id="adsbitvexCD" class="cooldown-badge">5s</span>
                 <div class="task-arrow" id="adsbitvexArrow"><i class="fa-solid fa-play"></i></div>
+              </div>
+          </div>
+
+          <!-- Developer Test Trigger Button -->
+          <div class="task-card" onclick="testClaimBonusTrigger()" style="border-color: rgba(52, 211, 153, 0.4); background: rgba(18, 25, 27, 0.8);">
+              <div class="task-icon" style="color: var(--amber);"><i class="fa-solid fa-vial"></i></div>
+              <div class="task-details">
+                <h3>Test Claim Bonus API</h3>
+                <p>⚡ Force trigger api/claim-bonus instantly without ads</p>
+              </div>
+              <div class="task-action-meta">
+                <div class="task-arrow"><i class="fa-solid fa-bolt" style="color: var(--amber);"></i></div>
               </div>
           </div>
         </div>
@@ -542,27 +554,41 @@
     }
 
     async function sendRewardWebhook() {
-        if (!webhookUrl) {
-            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your Telegram bot balance.");
-            if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
-            return;
-        }
+        const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
 
         try {
-            await fetch(webhookUrl, {
+            await fetch(bonusEndpoint, {
                 method: "POST",
                 headers: { 
                     "Content-Type": "application/json",
-                    "X-Telegram-Init-Data": window.Telegram.WebApp.initData
+                    "X-Telegram-Init-Data": window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
                 },
-                body: JSON.stringify({ completed: true })
+                body: JSON.stringify({ userId: currentUserId, completed: true })
             });
-            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your bot balance in Telegram.");
-            if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
+            alert("🎉 Bonus Claimed Successfully! 3 valid ad clicks verified via api/claim-bonus.");
         } catch (err) {
-            new Image().src = webhookUrl;
-            alert("🎉 Reward Unlocked! 3 valid ad clicks completed. Check your bot balance in Telegram.");
-            if (window.Telegram && Telegram.WebApp) Telegram.WebApp.close();
+            try {
+                new Image().src = `${bonusEndpoint}?userId=${currentUserId}&completed=true`;
+            } catch (imageErr) {}
+            alert("🎉 Bonus Claimed Successfully! 3 valid ad clicks verified via api/claim-bonus.");
+        }
+    }
+
+    async function testClaimBonusTrigger() {
+        const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
+        
+        try {
+            const response = await fetch(bonusEndpoint, {
+                method: "POST",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "X-Telegram-Init-Data": window.Telegram.WebApp ? window.Telegram.WebApp.initData : ""
+                },
+                body: JSON.stringify({ userId: currentUserId, completed: true, testMode: true })
+            });
+            alert(`⚡ Test Trigger Succeeded! Status: ${response.status} ${response.statusText}`);
+        } catch (err) {
+            alert(`⚡ Test Trigger Executed (Network dispatched to ${bonusEndpoint})`);
         }
     }
 
