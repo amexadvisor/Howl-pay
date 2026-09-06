@@ -8,7 +8,7 @@
   <!-- Telegram WebApp SDK -->
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-  <!-- AdsBitVex SDK (App ID: 000402) -->
+  <!-- AdsBitvex SDK (App ID: 000402) -->
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
 
   <style>
@@ -312,34 +312,35 @@
       btn.disabled = true;
       btn.innerText = "Opening ad...";
 
-      if (typeof window.showadsbitvex !== 'function') {
+      // Fallback-safe invocation matching your proven old bot pattern
+      const showAdFunc = window.showadsbitvex || window.showAdsBitvex;
+
+      if (typeof showAdFunc !== 'function') {
         btn.disabled = false;
         updateBtnText();
         tg.showAlert("AdsBitVex SDK is still loading or unavailable. Please check your connection.");
         return;
       }
 
-      window.showadsbitvex()
-        .then(function () {
-          adsCount++;
-          document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
+      showAdFunc().then(function () {
+        adsCount++;
+        document.getElementById('adCounter').innerText = `Ads Completed: ${adsCount} / ${REQUIRED_ADS}`;
 
-          if (adsCount < REQUIRED_ADS) {
-            btn.disabled = false;
-            updateBtnText();
-            tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
-          } else {
-            btn.innerText = "Completed!";
-            tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
-              tg.close();
-            });
-          }
-        })
-        .catch(function (error) {
+        if (adsCount < REQUIRED_ADS) {
           btn.disabled = false;
           updateBtnText();
-          tg.showAlert("Ad closed early or unavailable. Please try again.");
-        });
+          tg.showAlert(`✅ Ad ${adsCount}/${REQUIRED_ADS} verified! Complete the next one.`);
+        } else {
+          btn.innerText = "Completed!";
+          tg.showAlert("🎉 3 Ads Verified Successfully!", function() {
+            tg.close();
+          });
+        }
+      }).catch(function (error) {
+        btn.disabled = false;
+        updateBtnText();
+        tg.showAlert("Ad closed early or unavailable. Please try again.");
+      });
     }
 
     function updateBtnText() {
