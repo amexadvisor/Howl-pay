@@ -4,7 +4,7 @@ const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
 const SURVEY_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnRexbFUmGL0_PHDFtmSfcMI1tlkWBTHN4bZ01OI4_zQ4ZtPO2QF7OK0wR6ca9TWW7fcf--WvTFy5vbqlGUkdr3t56T2iO0tOnWMQBZ7L8JttzlCDs4gQvAMEguZmDN0THDZeENQ76eq16zCK4prv5nPwK_KJbD_fuiDAKobkEH4_x6GFW4VK5VHNSotQpFMEzOx3";
 const RELEASE_WEBHOOK_URL = "https://api.telebotcreator.com/new-webhook?data=gAAAAABqnTT5Mznt84S1YVGZUBHdDvUWFRkVExNe1KYo6YojNVG1DCtqAReQ9JvF7H2S_QZqBKSoPSuugN_4mytA989VRz34zd1NYnI0lm8m442J4GuzodYVQFFsTWcp-0USboXYHGDxo5-1BTP2vg68mo2NUCI1IczMOHAJ1KFb45qGDEAWm_kqfgKkwbbobuGo9HrYOCm1";
 
-const HOLD_SECONDS = 0.01* 24 * 60 * 60; // 7 days in seconds
+const HOLD_SECONDS = 15; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
