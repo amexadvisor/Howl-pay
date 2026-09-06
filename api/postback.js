@@ -2,7 +2,7 @@ const crypto = require('crypto');
 
 const OFFERWALL_SECRET_KEY = "oLU53dfdzFpqUbgalyoEsWoRAjHGEU5j";
 const BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const TELEBOT_API_KEY = "tgBcVcWghYwyk7QezwI3TJ0dYPqjY0rUJmLR64I3R24"; // Replace with the correct API key for your new bot
+const TELEBOT_API_KEY = "Cz_DphAzc0dVIea8NxQpj3VugRg0w8lS0hksiyC4VX0";
 const HOLD_SECONDS = 7 * 24 * 60 * 60; // 7 days in seconds
 
 module.exports = async function handler(req, res) {
@@ -37,19 +37,20 @@ module.exports = async function handler(req, res) {
 
   const commandName = status == "2" ? "/surveyreversed" : "/surveyreward";
 
-  // 2. Dispatch Telegram notification directly
+  // 2. Format Notification Message
   let messageText = status == "2" 
     ? `⚠️ <b>Notice:</b> Offer completion TxID <code>${transactionId}</code> worth ${reward} points was reversed.`
     : `⏳ <b>+${reward} points</b> added to your <b>Hold Balance</b> (TxID: <code>${transactionId}</code>).\n\nIt unlocks automatically after 7 days!`;
 
   try {
+    // Dispatch direct Telegram message
     await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: userId, text: messageText, parse_mode: "HTML" })
     });
 
-    // 3. Trigger TelebotCreator resource command using matching API key
+    // 3. Trigger TelebotCreator resource command using correct matching new API key
     await fetch("https://api.telebotcreator.com/api/v1/runCommand", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
