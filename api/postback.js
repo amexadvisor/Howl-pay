@@ -53,23 +53,48 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  let capturedSupabaseError = null;
+  // --- EXTREME DEBUGGING BLOCK ---
+  let supabaseDebugInfo = {
+    url_exists: !!SUPABASE_URL,
+    key_exists: !!SUPABASE_KEY,
+    payload_attempted: null,
+    insert_response_status: null,
+    insert_response_statustext: null,
+    insert_data: null,
+    insert_error: null,
+    catch_exception: null
+  };
 
   if (supabase && (txStatus === "1" || txStatus === "2")) {
-    try {
-      const { error } = await supabase.from('transactions').insert([{
-        user_id: String(userId),
-        reward_amount: rewardAmount,
-        transaction_id: String(transactionId),
-        task_type: 'Offerwall Partner',
-        status: txStatus,
-        created_at: new Date().toISOString()
-      }]);
+    const payload = {
+      user_id: String(userId),
+      reward_amount: rewardAmount,
+      transaction_id: String(transactionId),
+      task_type: 'Offerwall Partner',
+      status: txStatus,
+      created_at: new Date().toISOString()
+    };
+    supabaseDebugInfo.payload_attempted = payload;
 
-      if (error) capturedSupabaseError = error.message;
+    try {
+      // Adding .select() forces Supabase to return the row. 
+      // If RLS or a schema issue prevents the insert, it will throw an error or return an empty array here.
+      const response = await supabase.from('transactions').insert([payload]).select();
+      
+      supabaseDebugInfo.insert_response_status = response.status;
+      supabaseDebugInfo.insert_response_statustext = response.statusText;
+      supabaseDebugInfo.insert_data = response.data;
+      
+      if (response.error) {
+        supabaseDebugInfo.insert_error = response.error;
+      }
     } catch (dbErr) {
-      capturedSupabaseError = dbErr.message;
+      supabaseDebugInfo.catch_exception = { message: dbErr.message, stack: dbErr.stack };
     }
+  } else if (!supabase) {
+    supabaseDebugInfo.insert_error = "Supabase client not initialized (check environment variables)";
+  } else {
+    supabaseDebugInfo.insert_error = `Transaction status was ${txStatus}, expected 1 or 2`;
   }
 
   try {
@@ -89,9 +114,13 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: webhookRes.ok,
       telebot_response: responseText,
-      supabase_error_details: capturedSupabaseError
+      supabase_debug: supabaseDebugInfo
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message, supabase_error_details: capturedSupabaseError });
+    return res.status(500).json({ 
+      success: false, 
+      error: error.message, 
+      supabase_debug: supabaseDebugInfo 
+    });
   }
 };
