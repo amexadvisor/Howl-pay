@@ -184,13 +184,13 @@
       padding: 6px; border-radius: 18px; border: 1px solid var(--hairline); position: relative;
     }
     .tab-pill {
-      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 14px) / 2);
+      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 14px) / 3);
       background: var(--text); border-radius: 12px;
       transform: translateX(calc(var(--active-index, 0) * 100%));
       transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
     }
     .category-tab {
-      flex: 1; padding: 12px 4px; text-align: center; font-size: 14px; font-weight: 700;
+      flex: 1; padding: 12px 4px; text-align: center; font-size: 13px; font-weight: 700;
       color: var(--text-muted); background: transparent; border: none; border-radius: 12px;
       cursor: pointer; transition: color 0.3s ease; position: relative; z-index: 1;
     }
@@ -451,7 +451,8 @@
       <div id="tasks-view" class="view">
         <div class="earn-category-tabs" id="earn-tabs" style="--active-index: 0;">
           <div class="tab-pill"></div>
-          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
+          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall.me</button>
+          <button class="category-tab" id="tab-timewall" onclick="switchEarnTab('timewall')">TimeWall</button>
           <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')">Ads Task</button>
         </div>
 
@@ -463,6 +464,17 @@
               <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Establishing Secure Connection...</p>
             </div>
             <iframe id="offerwall-iframe" src="" title="Offerwall" onload="document.getElementById('iframe-fallback').style.display='none';"></iframe>
+          </div>
+        </div>
+
+        <!-- TIMEWALL PANEL -->
+        <div id="panel-timewall" class="earn-section-panel" style="display: none;">
+          <div class="offerwall-iframe-container">
+            <div id="timewall-fallback" class="iframe-fallback">
+              <div class="loader-spinner"></div>
+              <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
+            </div>
+            <iframe id="timewall-iframe" src="" title="TimeWall" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
         </div>
 
@@ -642,6 +654,7 @@
         generateRefLink();
         
         document.getElementById('panel-offerwall').style.display = 'block';
+        document.getElementById('panel-timewall').style.display = 'none';
         document.getElementById('panel-ads').style.display = 'none';
         
         showView('home-view');
@@ -711,6 +724,8 @@
         document.getElementById('main-content').scrollTop = 0;
     }
 
+    const TAB_ORDER = ['offerwall', 'timewall', 'ads'];
+
     function switchEarnTab(tabName) {
         document.querySelectorAll('.earn-section-panel').forEach(panel => {
             panel.classList.remove('active');
@@ -726,11 +741,23 @@
             targetPanel.classList.add('active');
             targetPanel.style.display = 'block'; 
         }
+
+        // Lazy load TimeWall iframe on first click
+        if (tabName === 'timewall') {
+            const twIframe = document.getElementById('timewall-iframe');
+            if (twIframe && !twIframe.src) {
+                const timewallWebsiteId = "YOUR_TIMEWALL_WEBSITE_ID"; // Replace with your TimeWall website/placement ID
+                twIframe.src = `https://timewall.io/?website=${timewallWebsiteId}&user=${currentUserId}`;
+            }
+        }
         
         const tabsContainer = document.getElementById('earn-tabs');
-        const TAB_ORDER = ['offerwall', 'ads'];
-        if (tabsContainer) tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
+        if (tabsContainer) {
+            tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
+        }
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+            Telegram.WebApp.HapticFeedback.selectionChanged();
+        }
     }
 
     function checkStoredCooldowns() {
