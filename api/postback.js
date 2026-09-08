@@ -46,7 +46,6 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Missing required postback parameters" });
   }
 
-  // MD5 Security Verification
   const stringToHash = `${userId}${transactionId}${rawRewardStr}${OFFERWALL_SECRET_KEY}`;
   const calculatedSignature = crypto.createHash('md5').update(stringToHash).digest('hex');
 
@@ -56,10 +55,9 @@ module.exports = async function handler(req, res) {
 
   let capturedSupabaseError = null;
 
-  // Database Logging with Full SDK Error Trapping
   if (supabase && (txStatus === "1" || txStatus === "2")) {
     try {
-      const insertResult = await supabase.from('transactions').insert([{
+      const { error } = await supabase.from('transactions').insert([{
         user_id: String(userId),
         reward_amount: rewardAmount,
         transaction_id: String(transactionId),
@@ -68,13 +66,9 @@ module.exports = async function handler(req, res) {
         created_at: new Date().toISOString()
       }]);
 
-      if (insertResult.error) {
-        capturedSupabaseError = insertResult.error;
-        console.error("FULL SUPABASE ERROR OBJECT:", JSON.stringify(insertResult.error, null, 2));
-      }
+      if (error) capturedSupabaseError = error.message;
     } catch (dbErr) {
-      capturedSupabaseError = { message: dbErr.message, stack: dbErr.stack };
-      console.error("SUPABASE EXCEPTION:", dbErr);
+      capturedSupabaseError = dbErr.message;
     }
   }
 
