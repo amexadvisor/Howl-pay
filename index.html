@@ -13,7 +13,7 @@
 
   <style>
     :root {
-      --bg: #09090b; /* Deep Zinc */
+      --bg: #09090b; 
       --bg-gradient: radial-gradient(circle at top right, #131a18, #09090b);
       --card: rgba(24, 24, 27, 0.7);
       --card-hover: rgba(39, 39, 42, 0.9);
@@ -37,7 +37,7 @@
       height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
     }
 
-    /* ============ New Splash Animation ============ */
+    /* ============ Splash Animation ============ */
     #splash-screen {
       position: absolute; inset: 0; background: #050505; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -93,7 +93,7 @@
     .ambient-light { position: absolute; top: -100px; left: -100px; width: 300px; height: 300px; background: var(--mint); filter: blur(150px); opacity: 0.15; pointer-events: none; z-index: 0; }
 
     main { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 110px; z-index: 1; position: relative; scroll-behavior: smooth; }
-    main::-webkit-scrollbar { width: 0px; } /* Hide scrollbar for cleaner look */
+    main::-webkit-scrollbar { width: 0px; } 
 
     .view { display: none; }
     .view.active { display: block; animation: slideFade 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
@@ -169,6 +169,19 @@
     }
     .task-card:hover .task-arrow { background: var(--text); color: var(--bg); border-color: var(--text); }
 
+    /* ============ Side by Side Grid System ============ */
+    .grid-2-col {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
+    }
+    .grid-card {
+      padding: 16px 14px; flex-direction: column; align-items: flex-start; text-align: left; 
+      margin-bottom: 0; position: relative;
+    }
+    .grid-card .task-icon { margin-right: 0; margin-bottom: 12px; width: 44px; height: 44px; font-size: 18px; }
+    .grid-card .task-details h3 { font-size: 14px; }
+    .grid-card .task-details p { font-size: 11px; margin-top: 5px; }
+    .grid-card .task-arrow { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; font-size: 10px; }
+
     /* ============ Earn Tabs ============ */
     .earn-category-tabs {
       display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.4);
@@ -186,6 +199,11 @@
       cursor: pointer; transition: color 0.3s ease; position: relative; z-index: 1;
     }
     .category-tab.active { color: var(--bg); }
+
+    /* Strict isolation for panels to prevent overlap */
+    .earn-section-panel { display: none !important; }
+    .earn-section-panel.active { display: block !important; animation: fadeInTab 0.3s forwards; }
+    @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
     /* ============ Ads & Offerwall ============ */
     .offerwall-iframe-container {
@@ -205,34 +223,23 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ============ Terms Modal ============ */
-    .modal-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-      z-index: 1000; display: flex; justify-content: center; align-items: flex-end;
-      opacity: 0; visibility: hidden; transition: all 0.3s ease;
+    /* ============ Dedicated Terms View ============ */
+    #terms-view { background: var(--bg); }
+    .terms-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    .back-btn { 
+      background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
+      color: var(--text); width: 40px; height: 40px; border-radius: 12px; 
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .modal-overlay.active { opacity: 1; visibility: visible; }
+    .terms-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
     
-    .modal-content {
-      background: var(--card); border-top: 1px solid var(--hairline); border-top-left-radius: 28px; border-top-right-radius: 28px;
-      width: 100%; max-width: 420px; max-height: 85vh; display: flex; flex-direction: column;
-      transform: translateY(100%); transition: transform 0.4s cubic-bezier(0.16,1,0.3,1);
+    .terms-content { 
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 20px; 
+      padding: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;
     }
-    .modal-overlay.active .modal-content { transform: translateY(0); }
-    
-    .modal-header { padding: 24px 20px 16px; display: flex; justify-content: space-between; align-items: center; }
-    .modal-header h2 { margin: 0; font-size: 20px; font-weight: 800; color: var(--text); }
-    .close-modal { background: rgba(255,255,255,0.05); border: none; color: var(--text); width: 32px; height: 32px; border-radius: 50%; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    
-    .modal-body { padding: 0 20px 20px; overflow-y: auto; font-size: 13px; color: var(--text-muted); line-height: 1.6; }
-    .modal-body h4 { color: var(--text); font-size: 15px; margin: 20px 0 8px 0; }
-    
-    .modal-footer { padding: 16px 20px 24px; border-top: 1px solid var(--hairline); }
-    .modal-footer button {
-      width: 100%; background: var(--text); color: var(--bg); border: none; padding: 16px;
-      border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 0.2s;
-    }
-    .modal-footer button:active { transform: scale(0.97); }
+    .terms-content h4 { color: var(--text); font-size: 15px; margin: 0 0 8px 0; }
+    .terms-content p { margin: 0 0 20px 0; }
+    .terms-content p:last-child { margin-bottom: 0; }
 
     /* ============ Footer Nav ============ */
     .footer-nav {
@@ -288,7 +295,6 @@
           </div>
         </div>
 
-        <!-- NEW: Bot Balance Notice -->
         <div class="bot-wallet-card">
           <div class="wallet-icon"><i class="fa-solid fa-wallet"></i></div>
           <div class="wallet-text">
@@ -306,29 +312,35 @@
         
         <h2 class="section-title" style="margin-top: 24px;">Community & Support</h2>
         
-        <!-- HIDDEN URL COMMUNITY CHAT -->
-        <div class="task-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
-            <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
-            <div class="task-details"><h3>HOWL Global Chat</h3><p>Join the community to discuss tasks and earnings.</p></div>
-            <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
-        </div>
+        <!-- SIDE BY SIDE GRID -->
+        <div class="grid-2-col">
+            <!-- Community Chat -->
+            <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
+                <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
+                <div class="task-details"><h3>Global Chat</h3><p>Community hub</p></div>
+                <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+            </div>
 
-        <div class="task-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank')">
-            <div class="task-icon icon-community"><i class="fa-solid fa-bullhorn"></i></div>
-            <div class="task-details"><h3>Official Channel</h3><p>Follow for payout proofs and platform updates.</p></div>
-            <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
-        </div>
+            <!-- Official Channel -->
+            <div class="task-card grid-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank')">
+                <div class="task-icon icon-community"><i class="fa-solid fa-bullhorn"></i></div>
+                <div class="task-details"><h3>Official Info</h3><p>Updates & proof</p></div>
+                <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+            </div>
 
-        <div class="task-card" onclick="window.open('https://t.me/Amanuel_los', '_blank')">
-            <div class="task-icon icon-support"><i class="fa-solid fa-headset"></i></div>
-            <div class="task-details"><h3>Direct Support Agent</h3><p>Chat with a representative for account issues.</p></div>
-            <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
-        </div>
+            <!-- Support Agent -->
+            <div class="task-card grid-card" onclick="window.open('https://t.me/Amanuel_los', '_blank')">
+                <div class="task-icon icon-support"><i class="fa-solid fa-headset"></i></div>
+                <div class="task-details"><h3>Support</h3><p>Account help</p></div>
+                <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
+            </div>
 
-        <div class="task-card" onclick="openTosModal()">
-            <div class="task-icon icon-legal"><i class="fa-solid fa-scale-balanced"></i></div>
-            <div class="task-details"><h3>Terms & Conditions</h3><p>Read the strict platform rules and policies.</p></div>
-            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            <!-- Terms View Direct Button -->
+            <div class="task-card grid-card" onclick="showView('terms-view')">
+                <div class="task-icon icon-legal"><i class="fa-solid fa-scale-balanced"></i></div>
+                <div class="task-details"><h3>Policies</h3><p>Platform rules</p></div>
+                <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+            </div>
         </div>
       </div>
 
@@ -341,7 +353,8 @@
         </div>
 
         <!-- OFFERWALL PANEL -->
-        <div id="panel-offerwall" class="earn-section-panel active">
+        <!-- Added style="display: block;" explicitly to start -->
+        <div id="panel-offerwall" class="earn-section-panel active" style="display: block;">
           <div class="offerwall-iframe-container">
             <div id="iframe-fallback" class="iframe-fallback">
               <div class="loader-spinner"></div>
@@ -352,7 +365,8 @@
         </div>
 
         <!-- ADS PANEL -->
-        <div id="panel-ads" class="earn-section-panel">
+        <!-- Added style="display: none;" explicitly to start -->
+        <div id="panel-ads" class="earn-section-panel" style="display: none;">
           <div class="bot-wallet-card" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
             <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="wallet-text">
@@ -374,6 +388,28 @@
           </div>
         </div>
       </div>
+      
+      <!-- NEW: DEDICATED TERMS VIEW -->
+      <div id="terms-view" class="view">
+        <div class="terms-header">
+            <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Terms & Policies</h2>
+        </div>
+        
+        <div class="terms-content">
+            <h4>1. Account Integrity</h4>
+            <p>You may only use one account. Multiple accounts per user, device, or IP address will trigger an automated system ban and the permanent forfeiture of all bot balances.</p>
+            
+            <h4>2. Prohibited Exploits</h4>
+            <p>The use of VPNs (Virtual Private Networks), Datacenter Proxies, ad-blockers, software emulators, or automation scripts to bypass or complete offerwall tasks is strictly forbidden.</p>
+
+            <h4>3. Balance & Reversals</h4>
+            <p>All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions, such as providing false information on surveys or rushing through tasks.</p>
+            
+            <h4>4. Support Protocol</h4>
+            <p>If your account balance is missing verified credits, contact the official support agent. Fraudulent claims or abusive behavior toward support staff will lead to account termination.</p>
+        </div>
+      </div>
     </main>
 
     <nav class="footer-nav">
@@ -381,29 +417,6 @@
       <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div>Earn</button>
       <button class="nav-button" onclick="shareApp()"><div class="icon"><i class="fa-solid fa-share-nodes"></i></div>Share</button>
     </nav>
-  </div>
-
-  <!-- TERMS OF SERVICE MODAL -->
-  <div class="modal-overlay" id="tosModal">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>Terms & Policies</h2>
-        <button class="close-modal" onclick="closeTosModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="modal-body">
-        <h4>1. Account Integrity</h4>
-        <p>You may only use one account. Multiple accounts per user, device, or IP will trigger an automated ban and forfeiture of all bot balances.</p>
-        
-        <h4>2. Prohibited Exploits</h4>
-        <p>The use of VPNs, Datacenter Proxies, ad-blockers, emulators, or automation scripts to complete offerwall tasks is strictly forbidden.</p>
-
-        <h4>3. Balance & Payouts</h4>
-        <p>All earnings generated inside this Mini App are synchronized directly to your Telegram bot wallet. Advertisers reserve the right to reverse credits for low-quality submissions (e.g., speed-running surveys with fake data).</p>
-      </div>
-      <div class="modal-footer">
-        <button onclick="closeTosModal()">Acknowledge & Close</button>
-      </div>
-    </div>
   </div>
 
 <script>
@@ -454,6 +467,11 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         setupOfferwallIframe();
+        
+        // Setup direct toggle displays
+        document.getElementById('panel-offerwall').style.display = 'block';
+        document.getElementById('panel-ads').style.display = 'none';
+        
         showView('home-view');
         checkStoredCooldowns();
         updateDisplayCounters();
@@ -467,40 +485,48 @@
         }
     }
 
-    function openTosModal() {
-        document.getElementById('tosModal').classList.add('active');
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.impactOccurred('light');
-        }
-    }
-    function closeTosModal() {
-        document.getElementById('tosModal').classList.remove('active');
-    }
-
+    // Master Navigation Function
     function showView(viewId) {
         document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
         const targetView = document.getElementById(viewId);
         if (targetView) targetView.classList.add('active');
         
         document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+        
+        // Make sure footer active state reflects correctly
         const activeBtn = document.querySelector(`.nav-button[onclick="showView('${viewId}')"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
+        
+        // Scroll to top when changing views
+        document.getElementById('main-content').scrollTop = 0;
     }
 
-    const TAB_ORDER = ['offerwall', 'ads'];
+    // Bulletproof Tab Switching
     function switchEarnTab(tabName) {
-        document.querySelectorAll('#tasks-view .category-tab').forEach(tab => tab.classList.remove('active'));
-        document.querySelectorAll('#tasks-view .earn-section-panel').forEach(panel => panel.classList.remove('active'));
+        // Reset Everything completely first
+        document.querySelectorAll('.earn-section-panel').forEach(panel => {
+            panel.classList.remove('active');
+            panel.style.display = 'none'; // Force hide
+        });
+        document.querySelectorAll('.category-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
 
+        // Activate specific target
         const targetTab = document.getElementById(`tab-${tabName}`);
         const targetPanel = document.getElementById(`panel-${tabName}`);
-        if (targetTab) targetTab.classList.add('active');
-        if (targetPanel) targetPanel.classList.add('active');
         
+        if (targetTab) targetTab.classList.add('active');
+        if (targetPanel) {
+            targetPanel.classList.add('active');
+            targetPanel.style.display = 'block'; // Force show
+        }
+        
+        // Move sliding pill indicator
         const tabsContainer = document.getElementById('earn-tabs');
         if (tabsContainer) {
             tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
@@ -509,6 +535,7 @@
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     }
+    const TAB_ORDER = ['offerwall', 'ads'];
 
     function checkStoredCooldowns() {
         const storedAdsbitvex = localStorage.getItem(`howl_adsbitvex_cd_${currentUserId}`);
