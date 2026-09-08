@@ -180,17 +180,17 @@
     .grid-card .task-arrow { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; font-size: 10px; }
 
     .earn-category-tabs {
-      display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.4);
+      display: flex; gap: 6px; margin-bottom: 20px; background: rgba(0,0,0,0.4);
       padding: 6px; border-radius: 18px; border: 1px solid var(--hairline); position: relative;
     }
     .tab-pill {
-      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 14px) / 3);
+      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 16px) / 3);
       background: var(--text); border-radius: 12px;
       transform: translateX(calc(var(--active-index, 0) * 100%));
       transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
     }
     .category-tab {
-      flex: 1; padding: 12px 4px; text-align: center; font-size: 13px; font-weight: 700;
+      flex: 1; padding: 10px 2px; text-align: center; font-size: 12px; font-weight: 700;
       color: var(--text-muted); background: transparent; border: none; border-radius: 12px;
       cursor: pointer; transition: color 0.3s ease; position: relative; z-index: 1;
     }
@@ -637,7 +637,6 @@
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
 
-                // SILENTLY SYNC PROFILE TO SUPABASE
                 if (Telegram.WebApp.initData) {
                     fetch('/api/sync-profile', {
                         method: 'POST',
@@ -650,7 +649,7 @@
 
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
-        setupOfferwallIframe();
+        setupOfferwallIframes();
         generateRefLink();
         
         document.getElementById('panel-offerwall').style.display = 'block';
@@ -675,11 +674,17 @@
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     }
 
-    function setupOfferwallIframe() {
-        const iframe = document.getElementById('offerwall-iframe');
-        if (iframe) {
+    function setupOfferwallIframes() {
+        const offerwallIframe = document.getElementById('offerwall-iframe');
+        if (offerwallIframe) {
             const offerwallApiKey = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
-            iframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
+            offerwallIframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
+        }
+
+        const timewallIframe = document.getElementById('timewall-iframe');
+        if (timewallIframe) {
+            const timewallOid = "78a1ef4a7932308b"; 
+            timewallIframe.src = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
         }
     }
 
@@ -741,15 +746,6 @@
             targetPanel.classList.add('active');
             targetPanel.style.display = 'block'; 
         }
-
-        // Lazy load TimeWall iframe on first click
-        if (tabName === 'timewall') {
-            const twIframe = document.getElementById('timewall-iframe');
-            if (twIframe && !twIframe.src) {
-                const timewallWebsiteId = "YOUR_TIMEWALL_WEBSITE_ID"; // Replace with your TimeWall website/placement ID
-                twIframe.src = `https://timewall.io/?website=${timewallWebsiteId}&user=${currentUserId}`;
-            }
-        }
         
         const tabsContainer = document.getElementById('earn-tabs');
         if (tabsContainer) {
@@ -809,7 +805,6 @@
         }
     }
 
-    // ============ SECURE FETCH HISTORY ============
     async function renderHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
@@ -851,7 +846,6 @@
         }
     }
 
-    // ============ SECURE FETCH LEADERBOARD ============
     async function fetchLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
