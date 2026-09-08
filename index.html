@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>HOWL | Elite Earning Platform</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -17,7 +17,7 @@
       --bg-gradient: radial-gradient(circle at top right, #131a18, #09090b);
       --card: rgba(24, 24, 27, 0.7);
       --card-hover: rgba(39, 39, 42, 0.9);
-      --hairline: rgba(255, 255, 255, 0.06);
+      --hairline: rgba(255, 255, 255, 0.08);
       --mint: #10b981;
       --mint-glow: rgba(16, 185, 129, 0.4);
       --mint-soft: rgba(16, 185, 129, 0.1);
@@ -30,11 +30,14 @@
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-    body {
-      margin: 0; padding: 0; background: var(--bg); background-image: var(--bg-gradient);
+    /* Prevent Telegram swipe-to-close behavior */
+    html, body {
+      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      background: var(--bg); background-image: var(--bg-gradient);
       color: var(--text); font-family: 'Inter', sans-serif; 
-      display: flex; justify-content: center; align-items: center;
-      height: 100vh; overflow: hidden; -webkit-font-smoothing: antialiased;
+      overflow: hidden; /* Lock body scroll */
+      overscroll-behavior-y: none; /* Prevent pull-to-refresh */
+      -webkit-font-smoothing: antialiased;
     }
 
     /* ============ Splash Animation ============ */
@@ -85,14 +88,18 @@
 
     /* ============ Shell Layout ============ */
     .container {
-      width: 100%; height: 100%; max-width: 420px; position: relative;
+      width: 100%; height: 100%; max-width: 420px; margin: 0 auto; position: relative;
       display: flex; flex-direction: column; overflow: hidden;
       border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline);
     }
     
     .ambient-light { position: absolute; top: -100px; left: -100px; width: 300px; height: 300px; background: var(--mint); filter: blur(150px); opacity: 0.15; pointer-events: none; z-index: 0; }
 
-    main { flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 110px; z-index: 1; position: relative; scroll-behavior: smooth; }
+    main { 
+      flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 110px; 
+      z-index: 1; position: relative; scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch; overscroll-behavior-y: none;
+    }
     main::-webkit-scrollbar { width: 0px; } 
 
     .view { display: none; }
@@ -115,7 +122,6 @@
     .user-info { z-index: 2; }
     .user-info .username { font-size: 18px; font-weight: 800; margin: 0; color: var(--text); letter-spacing: -0.5px; }
     .user-info .badge-container { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
-    .user-info .title { font-size: 12px; color: var(--text-muted); font-weight: 600; }
     
     .status-pill {
       display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800;
@@ -205,10 +211,10 @@
     .earn-section-panel.active { display: block !important; animation: fadeInTab 0.3s forwards; }
     @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ============ Ads & Offerwall ============ */
+    /* ============ FIXED Iframe Container ============ */
     .offerwall-iframe-container {
-      width: calc(100% + 40px); margin-left: -20px; height: 550px; background: #000;
-      border-top-left-radius: 28px; border-top-right-radius: 28px; border-top: 1px solid var(--hairline); 
+      width: 100%; height: 72vh; min-height: 500px; background: #050505;
+      border-radius: 20px; border: 1px solid var(--hairline); 
       overflow: hidden; position: relative;
     }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; position: relative; z-index: 2; }
@@ -240,6 +246,34 @@
     .terms-content h4 { color: var(--text); font-size: 15px; margin: 0 0 8px 0; }
     .terms-content p { margin: 0 0 20px 0; }
     .terms-content p:last-child { margin-bottom: 0; }
+
+    /* ============ First Time Terms Modal ============ */
+    .full-screen-modal {
+      position: fixed; inset: 0; background: rgba(5, 5, 5, 0.95);
+      backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
+      z-index: 100000; display: flex; justify-content: center; align-items: center;
+      opacity: 0; visibility: hidden; transition: all 0.4s ease;
+    }
+    .full-screen-modal.active { opacity: 1; visibility: visible; }
+    .full-screen-modal .modal-content {
+      width: 90%; max-width: 400px; background: var(--card); border: 1px solid var(--hairline);
+      border-radius: 24px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+      transform: scale(0.95) translateY(20px); transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+    }
+    .full-screen-modal.active .modal-content { transform: scale(1) translateY(0); }
+    
+    .f-modal-header { text-align: center; margin-bottom: 20px; }
+    .f-modal-header i { font-size: 36px; color: var(--mint); margin-bottom: 12px; }
+    .f-modal-header h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--text); }
+    .f-modal-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; max-height: 50vh; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
+    .f-modal-body h4 { color: #fff; font-size: 14px; margin: 15px 0 5px 0; }
+    .f-modal-body h4:first-child { margin-top: 0; }
+    
+    .f-modal-footer button {
+      width: 100%; background: var(--mint); color: #000; border: none; padding: 16px;
+      border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 0.2s;
+    }
+    .f-modal-footer button:active { transform: scale(0.97); }
 
     /* ============ Footer Nav ============ */
     .footer-nav {
@@ -273,6 +307,29 @@
     <div class="splash-loading-area">
       <div class="loading-track"><div class="loading-bar" id="loaderBar"></div></div>
       <div class="loading-text" id="loaderPercent">INITIALIZING...</div>
+    </div>
+  </div>
+
+  <!-- First Time Terms Agreement Modal -->
+  <div id="firstTimeTosModal" class="full-screen-modal">
+    <div class="modal-content">
+      <div class="f-modal-header">
+        <i class="fa-solid fa-shield-halved"></i>
+        <h2>Welcome to HOWL</h2>
+      </div>
+      <div class="f-modal-body">
+        <h4>1. Anti-Fraud Agreement</h4>
+        <p>By using this platform, you agree to never use VPNs, Datacenter Proxies, ad-blockers, or automation scripts. Violation results in an instant, unappealable ban.</p>
+        
+        <h4>2. One Account Policy</h4>
+        <p>You may only register and operate one (1) account. Multiple accounts on the same device or IP address are strictly prohibited.</p>
+
+        <h4>3. Balance & Synchronization</h4>
+        <p>Your earnings in this Mini App sync securely with your Telegram bot. Advertisers may reverse credits if tasks are completed fraudulently.</p>
+      </div>
+      <div class="f-modal-footer">
+        <button onclick="agreeToFirstTimeTos()">I Agree to the Terms</button>
+      </div>
     </div>
   </div>
 
@@ -314,28 +371,24 @@
         
         <!-- SIDE BY SIDE GRID -->
         <div class="grid-2-col">
-            <!-- Community Chat -->
             <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
                 <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
                 <div class="task-details"><h3>Global Chat</h3><p>Community hub</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
-            <!-- Official Channel -->
             <div class="task-card grid-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank')">
                 <div class="task-icon icon-community"><i class="fa-solid fa-bullhorn"></i></div>
                 <div class="task-details"><h3>Official Info</h3><p>Updates & proof</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
-            <!-- Support Agent -->
             <div class="task-card grid-card" onclick="window.open('https://t.me/Amanuel_los', '_blank')">
                 <div class="task-icon icon-support"><i class="fa-solid fa-headset"></i></div>
                 <div class="task-details"><h3>Support</h3><p>Account help</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
-            <!-- Terms View Direct Button -->
             <div class="task-card grid-card" onclick="showView('terms-view')">
                 <div class="task-icon icon-legal"><i class="fa-solid fa-scale-balanced"></i></div>
                 <div class="task-details"><h3>Policies</h3><p>Platform rules</p></div>
@@ -353,7 +406,6 @@
         </div>
 
         <!-- OFFERWALL PANEL -->
-        <!-- Added style="display: block;" explicitly to start -->
         <div id="panel-offerwall" class="earn-section-panel active" style="display: block;">
           <div class="offerwall-iframe-container">
             <div id="iframe-fallback" class="iframe-fallback">
@@ -365,7 +417,6 @@
         </div>
 
         <!-- ADS PANEL -->
-        <!-- Added style="display: none;" explicitly to start -->
         <div id="panel-ads" class="earn-section-panel" style="display: none;">
           <div class="bot-wallet-card" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
             <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -389,7 +440,7 @@
         </div>
       </div>
       
-      <!-- NEW: DEDICATED TERMS VIEW -->
+      <!-- DEDICATED TERMS VIEW -->
       <div id="terms-view" class="view">
         <div class="terms-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
@@ -444,7 +495,11 @@
             if (barEl) barEl.style.width = `${percentTracker}%`;
 
             if (percentTracker >= 100) {
-                setTimeout(() => { if (splashEl) splashEl.classList.add('fade-out'); }, 400);
+                setTimeout(() => { 
+                    if (splashEl) splashEl.classList.add('fade-out'); 
+                    // Check Terms of Service agreement after splash screen loads
+                    checkFirstTimeTos();
+                }, 400);
             } else {
                 setTimeout(tickSplash, 120);
             }
@@ -458,6 +513,12 @@
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#09090b');
+                
+                // NEW: Block vertical swipes to prevent closing the app
+                if (Telegram.WebApp.disableVerticalSwipes) {
+                    Telegram.WebApp.disableVerticalSwipes();
+                }
+
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
@@ -468,13 +529,28 @@
         loadTelegramUser();
         setupOfferwallIframe();
         
-        // Setup direct toggle displays
         document.getElementById('panel-offerwall').style.display = 'block';
         document.getElementById('panel-ads').style.display = 'none';
         
         showView('home-view');
         checkStoredCooldowns();
         updateDisplayCounters();
+    }
+
+    // First Time Terms Logic
+    function checkFirstTimeTos() {
+        const hasAgreed = localStorage.getItem(`howl_tos_agreed_${currentUserId}`);
+        if (!hasAgreed) {
+            document.getElementById('firstTimeTosModal').classList.add('active');
+        }
+    }
+
+    function agreeToFirstTimeTos() {
+        localStorage.setItem(`howl_tos_agreed_${currentUserId}`, 'true');
+        document.getElementById('firstTimeTosModal').classList.remove('active');
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+            Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+        }
     }
 
     function setupOfferwallIframe() {
@@ -485,7 +561,6 @@
         }
     }
 
-    // Master Navigation Function
     function showView(viewId) {
         document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
         const targetView = document.getElementById(viewId);
@@ -493,7 +568,6 @@
         
         document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
         
-        // Make sure footer active state reflects correctly
         const activeBtn = document.querySelector(`.nav-button[onclick="showView('${viewId}')"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
@@ -501,32 +575,27 @@
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
         
-        // Scroll to top when changing views
         document.getElementById('main-content').scrollTop = 0;
     }
 
-    // Bulletproof Tab Switching
     function switchEarnTab(tabName) {
-        // Reset Everything completely first
         document.querySelectorAll('.earn-section-panel').forEach(panel => {
             panel.classList.remove('active');
-            panel.style.display = 'none'; // Force hide
+            panel.style.display = 'none'; 
         });
         document.querySelectorAll('.category-tab').forEach(tab => {
             tab.classList.remove('active');
         });
 
-        // Activate specific target
         const targetTab = document.getElementById(`tab-${tabName}`);
         const targetPanel = document.getElementById(`panel-${tabName}`);
         
         if (targetTab) targetTab.classList.add('active');
         if (targetPanel) {
             targetPanel.classList.add('active');
-            targetPanel.style.display = 'block'; // Force show
+            targetPanel.style.display = 'block'; 
         }
         
-        // Move sliding pill indicator
         const tabsContainer = document.getElementById('earn-tabs');
         if (tabsContainer) {
             tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
