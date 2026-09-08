@@ -474,7 +474,8 @@
               <div class="loader-spinner"></div>
               <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
             </div>
-            <iframe id="timewall-iframe" src="" title="TimeWall" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
+            <!-- Added strict sandbox constraints here -->
+            <iframe id="timewall-iframe" src="" title="TimeWall" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
         </div>
 
