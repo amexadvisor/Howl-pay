@@ -1,5 +1,4 @@
 const crypto = require('crypto');
-const { createClient } = require('@supabase/supabase-js');
 
 const OFFERWALL_SECRET_KEY = process.env.OFFERWALL_SECRET_KEY;
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
@@ -52,18 +51,26 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  // Safe Database Logging
+  // Safe Database Logging via Native Fetch (No external package needed)
   if (SUPABASE_URL && SUPABASE_KEY && (txStatus === "1" || txStatus === "2")) {
     try {
-      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-      await supabase.from('transactions').insert([{
-        user_id: String(userId),
-        reward_amount: rewardAmount,
-        transaction_id: String(transactionId),
-        task_type: 'Offerwall Partner',
-        status: txStatus,
-        created_at: new Date().toISOString()
-      }]);
+      await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Prefer": "return=minimal"
+        },
+        body: JSON.stringify({
+          user_id: String(userId),
+          reward_amount: rewardAmount,
+          transaction_id: String(transactionId),
+          task_type: 'Offerwall Partner',
+          status: txStatus,
+          created_at: new Date().toISOString()
+        })
+      });
     } catch (dbErr) {
       console.error("Database logging failed:", dbErr.message);
     }
