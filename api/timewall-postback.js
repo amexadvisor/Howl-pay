@@ -4,12 +4,9 @@ import { createClient } from '@supabase/supabase-js';
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const TIMEWALL_SECRET_KEY = process.env.TIMEWALL_SECRET_KEY; // From your TimeWall dashboard settings
+const TIMEWALL_SECRET_KEY = process.env.TIMEWALL_SECRET_KEY; // Your secret key from TimeWall panel
 
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
-// TimeWall official approved server IPs
-const ALLOWED_IPS = ['18.156.132.55', '51.81.120.73', '142.111.248.18'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -24,13 +21,7 @@ export default async function handler(req, res) {
     return res.status(200).json({ status: "TimeWall Gateway is online" });
   }
 
-  // Optional: IP Whitelisting check behind Vercel proxy headers
-  const clientIp = req.headers['x-forwarded-for'] ? req.headers['x-forwarded-for'].split(',')[0].trim() : req.socket.remoteAddress;
-  if (process.env.NODE_ENV === 'production' && clientIp && !ALLOWED_IPS.includes(clientIp)) {
-    console.warn(`Blocked untrusted IP attempt: ${clientIp}`);
-  }
-
-  const userId = data.userid || data.uid || data.subId;
+  const userId = data.userid || data.uid;
   const rawRevenue = data.revenue || data.reward || data.amount || "0";
   const rawCurrencyAmount = data.currencyAmount || data.currency || rawRevenue;
   let rewardAmount = parseFloat(rawCurrencyAmount) || 0;
@@ -38,13 +29,13 @@ export default async function handler(req, res) {
   const txStatus = String(data.type || data.status || "1");
   const receivedHash = data.hash;
 
-  // Verify TimeWall SHA256 Hash if provided in parameters
+  // Cryptographic Hash Verification
   if (TIMEWALL_SECRET_KEY && receivedHash) {
     const stringToHash = `${userId}${rawRevenue}${TIMEWALL_SECRET_KEY}`;
     const calculatedHash = crypto.createHash('sha256').update(stringToHash).digest('hex');
-    
+
     if (calculatedHash !== receivedHash) {
-      return res.status(400).json({ success: false, error: "TimeWall cryptographic hash verification failed" });
+      return res.status(403).json({ success: false, error: "Unauthorized: Invalid TimeWall signature hash" });
     }
   }
 
@@ -54,10 +45,8 @@ export default async function handler(req, res) {
   }
 
   if (!userId || isNaN(rewardAmount)) {
-    return res.status(400).json({ success: false, error: "Missing required TimeWall parameters" });
+    return res.status(400).json({ success: false, error: "Missing required parameters" });
   }
-
-  let supabaseDebugInfo = { insert_error: null };
 
   if (supabase) {
     const payload = {
@@ -70,17 +59,14 @@ export default async function handler(req, res) {
     };
 
     try {
-      const response = await supabase.from('transactions').insert([payload]).select();
-      if (response.error) supabaseDebugInfo.insert_error = response.error;
+      await supabase.from('transactions').insert([payload]);
     } catch (dbErr) {
-      supabaseDebugInfo.insert_error = dbErr.message;
+      console.error("Database insertion failed:", dbErr.message);
     }
-  } else {
-    supabaseDebugInfo.insert_error = "Supabase client not initialized";
   }
 
-  try {
-    if (SURVEY_WEBHOOK_URL) {
+  if (SURVEY_WEBHOOK_URL) {
+    try {
       await fetch(SURVEY_WEBHOOK_URL, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -91,11 +77,10 @@ export default async function handler(req, res) {
           status: isReversal ? '-1' : '1'
         })
       });
+    } catch (err) {
+      console.error("Webhook forwarding failed:", err.message);
     }
-
-    // TimeWall expects plain text "OK" confirmation response
-    return res.status(200).send("OK");
-  } catch (error) {
-    return res.status(500).json({ success: false, error: error.message, supabase_debug: supabaseDebugInfo });
   }
+
+  return res.status(200).send("OK");
 }
