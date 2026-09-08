@@ -3,11 +3,8 @@ const { createClient } = require('@supabase/supabase-js');
 
 const OFFERWALL_SECRET_KEY = process.env.OFFERWALL_SECRET_KEY;
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
-
-// Initialize Supabase Client for Ledger & Leaderboard
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
-const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -55,10 +52,10 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  // ---> NEW: Log to Database for Transaction Ledger & Leaderboard
-  // Only log if the transaction status is successful (e.g., "1" or "2")
-  if (supabase && (txStatus === "1" || txStatus === "2")) {
+  // Safe Database Logging
+  if (SUPABASE_URL && SUPABASE_KEY && (txStatus === "1" || txStatus === "2")) {
     try {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
       await supabase.from('transactions').insert([{
         user_id: String(userId),
         reward_amount: rewardAmount,
@@ -69,10 +66,8 @@ module.exports = async function handler(req, res) {
       }]);
     } catch (dbErr) {
       console.error("Database logging failed:", dbErr.message);
-      // Failsafe: Do not block the Telebot webhook if the DB log fails
     }
   }
-  // <--- END NEW
 
   try {
     const webhookRes = await fetch(SURVEY_WEBHOOK_URL, {
