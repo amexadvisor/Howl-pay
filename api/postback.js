@@ -6,7 +6,6 @@ const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
-// Initialize Supabase Client using the official library
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 module.exports = async function handler(req, res) {
@@ -55,29 +54,27 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  let supabaseErrorDetails = null;
+  let capturedSupabaseError = null;
 
-  // Use the official Supabase SDK client to insert data reliably
+  // Database Logging with Full SDK Error Trapping
   if (supabase && (txStatus === "1" || txStatus === "2")) {
     try {
-      const { error } = await supabase.from('transactions').insert([
-        {
-          user_id: String(userId),
-          reward_amount: rewardAmount,
-          transaction_id: String(transactionId),
-          task_type: 'Offerwall Partner',
-          status: txStatus,
-          created_at: new Date().toISOString()
-        }
-      ]);
+      const insertResult = await supabase.from('transactions').insert([{
+        user_id: String(userId),
+        reward_amount: rewardAmount,
+        transaction_id: String(transactionId),
+        task_type: 'Offerwall Partner',
+        status: txStatus,
+        created_at: new Date().toISOString()
+      }]);
 
-      if (error) {
-        supabaseErrorDetails = error.message;
-        console.error("SUPABASE SDK ERROR:", error.message);
+      if (insertResult.error) {
+        capturedSupabaseError = insertResult.error;
+        console.error("FULL SUPABASE ERROR OBJECT:", JSON.stringify(insertResult.error, null, 2));
       }
     } catch (dbErr) {
-      supabaseErrorDetails = dbErr.message;
-      console.error("SUPABASE EXCEPTION:", dbErr.message);
+      capturedSupabaseError = { message: dbErr.message, stack: dbErr.stack };
+      console.error("SUPABASE EXCEPTION:", dbErr);
     }
   }
 
@@ -98,9 +95,9 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: webhookRes.ok,
       telebot_response: responseText,
-      supabase_error: supabaseErrorDetails
+      supabase_error_details: capturedSupabaseError
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message, supabase_error: supabaseErrorDetails });
+    return res.status(500).json({ success: false, error: error.message, supabase_error_details: capturedSupabaseError });
   }
 };
