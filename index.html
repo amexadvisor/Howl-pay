@@ -7,8 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Supabase JS Client -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -39,7 +37,6 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ============ Splash Animation ============ */
     #splash-screen {
       position: absolute; inset: 0; background: #050505; z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -85,7 +82,6 @@
     .loading-bar { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--mint); border-radius: 10px; transition: width 0.2s ease-out; box-shadow: 0 0 15px var(--mint); }
     .loading-text { text-align: center; margin-top: 10px; font-family: 'Inter', monospace; font-size: 12px; font-weight: 700; color: var(--mint); }
 
-    /* ============ Shell Layout ============ */
     .container {
       width: 100%; height: 100%; max-width: 420px; margin: 0 auto; position: relative;
       display: flex; flex-direction: column; overflow: hidden;
@@ -105,7 +101,6 @@
     .view.active { display: block; animation: slideFade 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
     @keyframes slideFade { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ============ Profile Header ============ */
     .user-header-card {
       background: var(--card); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
       border-radius: 20px; padding: 18px; margin-bottom: 16px;
@@ -129,7 +124,6 @@
     }
     .status-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; box-shadow: 0 0 8px var(--mint); animation: pulseDot 1.5s infinite; }
     
-    /* ============ Bot / Status Info Cards ============ */
     .bot-wallet-card {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.05));
       border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 14px 16px;
@@ -142,7 +136,6 @@
     .wallet-text h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
     .wallet-text p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 
-    /* ============ Task Cards ============ */
     .section-title { font-size: 13px; font-weight: 800; margin: 0 0 12px 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
     .task-card {
@@ -174,7 +167,6 @@
     }
     .task-card:hover .task-arrow { background: var(--text); color: var(--bg); border-color: var(--text); }
 
-    /* ============ Side by Side Grid System ============ */
     .grid-2-col {
       display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
     }
@@ -187,7 +179,6 @@
     .grid-card .task-details p { font-size: 11px; margin-top: 5px; }
     .grid-card .task-arrow { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; font-size: 10px; }
 
-    /* ============ Earn Tabs ============ */
     .earn-category-tabs {
       display: flex; gap: 8px; margin-bottom: 20px; background: rgba(0,0,0,0.4);
       padding: 6px; border-radius: 18px; border: 1px solid var(--hairline); position: relative;
@@ -209,7 +200,6 @@
     .earn-section-panel.active { display: block !important; animation: fadeInTab 0.3s forwards; }
     @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* ============ FIXED Iframe Container ============ */
     .offerwall-iframe-container {
       width: 100%; height: 72vh; min-height: 500px; background: #050505;
       border-radius: 20px; border: 1px solid var(--hairline); 
@@ -227,7 +217,6 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ============ Referral / Team Hub ============ */
     .ref-hero {
       background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
       padding: 30px 10px; text-align: center; border-radius: 20px; border: 1px solid var(--hairline);
@@ -259,7 +248,6 @@
     }
     .primary-btn:active { transform: scale(0.98); }
 
-    /* ============ Detail Views Header (History, Leaderboard & Terms) ============ */
     .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
     .back-btn { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
@@ -276,7 +264,6 @@
     .terms-content p { margin: 0 0 20px 0; }
     .terms-content p:last-child { margin-bottom: 0; }
 
-    /* ============ History Ledger & Leaderboard Items ============ */
     .history-item, .leaderboard-item {
       background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; 
       padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
@@ -297,7 +284,6 @@
     .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
     .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
 
-    /* ============ First Time Terms Modal ============ */
     .full-screen-modal {
       position: fixed; inset: 0; background: rgba(5, 5, 5, 0.95);
       backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
@@ -325,7 +311,6 @@
     }
     .f-modal-footer button:active { transform: scale(0.97); }
 
-    /* ============ Footer Nav ============ */
     .footer-nav {
       position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 420px; margin: 0 auto;
       display: flex; background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
@@ -425,7 +410,7 @@
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
 
-        <!-- NEW: Offerwall Leaderboard Button -->
+        <!-- Offerwall Leaderboard Button -->
         <div class="task-card" onclick="showView('leaderboard-view')">
             <div class="task-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
             <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Check the top 10 offerwall earners this week.</p></div>
@@ -547,7 +532,7 @@
         <div id="history-list"></div>
       </div>
 
-      <!-- NEW: LIVE LEADERBOARD VIEW -->
+      <!-- LIVE LEADERBOARD VIEW -->
       <div id="leaderboard-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
@@ -602,11 +587,6 @@
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
 
-    // SUPABASE PUBLIC CREDENTIALS (Safe to include public anon key on frontend)
-    const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE"; 
-    const SUPABASE_KEY = "YOUR_SUPABASE_KEY_HERE";
-    const supabaseClient = (SUPABASE_URL !== "YOUR_SUPABASE_URL_HERE") ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         setInterval(updateCooldownTimers, 1000);
@@ -641,10 +621,6 @@
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#09090b');
                 
-                if (Telegram.WebApp.disableVerticalSwipes) {
-                    Telegram.WebApp.disableVerticalSwipes();
-                }
-
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
@@ -674,9 +650,7 @@
     function agreeToFirstTimeTos() {
         localStorage.setItem(`howl_tos_agreed_${currentUserId}`, 'true');
         document.getElementById('firstTimeTosModal').classList.remove('active');
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        }
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     }
 
     function setupOfferwallIframe() {
@@ -689,9 +663,7 @@
 
     function generateRefLink() {
         const refInput = document.getElementById('ref-link-input');
-        if (refInput) {
-            refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
-        }
+        if (refInput) refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
     }
 
     function copyRefLink() {
@@ -699,18 +671,12 @@
         const copyBtn = document.getElementById('copy-btn');
         if (refInput && copyBtn) {
             refInput.select();
-            refInput.setSelectionRange(0, 99999);
             document.execCommand("copy");
-            
-            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-                Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            }
-
+            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
             const originalText = copyBtn.textContent;
             copyBtn.textContent = "Copied!";
             copyBtn.style.background = "var(--mint)";
             copyBtn.style.color = "#000";
-            
             setTimeout(() => {
                 copyBtn.textContent = originalText;
                 copyBtn.style.background = "var(--text)";
@@ -725,19 +691,13 @@
         if (targetView) targetView.classList.add('active');
         
         document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
-        
         const activeBtn = document.querySelector(`.nav-button[onclick="showView('${viewId}')"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.selectionChanged();
-        }
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
         
-        if (viewId === 'history-view') {
-            renderHistory();
-        } else if (viewId === 'leaderboard-view') {
-            fetchLeaderboard();
-        }
+        if (viewId === 'history-view') renderHistory();
+        if (viewId === 'leaderboard-view') fetchLeaderboard();
         
         document.getElementById('main-content').scrollTop = 0;
     }
@@ -747,9 +707,7 @@
             panel.classList.remove('active');
             panel.style.display = 'none'; 
         });
-        document.querySelectorAll('.category-tab').forEach(tab => {
-            tab.classList.remove('active');
-        });
+        document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
 
         const targetTab = document.getElementById(`tab-${tabName}`);
         const targetPanel = document.getElementById(`panel-${tabName}`);
@@ -761,14 +719,10 @@
         }
         
         const tabsContainer = document.getElementById('earn-tabs');
-        if (tabsContainer) {
-            tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
-        }
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.selectionChanged();
-        }
+        const TAB_ORDER = ['offerwall', 'ads'];
+        if (tabsContainer) tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
     }
-    const TAB_ORDER = ['offerwall', 'ads'];
 
     function checkStoredCooldowns() {
         const storedAdsbitvex = localStorage.getItem(`howl_adsbitvex_cd_${currentUserId}`);
@@ -812,74 +766,69 @@
             const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
             if (usernameDiv) usernameDiv.textContent = fullName || 'Anonymous User';
             if (profilePicDiv) {
-                if (tgUser.photo_url) {
-                    profilePicDiv.innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar">`;
-                } else {
-                    profilePicDiv.innerHTML = `${(tgUser.first_name || 'U').charAt(0)}`;
-                }
+                profilePicDiv.innerHTML = tgUser.photo_url ? `<img src="${tgUser.photo_url}" alt="Avatar">` : `${(tgUser.first_name || 'U').charAt(0)}`;
             }
         } else {
             if (usernameDiv) usernameDiv.textContent = 'Demo Operator';
         }
     }
 
-    // ============ TRANSACTION HISTORY ============
-    function saveTransaction(title, amount) {
-        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
-        const now = new Date();
-        const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-        history.unshift({ title, amount, date: dateStr });
-        if (history.length > 20) history.pop();
-        localStorage.setItem(`howl_history_${currentUserId}`, JSON.stringify(history));
-    }
-
-    function renderHistory() {
+    // ============ SECURE FETCH HISTORY ============
+    async function renderHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
-        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
-        
-        if (history.length === 0) {
-            historyList.innerHTML = `
-            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
-                <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
-                <p>No transactions yet. Complete tasks to see your earnings history here.</p>
-            </div>`;
-            return;
-        }
 
-        historyList.innerHTML = history.map(item => `
-            <div class="history-item">
-                <div style="display: flex; align-items: center; gap: 14px;">
-                    <div class="history-icon-box"><i class="fa-solid fa-check"></i></div>
-                    <div class="history-meta">
-                        <h4>${item.title}</h4>
-                        <p>${item.date}</p>
+        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>`;
+
+        try {
+            const response = await fetch(`/api/history?userId=${currentUserId}`);
+            const data = await response.json();
+
+            if (!response.ok) throw new Error(data.error);
+
+            if (!data || data.length === 0) {
+                historyList.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                    <p>No transactions found for your User ID.</p>
+                </div>`;
+                return;
+            }
+
+            historyList.innerHTML = data.map(item => {
+                const dateObj = new Date(item.created_at);
+                const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                return `
+                <div class="history-item">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div class="history-icon-box"><i class="fa-solid fa-check"></i></div>
+                        <div class="history-meta">
+                            <h4>${item.task_type || 'Offerwall Reward'}</h4>
+                            <p>${dateStr}</p>
+                        </div>
                     </div>
-                </div>
-                <div class="history-amount">${item.amount}</div>
-            </div>
-        `).join('');
+                    <div class="history-amount">+$${parseFloat(item.reward_amount).toFixed(4)}</div>
+                </div>`;
+            }).join('');
+        } catch (err) {
+            historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load history ledger.</div>`;
+        }
     }
 
-    // ============ FETCH LIVE SUPABASE LEADERBOARD ============
+    // ============ SECURE FETCH LEADERBOARD ============
     async function fetchLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
 
-        if (!supabaseClient) {
-            leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Supabase public credentials not configured in index.html.</div>`;
-            return;
-        }
+        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>`;
 
         try {
-            // Fetch top 50 records and aggregate user rewards client-side
-            const { data, error } = await supabaseClient
-                .from('transactions')
-                .select('user_id, reward_amount');
+            const response = await fetch('/api/leaderboard');
+            const sortedEarners = await response.json();
 
-            if (error) throw error;
+            if (!response.ok) throw new Error(sortedEarners.error);
 
-            if (!data || data.length === 0) {
+            if (!sortedEarners || sortedEarners.length === 0) {
                 leaderboardList.innerHTML = `
                 <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
@@ -887,20 +836,6 @@
                 </div>`;
                 return;
             }
-
-            // Group by user_id and sum rewards
-            let userTotals = {};
-            data.forEach(tx => {
-                let uid = tx.user_id;
-                let amt = parseFloat(tx.reward_amount) || 0;
-                userTotals[uid] = (userTotals[uid] || 0) + amt;
-            });
-
-            // Convert to array and sort descending
-            let sortedEarners = Object.keys(userTotals).map(uid => ({
-                userId: uid.substring(0, 4) + '***' + uid.slice(-2), // Mask ID for privacy
-                total: userTotals[uid]
-            })).sort((a, b) => b.total - a.total).slice(0, 10); // Top 10
 
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
@@ -916,7 +851,6 @@
                     <div class="history-amount">+$${earner.total.toFixed(4)}</div>
                 </div>`;
             }).join('');
-
         } catch (err) {
             leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Failed to load leaderboard.</div>`;
         }
@@ -929,18 +863,14 @@
             const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
             return alert(`⏳ Cooldown active! Wait ${left}s.`);
         }
-        if (typeof window.showadsbitvex !== 'function') {
-            return alert('Network error: SDK failed to load.');
-        }
+        if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
         adsbitvexInFlight = true;
         let userSwitchedContext = false;
         const focusLossHandler = () => { userSwitchedContext = true; };
         
         window.addEventListener('blur', focusLossHandler);
-        window.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') userSwitchedContext = true;
-        });
+        window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') userSwitchedContext = true; });
 
         window.showadsbitvex().then(() => {
             window.removeEventListener('blur', focusLossHandler);
@@ -949,9 +879,7 @@
             adsbitvexInFlight = false;
 
             if (!userSwitchedContext) {
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                }
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
                 return alert('⚠️ Ad ignored! You must click into the ad page to verify.');
             }
 
@@ -985,10 +913,7 @@
                 body: JSON.stringify({ completed: true, initData: initDataPayload })
             });
             if (response.ok) {
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-                    Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                }
-                saveTransaction('Ad View Cycle (3/3)', '+$0.0005');
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
                 alert(`⚠️ Claim failed: Unauthorized signature.`);
