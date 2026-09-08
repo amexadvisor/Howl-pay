@@ -9,6 +9,8 @@
   
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Supabase JS Client for Leaderboard & Ledger Fetching -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
     :root {
@@ -257,7 +259,7 @@
     }
     .primary-btn:active { transform: scale(0.98); }
 
-    /* ============ Detail Views Header (History & Terms) ============ */
+    /* ============ Detail Views Header ============ */
     .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
     .back-btn { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
@@ -286,6 +288,23 @@
     .history-meta h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
     .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
     .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
+
+    /* ============ Leaderboard Styles ============ */
+    .lb-card {
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px;
+      padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+    }
+    .lb-rank {
+      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05);
+      display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 13px; color: var(--text-muted);
+    }
+    .lb-rank.gold { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.4); }
+    .lb-rank.silver { background: rgba(156, 163, 175, 0.2); color: #e5e7eb; border: 1px solid rgba(156, 163, 175, 0.4); }
+    .lb-rank.bronze { background: rgba(180, 83, 9, 0.2); color: #d97706; border: 1px solid rgba(180, 83, 9, 0.4); }
+    
+    .lb-user-info h4 { margin: 0 0 2px 0; font-size: 14px; font-weight: 700; color: var(--text); }
+    .lb-user-info p { margin: 0; font-size: 11px; color: var(--text-muted); }
+    .lb-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
 
     /* ============ First Time Terms Modal ============ */
     .full-screen-modal {
@@ -408,10 +427,17 @@
             <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
         </div>
         
-        <!-- NEW: Transaction Ledger Button -->
+        <!-- Transaction Ledger Button -->
         <div class="task-card" onclick="showView('history-view')">
             <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
+            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+
+        <!-- NEW: Leaderboard Button -->
+        <div class="task-card" onclick="showView('leaderboard-view')">
+            <div class="task-icon" style="color: var(--blue); background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
+            <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Explore live offerwall rankings and top earners.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
         
@@ -520,7 +546,7 @@
         </div>
       </div>
 
-      <!-- NEW: DEDICATED HISTORY VIEW -->
+      <!-- TRANSACTION HISTORY VIEW -->
       <div id="history-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
@@ -529,6 +555,29 @@
         
         <div id="history-list">
             <!-- Rendered via Javascript -->
+        </div>
+      </div>
+
+      <!-- NEW: LIVE LEADERBOARD VIEW -->
+      <div id="leaderboard-view" class="view">
+        <div class="detail-header">
+            <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Top Offerwall Earners</h2>
+        </div>
+
+        <div class="bot-wallet-card" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2); margin-bottom: 20px;">
+            <div class="wallet-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--mint);"><i class="fa-solid fa-award"></i></div>
+            <div class="wallet-text">
+              <h4>Live Global Rankings</h4>
+              <p>Rankings are automatically calculated from verified offerwall partner completions.</p>
+            </div>
+        </div>
+        
+        <div id="leaderboard-list">
+            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                <div class="loader-spinner" style="margin: 0 auto 12px auto;"></div>
+                <p>Loading Leaderboard...</p>
+            </div>
         </div>
       </div>
 
@@ -572,7 +621,15 @@
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
 
+    // IMPORTANT: Replace these with your actual Supabase Public URL and Anon Key
+    const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE"; 
+    const SUPABASE_KEY = "YOUR_SUPABASE_ANON_KEY_HERE";
+    let supabaseClient = null;
+
     document.addEventListener('DOMContentLoaded', () => {
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        }
         initApp();
         setInterval(updateCooldownTimers, 1000);
         
@@ -698,9 +755,10 @@
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
         
-        // If history view is opened, render it
         if (viewId === 'history-view') {
             renderHistory();
+        } else if (viewId === 'leaderboard-view') {
+            fetchLeaderboard();
         }
         
         document.getElementById('main-content').scrollTop = 0;
@@ -787,14 +845,13 @@
         }
     }
 
-    // ============ HISTORY SAVING LOGIC ============
     function saveTransaction(title, amount) {
         let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
         const now = new Date();
         const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
         history.unshift({ title, amount, date: dateStr });
-        if (history.length > 20) history.pop(); // Keep only last 20
+        if (history.length > 20) history.pop();
         
         localStorage.setItem(`howl_history_${currentUserId}`, JSON.stringify(history));
     }
@@ -826,6 +883,84 @@
                 <div class="history-amount">${item.amount}</div>
             </div>
         `).join('');
+    }
+
+    // ============ FETCH LEADERBOARD FROM SUPABASE ============
+    async function fetchLeaderboard() {
+        const lbList = document.getElementById('leaderboard-list');
+        if (!lbList) return;
+
+        if (!supabaseClient || SUPABASE_URL === "YOUR_SUPABASE_URL_HERE") {
+            lbList.innerHTML = `
+            <div style="text-align:center; padding: 30px 20px; color: var(--text-muted);">
+                <p>Leaderboard client keys are pending setup.</p>
+            </div>`;
+            return;
+        }
+
+        try {
+            // Fetch transactions and aggregate totals per user_id
+            const { data, error } = await supabaseClient
+                .from('transactions')
+                .select('user_id, reward_amount');
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                lbList.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                    <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
+                </div>`;
+                return;
+            }
+
+            // Group rewards by user_id
+            const totals = {};
+            data.forEach(tx => {
+                const uid = String(tx.user_id);
+                const amt = parseFloat(tx.reward_amount) || 0;
+                totals[uid] = (totals[uid] || 0) + amt;
+            });
+
+            // Convert to array and sort highest to lowest
+            const sortedUsers = Object.keys(totals).map(uid => ({
+                userId: uid,
+                total: totals[uid]
+            })).sort((a, b) => b.total - a.total).slice(0, 10); // Top 10
+
+            lbList.innerHTML = sortedUsers.map((user, index) => {
+                const rank = index + 1;
+                let rankClass = '';
+                if (rank === 1) rankClass = 'gold';
+                else if (rank === 2) rankClass = 'silver';
+                else if (rank === 3) rankClass = 'bronze';
+
+                // Mask user id for privacy e.g. "123456789" -> "1234...789"
+                const maskedId = user.userId.length > 6 
+                    ? user.userId.substring(0, 3) + '***' + user.userId.substring(user.userId.length - 3) 
+                    : 'User***';
+
+                return `
+                    <div class="lb-card">
+                        <div style="display: flex; align-items: center; gap: 14px;">
+                            <div class="lb-rank ${rankClass}">${rank}</div>
+                            <div class="lb-user-info">
+                                <h4>User ID: ${maskedId}</h4>
+                                <p>Offerwall Partner Earnings</p>
+                            </div>
+                        </div>
+                        <div class="lb-amount">+$${user.total.toFixed(4)}</div>
+                    </div>
+                `;
+            }).join('');
+
+        } catch (err) {
+            lbList.innerHTML = `
+            <div style="text-align:center; padding: 30px 20px; color: var(--text-muted);">
+                <p>Failed to load leaderboard data.</p>
+            </div>`;
+        }
     }
 
     function startAdsBitvexTask() {
@@ -895,7 +1030,6 @@
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
                 
-                // Save to local ledger history
                 saveTransaction('Ad View Cycle (3/3)', '+$0.0005');
                 
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
