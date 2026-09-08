@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- AdsBitvex SDK Load -->
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -30,13 +29,11 @@
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-    /* Prevent Telegram swipe-to-close behavior */
     html, body {
       margin: 0; padding: 0; height: 100vh; width: 100vw;
       background: var(--bg); background-image: var(--bg-gradient);
       color: var(--text); font-family: 'Inter', sans-serif; 
-      overflow: hidden; /* Lock body scroll */
-      overscroll-behavior-y: none; /* Prevent pull-to-refresh */
+      overflow: hidden; overscroll-behavior-y: none;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -130,7 +127,7 @@
     }
     .status-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; box-shadow: 0 0 8px var(--mint); animation: pulseDot 1.5s infinite; }
     
-    /* ============ Wallet Status Info Card ============ */
+    /* ============ Bot / Status Info Cards ============ */
     .bot-wallet-card {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.05));
       border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 14px 16px;
@@ -143,7 +140,7 @@
     .wallet-text h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
     .wallet-text p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
 
-    /* ============ Upgraded Task Cards ============ */
+    /* ============ Task Cards ============ */
     .section-title { font-size: 13px; font-weight: 800; margin: 0 0 12px 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
 
     .task-card {
@@ -206,7 +203,6 @@
     }
     .category-tab.active { color: var(--bg); }
 
-    /* Strict isolation for panels to prevent overlap */
     .earn-section-panel { display: none !important; }
     .earn-section-panel.active { display: block !important; animation: fadeInTab 0.3s forwards; }
     @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -228,6 +224,38 @@
       border-radius: 50%; animation: spin 1s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============ Referral / Team Hub ============ */
+    .ref-hero {
+      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+      padding: 30px 10px; text-align: center; border-radius: 20px; border: 1px solid var(--hairline);
+      margin-bottom: 20px;
+    }
+    .ref-hero i { font-size: 40px; color: var(--mint); margin-bottom: 16px; filter: drop-shadow(0 0 10px var(--mint-glow)); }
+    .ref-hero h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: var(--text); }
+    .ref-hero p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    
+    .ref-link-box {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--hairline); border-radius: 16px;
+      display: flex; align-items: center; padding: 6px; margin-bottom: 20px;
+    }
+    .ref-link-box input {
+      flex-grow: 1; background: transparent; border: none; color: var(--text-muted);
+      font-size: 12px; font-family: 'Inter', monospace; padding: 10px 14px; outline: none;
+    }
+    .ref-link-box button {
+      background: var(--text); color: var(--bg); border: none; border-radius: 12px;
+      padding: 10px 16px; font-weight: 700; font-size: 12px; cursor: pointer; transition: transform 0.2s;
+    }
+    .ref-link-box button:active { transform: scale(0.95); }
+
+    .primary-btn {
+      width: 100%; background: linear-gradient(90deg, var(--mint-dim), var(--mint));
+      color: #000; border: none; border-radius: 16px; padding: 16px;
+      font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition: transform 0.2s;
+    }
+    .primary-btn:active { transform: scale(0.98); }
 
     /* ============ Dedicated Terms View ============ */
     #terms-view { background: var(--bg); }
@@ -443,6 +471,35 @@
         </div>
       </div>
       
+      <!-- NEW: TEAM / REFERRAL VIEW -->
+      <div id="team-view" class="view">
+        <div class="ref-hero">
+          <i class="fa-solid fa-network-wired"></i>
+          <h2>Build Your Network</h2>
+          <p>Invite friends and earn a lifetime commission from their completed offerwall tasks and ad views.</p>
+        </div>
+
+        <h2 class="section-title">Your Unique Invite Link</h2>
+        <div class="ref-link-box">
+          <input type="text" id="ref-link-input" readonly value="Loading...">
+          <button id="copy-btn" onclick="copyRefLink()">Copy</button>
+        </div>
+
+        <button class="primary-btn" onclick="shareApp()">
+          <i class="fa-solid fa-paper-plane"></i> Send to Telegram Contacts
+        </button>
+
+        <h2 class="section-title" style="margin-top: 24px;">Network Statistics</h2>
+        <div class="bot-wallet-card" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); align-items: flex-start;">
+            <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--blue);"><i class="fa-solid fa-robot"></i></div>
+            <div class="wallet-text">
+              <h4>Live Stats Tracked in Bot</h4>
+              <p>Your total referred users and commission payouts are securely managed and calculated directly inside the Telegram Bot engine to prevent manipulation. Close this Mini App and check the bot menu for your detailed team statistics.</p>
+              <button onclick="Telegram.WebApp.close()" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
+            </div>
+        </div>
+      </div>
+
       <!-- DEDICATED TERMS VIEW -->
       <div id="terms-view" class="view">
         <div class="terms-header">
@@ -469,7 +526,7 @@
     <nav class="footer-nav">
       <button class="nav-button active" onclick="showView('home-view')"><div class="icon"><i class="fa-solid fa-house"></i></div>Home</button>
       <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div>Earn</button>
-      <button class="nav-button" onclick="shareApp()"><div class="icon"><i class="fa-solid fa-share-nodes"></i></div>Share</button>
+      <button class="nav-button" onclick="showView('team-view')"><div class="icon"><i class="fa-solid fa-users"></i></div>Team</button>
     </nav>
   </div>
 
@@ -481,6 +538,7 @@
     let adsbitvexLastRun = 0;
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
+    const BOT_USERNAME = "howl_paybot"; 
 
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
@@ -516,7 +574,6 @@
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#09090b');
                 
-                // Block vertical swipes to prevent closing the app on mobile
                 if (Telegram.WebApp.disableVerticalSwipes) {
                     Telegram.WebApp.disableVerticalSwipes();
                 }
@@ -530,6 +587,7 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         setupOfferwallIframe();
+        generateRefLink();
         
         document.getElementById('panel-offerwall').style.display = 'block';
         document.getElementById('panel-ads').style.display = 'none';
@@ -539,7 +597,6 @@
         updateDisplayCounters();
     }
 
-    // First Time Terms Logic
     function checkFirstTimeTos() {
         const hasAgreed = localStorage.getItem(`howl_tos_agreed_${currentUserId}`);
         if (!hasAgreed) {
@@ -560,6 +617,38 @@
         if (iframe) {
             const offerwallApiKey = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
             iframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
+        }
+    }
+
+    function generateRefLink() {
+        const refInput = document.getElementById('ref-link-input');
+        if (refInput) {
+            refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        }
+    }
+
+    function copyRefLink() {
+        const refInput = document.getElementById('ref-link-input');
+        const copyBtn = document.getElementById('copy-btn');
+        if (refInput && copyBtn) {
+            refInput.select();
+            refInput.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            
+            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            }
+
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "Copied!";
+            copyBtn.style.background = "var(--mint)";
+            copyBtn.style.color = "#000";
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = "var(--text)";
+                copyBtn.style.color = "var(--bg)";
+            }, 2000);
         }
     }
 
@@ -737,8 +826,7 @@
     }
 
     function shareApp() {
-        const botUsername = "howl_paybot"; 
-        const referralLink = `https://t.me/${botUsername}?start=${currentUserId}`;
+        const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
         const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
