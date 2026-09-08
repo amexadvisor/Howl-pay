@@ -1,4 +1,9 @@
 import crypto from 'crypto';
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -67,6 +72,26 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing user identification within validated context" });
   }
 
+  let supabaseErrorDetails = null;
+
+  // Securely log the verified ad transaction to Supabase
+  if (supabase) {
+    try {
+      const { error } = await supabase.from('transactions').insert([{
+        user_id: String(targetUserId),
+        reward_amount: 0.0005,
+        transaction_id: `ad_${Date.now()}_${targetUserId}`,
+        task_type: 'Ad View Cycle',
+        status: '1',
+        created_at: new Date().toISOString()
+      }]);
+
+      if (error) supabaseErrorDetails = error.message;
+    } catch (dbErr) {
+      supabaseErrorDetails = dbErr.message;
+    }
+  }
+
   try {
     const forwardRes = await fetch(targetWebhook, {
       method: "POST",
@@ -82,9 +107,10 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: forwardRes.ok,
-      telebot_response: responseText
+      telebot_response: responseText,
+      supabase_error: supabaseErrorDetails
     });
   } catch (err) {
-    return res.status(500).json({ error: "Webhook forwarding failed: " + err.message });
+    return res.status(500).json({ error: "Webhook forwarding failed: " + err.message, supabase_error: supabaseErrorDetails });
   }
 }
