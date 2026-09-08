@@ -1,9 +1,13 @@
 const crypto = require('crypto');
+const { createClient } = require('@supabase/supabase-js');
 
 const OFFERWALL_SECRET_KEY = process.env.OFFERWALL_SECRET_KEY;
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_KEY = process.env.SUPABASE_KEY;
+
+// Initialize Supabase Client using the official library
+const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -53,34 +57,27 @@ module.exports = async function handler(req, res) {
 
   let supabaseErrorDetails = null;
 
-  // STRICTLY AWAIT DATABASE WRITE BEFORE PROCEEDING
-  if (SUPABASE_URL && SUPABASE_KEY && (txStatus === "1" || txStatus === "2")) {
+  // Use the official Supabase SDK client to insert data reliably
+  if (supabase && (txStatus === "1" || txStatus === "2")) {
     try {
-      const dbResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "apikey": SUPABASE_KEY,
-          "Authorization": `Bearer ${SUPABASE_KEY}`,
-          "Prefer": "return=minimal"
-        },
-        body: JSON.stringify({
+      const { error } = await supabase.from('transactions').insert([
+        {
           user_id: String(userId),
           reward_amount: rewardAmount,
           transaction_id: String(transactionId),
           task_type: 'Offerwall Partner',
           status: txStatus,
           created_at: new Date().toISOString()
-        })
-      });
+        }
+      ]);
 
-      if (!dbResponse.ok) {
-        supabaseErrorDetails = await dbResponse.text();
-        console.error("SUPABASE WRITE FAILED:", supabaseErrorDetails);
+      if (error) {
+        supabaseErrorDetails = error.message;
+        console.error("SUPABASE SDK ERROR:", error.message);
       }
     } catch (dbErr) {
       supabaseErrorDetails = dbErr.message;
-      console.error("SUPABASE NETWORK ERROR:", dbErr.message);
+      console.error("SUPABASE EXCEPTION:", dbErr.message);
     }
   }
 
