@@ -624,6 +624,15 @@
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
+
+                // SILENTLY SYNC PROFILE TO SUPABASE
+                if (Telegram.WebApp.initData) {
+                    fetch('/api/sync-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: Telegram.WebApp.initData })
+                    }).catch(e => console.log("Profile sync ignored"));
+                }
             }
         } catch (e) {}
 
@@ -839,13 +848,23 @@
 
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+                
+                let avatarHtml = earner.photo_url 
+                    ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">`
+                    : `${earner.name.charAt(0)}`;
+                
+                let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
+
                 return `
                 <div class="leaderboard-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="rank-box ${rankClass}">#${index + 1}</div>
+                        <div style="width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--mint); border: 1px solid rgba(16, 185, 129, 0.3); flex-shrink: 0;">
+                            ${avatarHtml}
+                        </div>
                         <div class="history-meta">
-                            <h4>User ID: ${earner.userId}</h4>
-                            <p>Offerwall Earner</p>
+                            <h4>${earner.name}</h4>
+                            <p>ID: ${maskedId}</p>
                         </div>
                     </div>
                     <div class="history-amount">+$${earner.total.toFixed(4)}</div>
@@ -903,7 +922,7 @@
     }
 
     async function sendRewardWebhook() {
-        const bonusEndpoint = webhookUrl || 'https://howl-pay.vercel.app/api/claim-bonus';
+        const bonusEndpoint = webhookUrl || '/api/claim-bonus';
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
 
         try {
@@ -912,6 +931,7 @@
                 headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
                 body: JSON.stringify({ completed: true, initData: initDataPayload })
             });
+            
             if (response.ok) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
