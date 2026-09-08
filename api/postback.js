@@ -51,10 +51,11 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  // Safe Database Logging via Native Fetch (No external package needed)
+  // Database Logging with Detailed Error Capture
+  let supabaseErrorDetails = null;
   if (SUPABASE_URL && SUPABASE_KEY && (txStatus === "1" || txStatus === "2")) {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
+      const dbResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -71,8 +72,14 @@ module.exports = async function handler(req, res) {
           created_at: new Date().toISOString()
         })
       });
+
+      if (!dbResponse.ok) {
+        supabaseErrorDetails = await dbResponse.text();
+        console.error("SUPABASE WRITE FAILED:", supabaseErrorDetails);
+      }
     } catch (dbErr) {
-      console.error("Database logging failed:", dbErr.message);
+      supabaseErrorDetails = dbErr.message;
+      console.error("SUPABASE NETWORK ERROR:", dbErr.message);
     }
   }
 
@@ -92,9 +99,10 @@ module.exports = async function handler(req, res) {
 
     return res.status(200).json({
       success: webhookRes.ok,
-      telebot_response: responseText
+      telebot_response: responseText,
+      supabase_error: supabaseErrorDetails // This will output the exact reason in your test response!
     });
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: error.message, supabase_error: supabaseErrorDetails });
   }
 };
