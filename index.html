@@ -257,15 +257,14 @@
     }
     .primary-btn:active { transform: scale(0.98); }
 
-    /* ============ Dedicated Terms View ============ */
-    #terms-view { background: var(--bg); }
-    .terms-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    /* ============ Detail Views Header (History & Terms) ============ */
+    .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
     .back-btn { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
       color: var(--text); width: 40px; height: 40px; border-radius: 12px; 
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .terms-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    .detail-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
     
     .terms-content { 
       background: var(--card); border: 1px solid var(--hairline); border-radius: 20px; 
@@ -274,6 +273,19 @@
     .terms-content h4 { color: var(--text); font-size: 15px; margin: 0 0 8px 0; }
     .terms-content p { margin: 0 0 20px 0; }
     .terms-content p:last-child { margin-bottom: 0; }
+
+    /* ============ History Ledger ============ */
+    .history-item {
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; 
+      padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-icon-box {
+      width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); 
+      color: var(--mint); display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .history-meta h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
+    .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
+    .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
 
     /* ============ First Time Terms Modal ============ */
     .full-screen-modal {
@@ -389,10 +401,18 @@
         </div>
 
         <h2 class="section-title">Operations</h2>
+        
         <div class="task-card" onclick="showView('tasks-view')">
             <div class="task-icon icon-primary"><i class="fa-solid fa-bolt"></i></div>
             <div class="task-details"><h3>Launch Earning Hub</h3><p>Access offerwalls and ad tasks to generate rewards.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+        </div>
+        
+        <!-- NEW: Transaction Ledger Button -->
+        <div class="task-card" onclick="showView('history-view')">
+            <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
+            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
         
         <h2 class="section-title" style="margin-top: 24px;">Community & Support</h2>
@@ -471,7 +491,7 @@
         </div>
       </div>
       
-      <!-- NEW: TEAM / REFERRAL VIEW -->
+      <!-- TEAM / REFERRAL VIEW -->
       <div id="team-view" class="view">
         <div class="ref-hero">
           <i class="fa-solid fa-network-wired"></i>
@@ -500,9 +520,21 @@
         </div>
       </div>
 
+      <!-- NEW: DEDICATED HISTORY VIEW -->
+      <div id="history-view" class="view">
+        <div class="detail-header">
+            <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Transaction Ledger</h2>
+        </div>
+        
+        <div id="history-list">
+            <!-- Rendered via Javascript -->
+        </div>
+      </div>
+
       <!-- DEDICATED TERMS VIEW -->
       <div id="terms-view" class="view">
-        <div class="terms-header">
+        <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>Terms & Policies</h2>
         </div>
@@ -666,6 +698,11 @@
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
         
+        // If history view is opened, render it
+        if (viewId === 'history-view') {
+            renderHistory();
+        }
+        
         document.getElementById('main-content').scrollTop = 0;
     }
 
@@ -750,6 +787,47 @@
         }
     }
 
+    // ============ HISTORY SAVING LOGIC ============
+    function saveTransaction(title, amount) {
+        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
+        const now = new Date();
+        const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        history.unshift({ title, amount, date: dateStr });
+        if (history.length > 20) history.pop(); // Keep only last 20
+        
+        localStorage.setItem(`howl_history_${currentUserId}`, JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const historyList = document.getElementById('history-list');
+        if (!historyList) return;
+        
+        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
+        
+        if (history.length === 0) {
+            historyList.innerHTML = `
+            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                <p>No transactions yet. Complete tasks to see your earnings history here.</p>
+            </div>`;
+            return;
+        }
+
+        historyList.innerHTML = history.map(item => `
+            <div class="history-item">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div class="history-icon-box"><i class="fa-solid fa-check"></i></div>
+                    <div class="history-meta">
+                        <h4>${item.title}</h4>
+                        <p>${item.date}</p>
+                    </div>
+                </div>
+                <div class="history-amount">${item.amount}</div>
+            </div>
+        `).join('');
+    }
+
     function startAdsBitvexTask() {
         if (adsbitvexInFlight) return;
         const now = Date.now();
@@ -816,12 +894,16 @@
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
+                
+                // Save to local ledger history
+                saveTransaction('Ad View Cycle (3/3)', '+$0.0005');
+                
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
-                alert(`⚠️ Claim failed: Unauthorized`);
+                alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
         } catch (err) {
-            alert(`❌ Network Error.`);
+            alert(`❌ Network Error. Claim failed.`);
         }
     }
 
