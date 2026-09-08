@@ -51,8 +51,9 @@ module.exports = async function handler(req, res) {
     return res.status(400).json({ success: false, error: "Signature doesn't match" });
   }
 
-  // Database Logging with Detailed Error Capture
   let supabaseErrorDetails = null;
+
+  // STRICTLY AWAIT DATABASE WRITE BEFORE PROCEEDING
   if (SUPABASE_URL && SUPABASE_KEY && (txStatus === "1" || txStatus === "2")) {
     try {
       const dbResponse = await fetch(`${SUPABASE_URL}/rest/v1/transactions`, {
@@ -100,7 +101,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({
       success: webhookRes.ok,
       telebot_response: responseText,
-      supabase_error: supabaseErrorDetails // This will output the exact reason in your test response!
+      supabase_error: supabaseErrorDetails
     });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message, supabase_error: supabaseErrorDetails });
