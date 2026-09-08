@@ -469,14 +469,17 @@
 
         <!-- TIMEWALL PANEL -->
         <div id="panel-timewall" class="earn-section-panel" style="display: none;">
-          <div class="offerwall-iframe-container">
-            <div id="timewall-fallback" class="iframe-fallback">
-              <div class="loader-spinner"></div>
-              <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
+          <div class="bot-wallet-card" style="background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+            <div class="wallet-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--mint);"><i class="fa-solid fa-up-right-from-square"></i></div>
+            <div class="wallet-text">
+              <h4>External Browser Required</h4>
+              <p>To prevent tracking errors and ensure you receive your rewards, TimeWall surveys must be opened in your native browser.</p>
             </div>
-            <!-- Added strict sandbox constraints here -->
-            <iframe id="timewall-iframe" src="" title="TimeWall" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
+
+          <button class="primary-btn" onclick="launchTimeWall()" style="margin-top: 20px;">
+            <i class="fa-solid fa-rocket"></i> Open TimeWall Offers
+          </button>
         </div>
 
         <!-- ADS PANEL -->
@@ -681,11 +684,16 @@
             const offerwallApiKey = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
             offerwallIframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
         }
+    }
 
-        const timewallIframe = document.getElementById('timewall-iframe');
-        if (timewallIframe) {
-            const timewallOid = "b19211b9051390d8"; 
-            timewallIframe.src = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
+    function launchTimeWall() {
+        const timewallOid = "b19211b9051390d8"; 
+        const url = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
+        
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openLink) {
+            Telegram.WebApp.openLink(url);
+        } else {
+            window.open(url, '_blank');
         }
     }
 
