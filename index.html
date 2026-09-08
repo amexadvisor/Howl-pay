@@ -7,6 +7,8 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -225,31 +227,39 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    /* ============ Leaderboard & History Styling ============ */
-    .lb-row {
-      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px;
-      padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    /* ============ Referral / Team Hub ============ */
+    .ref-hero {
+      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
+      padding: 30px 10px; text-align: center; border-radius: 20px; border: 1px solid var(--hairline);
+      margin-bottom: 20px;
     }
-    .lb-rank {
-      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05);
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: var(--text-muted);
+    .ref-hero i { font-size: 40px; color: var(--mint); margin-bottom: 16px; filter: drop-shadow(0 0 10px var(--mint-glow)); }
+    .ref-hero h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: var(--text); }
+    .ref-hero p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    
+    .ref-link-box {
+      background: rgba(0,0,0,0.4); border: 1px solid var(--hairline); border-radius: 16px;
+      display: flex; align-items: center; padding: 6px; margin-bottom: 20px;
     }
-    .lb-rank.gold { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.4); }
-    .lb-rank.silver { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.4); }
-    .lb-rank.bronze { background: rgba(217, 119, 6, 0.2); color: #fcd34d; border: 1px solid rgba(217, 119, 6, 0.4); }
+    .ref-link-box input {
+      flex-grow: 1; background: transparent; border: none; color: var(--text-muted);
+      font-size: 12px; font-family: 'Inter', monospace; padding: 10px 14px; outline: none;
+    }
+    .ref-link-box button {
+      background: var(--text); color: var(--bg); border: none; border-radius: 12px;
+      padding: 10px 16px; font-weight: 700; font-size: 12px; cursor: pointer; transition: transform 0.2s;
+    }
+    .ref-link-box button:active { transform: scale(0.95); }
 
-    .history-item {
-      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; 
-      padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    .primary-btn {
+      width: 100%; background: linear-gradient(90deg, var(--mint-dim), var(--mint));
+      color: #000; border: none; border-radius: 16px; padding: 16px;
+      font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition: transform 0.2s;
     }
-    .history-icon-box {
-      width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); 
-      color: var(--mint); display: flex; align-items: center; justify-content: center; font-size: 16px;
-    }
-    .history-meta h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
-    .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
-    .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
+    .primary-btn:active { transform: scale(0.98); }
 
+    /* ============ Detail Views Header (History, Leaderboard & Terms) ============ */
     .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
     .back-btn { 
       background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
@@ -257,6 +267,35 @@
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
     .detail-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    
+    .terms-content { 
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 20px; 
+      padding: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;
+    }
+    .terms-content h4 { color: var(--text); font-size: 15px; margin: 0 0 8px 0; }
+    .terms-content p { margin: 0 0 20px 0; }
+    .terms-content p:last-child { margin-bottom: 0; }
+
+    /* ============ History Ledger & Leaderboard Items ============ */
+    .history-item, .leaderboard-item {
+      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; 
+      padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+    }
+    .history-icon-box {
+      width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); 
+      color: var(--mint); display: flex; align-items: center; justify-content: center; font-size: 16px;
+    }
+    .rank-box {
+      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05);
+      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--text-muted);
+    }
+    .rank-1 { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+    .rank-2 { background: rgba(156, 163, 175, 0.2); color: #e5e7eb; border: 1px solid #9ca3af; }
+    .rank-3 { background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid #d97706; }
+
+    .history-meta h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
+    .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
+    .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
 
     /* ============ First Time Terms Modal ============ */
     .full-screen-modal {
@@ -304,7 +343,7 @@
 </head>
 <body>
 
-  <!-- Splash Screen -->
+  <!-- Premium Splash Screen -->
   <div id="splash-screen">
     <div class="splash-grid"></div>
     <div class="logo-wrapper">
@@ -379,14 +418,23 @@
             <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
         </div>
         
+        <!-- Transaction Ledger Button -->
         <div class="task-card" onclick="showView('history-view')">
             <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <div class="task-details"><h3>Transaction Ledger</h3><p>View your live database task history & payouts.</p></div>
+            <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
+            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+        </div>
+
+        <!-- NEW: Offerwall Leaderboard Button -->
+        <div class="task-card" onclick="showView('leaderboard-view')">
+            <div class="task-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
+            <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Check the top 10 offerwall earners this week.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
         
         <h2 class="section-title" style="margin-top: 24px;">Community & Support</h2>
         
+        <!-- SIDE BY SIDE GRID -->
         <div class="grid-2-col">
             <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
                 <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
@@ -422,6 +470,7 @@
           <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')">Ads Task</button>
         </div>
 
+        <!-- OFFERWALL PANEL -->
         <div id="panel-offerwall" class="earn-section-panel active" style="display: block;">
           <div class="offerwall-iframe-container">
             <div id="iframe-fallback" class="iframe-fallback">
@@ -432,6 +481,7 @@
           </div>
         </div>
 
+        <!-- ADS PANEL -->
         <div id="panel-ads" class="earn-section-panel" style="display: none;">
           <div class="bot-wallet-card" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
             <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></div>
@@ -458,13 +508,32 @@
         </div>
       </div>
       
-      <!-- LEADERBOARD VIEW -->
-      <div id="leaderboard-view" class="view">
-        <div class="detail-header">
-            <h2>Top Offerwall Earners</h2>
+      <!-- TEAM / REFERRAL VIEW -->
+      <div id="team-view" class="view">
+        <div class="ref-hero">
+          <i class="fa-solid fa-network-wired"></i>
+          <h2>Build Your Network</h2>
+          <p>Invite friends and earn a lifetime commission from their completed offerwall tasks and ad views.</p>
         </div>
-        <div id="leaderboard-list">
-            <div style="text-align:center; padding: 30px; color: var(--text-muted);">Loading rankings...</div>
+
+        <h2 class="section-title">Your Unique Invite Link</h2>
+        <div class="ref-link-box">
+          <input type="text" id="ref-link-input" readonly value="Loading...">
+          <button id="copy-btn" onclick="copyRefLink()">Copy</button>
+        </div>
+
+        <button class="primary-btn" onclick="shareApp()">
+          <i class="fa-solid fa-paper-plane"></i> Send to Telegram Contacts
+        </button>
+
+        <h2 class="section-title" style="margin-top: 24px;">Network Statistics</h2>
+        <div class="bot-wallet-card" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); align-items: flex-start;">
+            <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--blue);"><i class="fa-solid fa-robot"></i></div>
+            <div class="wallet-text">
+              <h4>Live Stats Tracked in Bot</h4>
+              <p>Your total referred users and commission payouts are securely managed and calculated directly inside the Telegram Bot engine to prevent manipulation. Close this Mini App and check the bot menu for your detailed team statistics.</p>
+              <button onclick="Telegram.WebApp.close()" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
+            </div>
         </div>
       </div>
 
@@ -474,24 +543,44 @@
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>Transaction Ledger</h2>
         </div>
-        <div id="history-list">
-            <div style="text-align:center; padding: 30px; color: var(--text-muted);">Loading history...</div>
+        
+        <div id="history-list"></div>
+      </div>
+
+      <!-- NEW: LIVE LEADERBOARD VIEW -->
+      <div id="leaderboard-view" class="view">
+        <div class="detail-header">
+            <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2>Top 10 Offerwall Earners</h2>
+        </div>
+        
+        <div id="leaderboard-list">
+            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                <div class="loader-spinner" style="margin: 0 auto 15px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>
+                <p>Loading live leaderboard...</p>
+            </div>
         </div>
       </div>
 
-      <!-- TERMS VIEW -->
+      <!-- DEDICATED TERMS VIEW -->
       <div id="terms-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>Terms & Policies</h2>
         </div>
+        
         <div class="terms-content">
             <h4>1. Account Integrity</h4>
             <p>You may only use one account. Multiple accounts per user, device, or IP address will trigger an automated system ban and the permanent forfeiture of all bot balances.</p>
+            
             <h4>2. Prohibited Exploits</h4>
             <p>The use of VPNs (Virtual Private Networks), Datacenter Proxies, ad-blockers, software emulators, or automation scripts to bypass or complete offerwall tasks is strictly forbidden.</p>
+
             <h4>3. Balance & Reversals</h4>
-            <p>All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions.</p>
+            <p>All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions, such as providing false information on surveys or rushing through tasks.</p>
+            
+            <h4>4. Support Protocol</h4>
+            <p>If your account balance is missing verified credits, contact the official support agent. Fraudulent claims or abusive behavior toward support staff will lead to account termination.</p>
         </div>
       </div>
     </main>
@@ -499,7 +588,7 @@
     <nav class="footer-nav">
       <button class="nav-button active" onclick="showView('home-view')"><div class="icon"><i class="fa-solid fa-house"></i></div>Home</button>
       <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div>Earn</button>
-      <button class="nav-button" onclick="showView('leaderboard-view')"><div class="icon"><i class="fa-solid fa-trophy"></i></div>Rank</button>
+      <button class="nav-button" onclick="showView('team-view')"><div class="icon"><i class="fa-solid fa-users"></i></div>Team</button>
     </nav>
   </div>
 
@@ -512,6 +601,11 @@
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
+
+    // SUPABASE PUBLIC CREDENTIALS (Safe to include public anon key on frontend)
+    const SUPABASE_URL = "YOUR_SUPABASE_URL_HERE"; 
+    const SUPABASE_KEY = "YOUR_SUPABASE_KEY_HERE";
+    const supabaseClient = (SUPABASE_URL !== "YOUR_SUPABASE_URL_HERE") ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
@@ -546,9 +640,11 @@
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#09090b');
+                
                 if (Telegram.WebApp.disableVerticalSwipes) {
                     Telegram.WebApp.disableVerticalSwipes();
                 }
+
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
@@ -558,6 +654,7 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         setupOfferwallIframe();
+        generateRefLink();
         
         document.getElementById('panel-offerwall').style.display = 'block';
         document.getElementById('panel-ads').style.display = 'none';
@@ -565,7 +662,6 @@
         showView('home-view');
         checkStoredCooldowns();
         updateDisplayCounters();
-        fetchLeaderboardAndHistory();
     }
 
     function checkFirstTimeTos() {
@@ -591,73 +687,36 @@
         }
     }
 
-    async function fetchLeaderboardAndHistory() {
-        try {
-            const res = await fetch(`/api/leaderboard?userId=${currentUserId}`);
-            const data = await res.json();
-            if (data.success) {
-                renderLeaderboard(data.leaderboard);
-                renderDatabaseHistory(data.history);
+    function generateRefLink() {
+        const refInput = document.getElementById('ref-link-input');
+        if (refInput) {
+            refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        }
+    }
+
+    function copyRefLink() {
+        const refInput = document.getElementById('ref-link-input');
+        const copyBtn = document.getElementById('copy-btn');
+        if (refInput && copyBtn) {
+            refInput.select();
+            refInput.setSelectionRange(0, 99999);
+            document.execCommand("copy");
+            
+            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+                Telegram.WebApp.HapticFeedback.impactOccurred('light');
             }
-        } catch (err) {
-            console.error("Failed to fetch live database data:", err);
+
+            const originalText = copyBtn.textContent;
+            copyBtn.textContent = "Copied!";
+            copyBtn.style.background = "var(--mint)";
+            copyBtn.style.color = "#000";
+            
+            setTimeout(() => {
+                copyBtn.textContent = originalText;
+                copyBtn.style.background = "var(--text)";
+                copyBtn.style.color = "var(--bg)";
+            }, 2000);
         }
-    }
-
-    function renderLeaderboard(list) {
-        const container = document.getElementById('leaderboard-list');
-        if (!container) return;
-
-        if (!list || list.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-muted);">No leaderboard data yet. Complete offerwall tasks to rank!</div>`;
-            return;
-        }
-
-        container.innerHTML = list.map((item, index) => {
-            let rankClass = '';
-            if (index === 0) rankClass = 'gold';
-            else if (index === 1) rankClass = 'silver';
-            else if (index === 2) rankClass = 'bronze';
-
-            return `
-                <div class="lb-row">
-                    <div style="display: flex; align-items: center; gap: 14px;">
-                        <div class="lb-rank ${rankClass}">${index + 1}</div>
-                        <div>
-                            <h4 style="margin:0; font-size:14px; font-weight:700;">User: ${item.user_id}</h4>
-                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">Offerwall Earner</p>
-                        </div>
-                    </div>
-                    <div style="font-weight:800; color:var(--mint);">$${item.total.toFixed(4)}</div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function renderDatabaseHistory(history) {
-        const container = document.getElementById('history-list');
-        if (!container) return;
-
-        if (!history || history.length === 0) {
-            container.innerHTML = `<div style="text-align:center; padding: 40px 20px; color: var(--text-muted);"><i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i><p>No database transactions found yet.</p></div>`;
-            return;
-        }
-
-        container.innerHTML = history.map(item => {
-            const dateStr = new Date(item.created_at).toLocaleString([], {month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit'});
-            return `
-                <div class="history-item">
-                    <div style="display: flex; align-items: center; gap: 14px;">
-                        <div class="history-icon-box"><i class="fa-solid fa-gift"></i></div>
-                        <div class="history-meta">
-                            <h4>${item.task_type || 'Offerwall Reward'}</h4>
-                            <p>${dateStr}</p>
-                        </div>
-                    </div>
-                    <div class="history-amount">+$${parseFloat(item.reward_amount).toFixed(4)}</div>
-                </div>
-            `;
-        }).join('');
     }
 
     function showView(viewId) {
@@ -666,6 +725,7 @@
         if (targetView) targetView.classList.add('active');
         
         document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+        
         const activeBtn = document.querySelector(`.nav-button[onclick="showView('${viewId}')"]`);
         if (activeBtn) activeBtn.classList.add('active');
         
@@ -673,8 +733,10 @@
             Telegram.WebApp.HapticFeedback.selectionChanged();
         }
         
-        if (viewId === 'leaderboard-view' || viewId === 'history-view') {
-            fetchLeaderboardAndHistory();
+        if (viewId === 'history-view') {
+            renderHistory();
+        } else if (viewId === 'leaderboard-view') {
+            fetchLeaderboard();
         }
         
         document.getElementById('main-content').scrollTop = 0;
@@ -701,6 +763,9 @@
         const tabsContainer = document.getElementById('earn-tabs');
         if (tabsContainer) {
             tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
+        }
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+            Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     }
     const TAB_ORDER = ['offerwall', 'ads'];
@@ -755,6 +820,105 @@
             }
         } else {
             if (usernameDiv) usernameDiv.textContent = 'Demo Operator';
+        }
+    }
+
+    // ============ TRANSACTION HISTORY ============
+    function saveTransaction(title, amount) {
+        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
+        const now = new Date();
+        const dateStr = now.toLocaleDateString() + ' ' + now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        history.unshift({ title, amount, date: dateStr });
+        if (history.length > 20) history.pop();
+        localStorage.setItem(`howl_history_${currentUserId}`, JSON.stringify(history));
+    }
+
+    function renderHistory() {
+        const historyList = document.getElementById('history-list');
+        if (!historyList) return;
+        let history = JSON.parse(localStorage.getItem(`howl_history_${currentUserId}`)) || [];
+        
+        if (history.length === 0) {
+            historyList.innerHTML = `
+            <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                <p>No transactions yet. Complete tasks to see your earnings history here.</p>
+            </div>`;
+            return;
+        }
+
+        historyList.innerHTML = history.map(item => `
+            <div class="history-item">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div class="history-icon-box"><i class="fa-solid fa-check"></i></div>
+                    <div class="history-meta">
+                        <h4>${item.title}</h4>
+                        <p>${item.date}</p>
+                    </div>
+                </div>
+                <div class="history-amount">${item.amount}</div>
+            </div>
+        `).join('');
+    }
+
+    // ============ FETCH LIVE SUPABASE LEADERBOARD ============
+    async function fetchLeaderboard() {
+        const leaderboardList = document.getElementById('leaderboard-list');
+        if (!leaderboardList) return;
+
+        if (!supabaseClient) {
+            leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Supabase public credentials not configured in index.html.</div>`;
+            return;
+        }
+
+        try {
+            // Fetch top 50 records and aggregate user rewards client-side
+            const { data, error } = await supabaseClient
+                .from('transactions')
+                .select('user_id, reward_amount');
+
+            if (error) throw error;
+
+            if (!data || data.length === 0) {
+                leaderboardList.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                    <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
+                </div>`;
+                return;
+            }
+
+            // Group by user_id and sum rewards
+            let userTotals = {};
+            data.forEach(tx => {
+                let uid = tx.user_id;
+                let amt = parseFloat(tx.reward_amount) || 0;
+                userTotals[uid] = (userTotals[uid] || 0) + amt;
+            });
+
+            // Convert to array and sort descending
+            let sortedEarners = Object.keys(userTotals).map(uid => ({
+                userId: uid.substring(0, 4) + '***' + uid.slice(-2), // Mask ID for privacy
+                total: userTotals[uid]
+            })).sort((a, b) => b.total - a.total).slice(0, 10); // Top 10
+
+            leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
+                let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
+                return `
+                <div class="leaderboard-item">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <div class="rank-box ${rankClass}">#${index + 1}</div>
+                        <div class="history-meta">
+                            <h4>User ID: ${earner.userId}</h4>
+                            <p>Offerwall Earner</p>
+                        </div>
+                    </div>
+                    <div class="history-amount">+$${earner.total.toFixed(4)}</div>
+                </div>`;
+            }).join('');
+
+        } catch (err) {
+            leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Failed to load leaderboard.</div>`;
         }
     }
 
@@ -824,13 +988,24 @@
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
                     Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 }
+                saveTransaction('Ad View Cycle (3/3)', '+$0.0005');
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
-                fetchLeaderboardAndHistory();
             } else {
-                alert(`⚠️ Claim failed: Unauthorized`);
+                alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
         } catch (err) {
-            alert(`❌ Network Error.`);
+            alert(`❌ Network Error. Claim failed.`);
+        }
+    }
+
+    function shareApp() {
+        const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+            Telegram.WebApp.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
         }
     }
 </script>
