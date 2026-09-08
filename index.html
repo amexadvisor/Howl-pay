@@ -124,15 +124,6 @@
     }
     .status-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; box-shadow: 0 0 8px var(--mint); animation: pulseDot 1.5s infinite; }
     
-    .lang-pill-btn {
-      position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
-      background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4);
-      color: var(--mint); padding: 8px 14px; border-radius: 12px; font-weight: 800; font-size: 12px;
-      display: flex; align-items: center; gap: 6px; cursor: pointer; transition: all 0.2s; z-index: 5;
-    }
-    .lang-pill-btn:hover { background: rgba(16, 185, 129, 0.25); color: #fff; }
-    .lang-pill-btn:active { transform: translateY(-50%) scale(0.95); }
-
     .bot-wallet-card {
       background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.05));
       border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 14px 16px;
@@ -346,25 +337,11 @@
     </div>
     <div class="splash-text">
       <h1>HOWL</h1>
-      <p data-i18n="splashSub">Elite Earning</p>
+      <p>Elite Earning</p>
     </div>
     <div class="splash-loading-area">
       <div class="loading-track"><div class="loading-bar" id="loaderBar"></div></div>
       <div class="loading-text" id="loaderPercent">INITIALIZING...</div>
-    </div>
-  </div>
-
-  <!-- Big Clear Language Selection Modal (Mandatory first time) -->
-  <div id="languageModal" class="full-screen-modal">
-    <div class="modal-content" style="border: 1px solid var(--mint);">
-      <div class="f-modal-header">
-        <i class="fa-solid fa-language" style="color: #3b82f6;"></i>
-        <h2 data-i18n="selectLang">Select Language</h2>
-      </div>
-      <div class="f-modal-body" style="display: flex; flex-direction: column; gap: 14px; text-align: center;">
-        <button class="primary-btn" onclick="selectLanguage('en')" style="background: linear-gradient(90deg, #3b82f6, #60a5fa); color: #fff; font-size: 16px; border: none;">🇺🇸 English</button>
-        <button class="primary-btn" onclick="selectLanguage('am')" style="background: linear-gradient(90deg, #10b981, #059669); color: #fff; font-size: 16px; border: none; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2);">🇪🇹 አማርኛ (Amharic)</button>
-      </div>
     </div>
   </div>
 
@@ -373,20 +350,20 @@
     <div class="modal-content">
       <div class="f-modal-header">
         <i class="fa-solid fa-shield-halved"></i>
-        <h2 data-i18n="welcomeTo">Welcome to HOWL</h2>
+        <h2>Welcome to HOWL</h2>
       </div>
       <div class="f-modal-body">
-        <h4 data-i18n="tos1Title">1. Anti-Fraud Agreement</h4>
-        <p data-i18n="tos1Desc">By using this platform, you agree to never use VPNs, Datacenter Proxies, ad-blockers, or automation scripts. Violation results in an instant, unappealable ban.</p>
+        <h4>1. Anti-Fraud Agreement</h4>
+        <p>By using this platform, you agree to never use VPNs, Datacenter Proxies, ad-blockers, or automation scripts. Violation results in an instant, unappealable ban.</p>
         
-        <h4 data-i18n="tos2Title">2. One Account Policy</h4>
-        <p data-i18n="tos2Desc">You may only register and operate one (1) account. Multiple accounts on the same device or IP address are strictly prohibited.</p>
+        <h4>2. One Account Policy</h4>
+        <p>You may only register and operate one (1) account. Multiple accounts on the same device or IP address are strictly prohibited.</p>
 
-        <h4 data-i18n="tos3Title">3. Balance & Synchronization</h4>
-        <p data-i18n="tos3Desc">Your earnings in this Mini App sync securely with your Telegram bot. Advertisers may reverse credits if tasks are completed fraudulently.</p>
+        <h4>3. Balance & Synchronization</h4>
+        <p>Your earnings in this Mini App sync securely with your Telegram bot. Advertisers may reverse credits if tasks are completed fraudulently.</p>
       </div>
       <div class="f-modal-footer">
-        <button onclick="agreeToFirstTimeTos()" data-i18n="tosAgree">I Agree to the Terms</button>
+        <button onclick="agreeToFirstTimeTos()">I Agree to the Terms</button>
       </div>
     </div>
   </div>
@@ -405,68 +382,64 @@
           <div class="user-info">
             <h2 class="username" id="username">Loading...</h2>
             <div class="badge-container">
-              <span class="status-pill"><span class="status-dot"></span> <span data-i18n="secureConn">SECURE CONNECTION</span></span>
+              <span class="status-pill"><span class="status-dot"></span> SECURE CONNECTION</span>
             </div>
           </div>
-          <!-- VISIBLE LANGUAGE TOGGLE PILL -->
-          <button onclick="openLanguageModal()" class="lang-pill-btn" id="currentLangBtn">
-            <i class="fa-solid fa-language"></i> <span id="currentLangText">English</span>
-          </button>
         </div>
 
         <div class="bot-wallet-card">
           <div class="wallet-icon"><i class="fa-solid fa-wallet"></i></div>
           <div class="wallet-text">
-            <h4 data-i18n="botConnTitle">Bot Wallet Connected</h4>
-            <p data-i18n="botConnDesc">All rewards and balances are safely managed and tracked inside your Telegram bot.</p>
+            <h4>Bot Wallet Connected</h4>
+            <p>All rewards and balances are safely managed and tracked inside your Telegram bot.</p>
           </div>
         </div>
 
-        <h2 class="section-title" data-i18n="opsHeader">Operations</h2>
+        <h2 class="section-title">Operations</h2>
         
         <div class="task-card" onclick="showView('tasks-view')">
             <div class="task-icon icon-primary"><i class="fa-solid fa-bolt"></i></div>
-            <div class="task-details"><h3 data-i18n="earnHubTitle">Launch Earning Hub</h3><p data-i18n="earnHubDesc">Access offerwalls and ad tasks to generate rewards.</p></div>
+            <div class="task-details"><h3>Launch Earning Hub</h3><p>Access offerwalls and ad tasks to generate rewards.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
         </div>
         
         <div class="task-card" onclick="showView('history-view')">
             <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
-            <div class="task-details"><h3 data-i18n="ledgerTitle">Transaction Ledger</h3><p data-i18n="ledgerDesc">View your recent task completions and payouts.</p></div>
+            <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
 
         <div class="task-card" onclick="showView('leaderboard-view')">
             <div class="task-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
-            <div class="task-details"><h3 data-i18n="leaderboardTitle">Top Earners Leaderboard</h3><p data-i18n="leaderboardDesc">Check the top 10 offerwall earners this week.</p></div>
+            <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Check the top 10 offerwall earners this week.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
         
-        <h2 class="section-title" style="margin-top: 24px;" data-i18n="communityHeader">Community & Support</h2>
+        <h2 class="section-title" style="margin-top: 24px;">Community & Support</h2>
         
         <!-- SIDE BY SIDE GRID -->
         <div class="grid-2-col">
             <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
                 <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
-                <div class="task-details"><h3 data-i18n="globalChat">Global Chat</h3><p data-i18n="comHub">Community hub</p></div>
+                <div class="task-details"><h3>Global Chat</h3><p>Community hub</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
             <div class="task-card grid-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank')">
                 <div class="task-icon icon-community"><i class="fa-solid fa-bullhorn"></i></div>
-                <div class="task-details"><h3 data-i18n="offInfo">Official Info</h3><p data-i18n="updates">Updates & proof</p></div>
+                <div class="task-details"><h3>Official Info</h3><p>Updates & proof</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
             <div class="task-card grid-card" onclick="window.open('https://t.me/Amanuel_los', '_blank')">
                 <div class="task-icon icon-support"><i class="fa-solid fa-headset"></i></div>
-                <div class="task-details"><h3 data-i18n="supportTitle">Support</h3><p data-i18n="accHelp">Account help</p></div>
+                <div class="task-details"><h3>Support</h3><p>Account help</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
             <div class="task-card grid-card" onclick="showView('terms-view')">
                 <div class="task-icon icon-legal"><i class="fa-solid fa-scale-balanced"></i></div>
-                <div class="task-details"><h3 data-i18n="polTitle">Policies</h3><p data-i18n="polRules">Platform rules</p></div>
+                <div class="task-details"><h3>Policies</h3><p>Platform rules</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
             </div>
         </div>
@@ -476,8 +449,8 @@
       <div id="tasks-view" class="view">
         <div class="earn-category-tabs" id="earn-tabs" style="--active-index: 0;">
           <div class="tab-pill"></div>
-          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')" data-i18n="offerwallBtn">Offerwall.me</button>
-          <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')" data-i18n="adsTaskBtn">Ads Task</button>
+          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall.me</button>
+          <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')">Ads Task</button>
         </div>
 
         <!-- OFFERWALL PANEL -->
@@ -485,7 +458,7 @@
           <div class="offerwall-iframe-container">
             <div id="iframe-fallback" class="iframe-fallback">
               <div class="loader-spinner"></div>
-              <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;" data-i18n="estConn">Establishing Secure Connection...</p>
+              <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Establishing Secure Connection...</p>
             </div>
             <iframe id="offerwall-iframe" src="" title="Offerwall" onload="document.getElementById('iframe-fallback').style.display='none';"></iframe>
           </div>
@@ -496,8 +469,8 @@
           <div class="bot-wallet-card" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
             <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="wallet-text">
-              <h4 data-i18n="strictFraud">Strict Anti-Fraud</h4>
-              <p data-i18n="adsRules">You must click through the opened ad to verify. VPNs/Bots will cause a permanent ban.</p>
+              <h4>Strict Anti-Fraud</h4>
+              <p>You must click through the opened ad to verify. VPNs/Bots will cause a permanent ban.</p>
             </div>
           </div>
 
@@ -505,10 +478,10 @@
               <div class="task-icon icon-primary"><i class="fa-solid fa-play"></i></div>
               <div class="task-details">
                 <div style="display: flex; align-items: center; gap: 8px;">
-                  <h3 data-i18n="watchAd">Watch & Click Ad</h3>
+                  <h3>Watch & Click Ad</h3>
                   <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--mint); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; letter-spacing: 0.5px;">+$0.0005</span>
                 </div>
-                <p><span data-i18n="cycleProg">Cycle progress: </span> <span id="adStepIndicator">1/3</span>. <span data-i18n="compTrigger">Complete to trigger payout.</span></p>
+                <p>Cycle progress: <span id="adStepIndicator">1/3</span>. Complete to trigger payout.</p>
               </div>
               <div class="task-action-meta">
                 <span id="adsbitvexCD" class="status-pill" style="display:none;"></span>
@@ -522,27 +495,27 @@
       <div id="team-view" class="view">
         <div class="ref-hero">
           <i class="fa-solid fa-network-wired"></i>
-          <h2 data-i18n="buildNet">Build Your Network</h2>
-          <p data-i18n="inviteDesc">Invite friends and earn a lifetime commission from their completed offerwall tasks and ad views.</p>
+          <h2>Build Your Network</h2>
+          <p>Invite friends and earn a lifetime commission from their completed offerwall tasks and ad views.</p>
         </div>
 
-        <h2 class="section-title" data-i18n="yourLink">Your Unique Invite Link</h2>
+        <h2 class="section-title">Your Unique Invite Link</h2>
         <div class="ref-link-box">
           <input type="text" id="ref-link-input" readonly value="Loading...">
-          <button id="copy-btn" onclick="copyRefLink()" data-i18n="copyBtn">Copy</button>
+          <button id="copy-btn" onclick="copyRefLink()">Copy</button>
         </div>
 
         <button class="primary-btn btn-mint" onclick="shareApp()">
-          <i class="fa-solid fa-paper-plane"></i> <span data-i18n="sendTg">Send to Telegram Contacts</span>
+          <i class="fa-solid fa-paper-plane"></i> Send to Telegram Contacts
         </button>
 
-        <h2 class="section-title" style="margin-top: 24px;" data-i18n="netStats">Network Statistics</h2>
+        <h2 class="section-title" style="margin-top: 24px;">Network Statistics</h2>
         <div class="bot-wallet-card" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); align-items: flex-start;">
             <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--blue);"><i class="fa-solid fa-robot"></i></div>
             <div class="wallet-text">
-              <h4 data-i18n="liveStats">Live Stats Tracked in Bot</h4>
-              <p data-i18n="liveStatsDesc">Your total referred users and commission payouts are securely managed directly inside the Telegram Bot. Close this Mini App and check the bot menu for your detailed team statistics.</p>
-              <button onclick="Telegram.WebApp.close()" data-i18n="retBot" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
+              <h4>Live Stats Tracked in Bot</h4>
+              <p>Your total referred users and commission payouts are securely managed directly inside the Telegram Bot. Close this Mini App and check the bot menu for your detailed team statistics.</p>
+              <button onclick="Telegram.WebApp.close()" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
             </div>
         </div>
       </div>
@@ -551,7 +524,7 @@
       <div id="history-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 data-i18n="ledgerTitle">Transaction Ledger</h2>
+            <h2>Transaction Ledger</h2>
         </div>
         
         <div id="history-list"></div>
@@ -561,13 +534,13 @@
       <div id="leaderboard-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 data-i18n="leaderboardTitle">Top Earners Leaderboard</h2>
+            <h2>Top Earners Leaderboard</h2>
         </div>
         
         <div id="leaderboard-list">
             <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                 <div class="loader-spinner" style="margin: 0 auto 15px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>
-                <p data-i18n="loadLeader">Loading live leaderboard...</p>
+                <p>Loading live leaderboard...</p>
             </div>
         </div>
       </div>
@@ -576,29 +549,29 @@
       <div id="terms-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 data-i18n="termPol">Terms & Policies</h2>
+            <h2>Terms & Policies</h2>
         </div>
         
         <div class="terms-content">
-            <h4 data-i18n="accInteg">1. Account Integrity</h4>
-            <p data-i18n="accIntegDesc">You may only use one account. Multiple accounts per user, device, or IP address will trigger an automated system ban and the permanent forfeiture of all bot balances.</p>
+            <h4>1. Account Integrity</h4>
+            <p>You may only use one account. Multiple accounts per user, device, or IP address will trigger an automated system ban and the permanent forfeiture of all bot balances.</p>
             
-            <h4 data-i18n="prohExp">2. Prohibited Exploits</h4>
-            <p data-i18n="prohExpDesc">The use of VPNs (Virtual Private Networks), Datacenter Proxies, ad-blockers, software emulators, or automation scripts to bypass or complete offerwall tasks is strictly forbidden.</p>
+            <h4>2. Prohibited Exploits</h4>
+            <p>The use of VPNs (Virtual Private Networks), Datacenter Proxies, ad-blockers, software emulators, or automation scripts to bypass or complete offerwall tasks is strictly forbidden.</p>
 
-            <h4 data-i18n="balRev">3. Balance & Reversals</h4>
-            <p data-i18n="balRevDesc">All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions, such as providing false information on surveys or rushing through tasks.</p>
+            <h4>3. Balance & Reversals</h4>
+            <p>All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions, such as providing false information on surveys or rushing through tasks.</p>
             
-            <h4 data-i18n="suppProt">4. Support Protocol</h4>
-            <p data-i18n="suppProtDesc">If your account balance is missing verified credits, contact the official support agent. Fraudulent claims or abusive behavior toward support staff will lead to account termination.</p>
+            <h4>4. Support Protocol</h4>
+            <p>If your account balance is missing verified credits, contact the official support agent. Fraudulent claims or abusive behavior toward support staff will lead to account termination.</p>
         </div>
       </div>
     </main>
 
     <nav class="footer-nav">
-      <button class="nav-button active" onclick="showView('home-view')"><div class="icon"><i class="fa-solid fa-house"></i></div><span data-i18n="homeNav">Home</span></button>
-      <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div><span data-i18n="earnNav">Earn</span></button>
-      <button class="nav-button" onclick="showView('team-view')"><div class="icon"><i class="fa-solid fa-users"></i></div><span data-i18n="teamNav">Team</span></button>
+      <button class="nav-button active" onclick="showView('home-view')"><div class="icon"><i class="fa-solid fa-house"></i></div>Home</button>
+      <button class="nav-button" onclick="showView('tasks-view')"><div class="icon"><i class="fa-solid fa-bolt"></i></div>Earn</button>
+      <button class="nav-button" onclick="showView('team-view')"><div class="icon"><i class="fa-solid fa-users"></i></div>Team</button>
     </nav>
   </div>
 
@@ -606,164 +579,11 @@
     let adsCountToday = 0;
     let tgUser = null;
     let currentUserId = 'guest_user';
-    let currentLang = 'en';
     let adsbitvexInFlight = false;
     let adsbitvexLastRun = 0;
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
-
-    // The Master Dictionary: Translates every single piece of text
-    const i18n = {
-        en: {
-            langName: "English",
-            splashSub: "Elite Earning",
-            loading: "INITIALIZING... ",
-            selectLang: "Select Language",
-            welcomeTo: "Welcome to HOWL",
-            tos1Title: "1. Anti-Fraud Agreement",
-            tos1Desc: "By using this platform, you agree to never use VPNs, Datacenter Proxies, ad-blockers, or automation scripts. Violation results in an instant, unappealable ban.",
-            tos2Title: "2. One Account Policy",
-            tos2Desc: "You may only register and operate one (1) account. Multiple accounts on the same device or IP address are strictly prohibited.",
-            tos3Title: "3. Balance & Synchronization",
-            tos3Desc: "Your earnings in this Mini App sync securely with your Telegram bot. Advertisers may reverse credits if tasks are completed fraudulently.",
-            tosAgree: "I Agree to the Terms",
-            secureConn: "SECURE CONNECTION",
-            botConnTitle: "Bot Wallet Connected",
-            botConnDesc: "All rewards and balances are safely managed and tracked inside your Telegram bot.",
-            opsHeader: "Operations",
-            earnHubTitle: "Launch Earning Hub",
-            earnHubDesc: "Access offerwalls and ad tasks to generate rewards.",
-            ledgerTitle: "Transaction Ledger",
-            ledgerDesc: "View your recent task completions and payouts.",
-            leaderboardTitle: "Top Earners Leaderboard",
-            leaderboardDesc: "Check the top 10 offerwall earners this week.",
-            communityHeader: "Community & Support",
-            globalChat: "Global Chat",
-            comHub: "Community hub",
-            offInfo: "Official Info",
-            updates: "Updates & proof",
-            supportTitle: "Support",
-            accHelp: "Account help",
-            polTitle: "Policies",
-            polRules: "Platform rules",
-            offerwallBtn: "Offerwall.me",
-            adsTaskBtn: "Ads Task",
-            estConn: "Establishing Secure Connection...",
-            strictFraud: "Strict Anti-Fraud",
-            adsRules: "You must click through the opened ad to verify. VPNs/Bots will cause a permanent ban.",
-            watchAd: "Watch & Click Ad",
-            cycleProg: "Cycle progress: ",
-            compTrigger: "Complete to trigger payout.",
-            buildNet: "Build Your Network",
-            inviteDesc: "Invite friends and earn a lifetime commission from their completed offerwall tasks and ad views.",
-            yourLink: "Your Unique Invite Link",
-            copyBtn: "Copy",
-            copied: "Copied!",
-            sendTg: "Send to Telegram Contacts",
-            netStats: "Network Statistics",
-            liveStats: "Live Stats Tracked in Bot",
-            liveStatsDesc: "Your total referred users and commission payouts are securely managed directly inside the Telegram Bot. Close this Mini App and check the bot menu for your detailed team statistics.",
-            retBot: "Return to Bot",
-            top10: "Top 10 Offerwall Earners",
-            loadLeader: "Loading live leaderboard...",
-            noEarn: "No offerwall earnings recorded yet. Be the first on the leaderboard!",
-            noTrans: "No transactions found for your User ID.",
-            termPol: "Terms & Policies",
-            accInteg: "1. Account Integrity",
-            accIntegDesc: "You may only use one account. Multiple accounts per user, device, or IP address will trigger an automated system ban and the permanent forfeiture of all bot balances.",
-            prohExp: "2. Prohibited Exploits",
-            prohExpDesc: "The use of VPNs (Virtual Private Networks), Datacenter Proxies, ad-blockers, software emulators, or automation scripts to bypass or complete offerwall tasks is strictly forbidden.",
-            balRev: "3. Balance & Reversals",
-            balRevDesc: "All earnings generated inside this Mini App are synchronized directly to your connected Telegram bot wallet. Advertisers and partner networks reserve the right to reverse credits for low-quality submissions, such as providing false information on surveys or rushing through tasks.",
-            suppProt: "4. Support Protocol",
-            suppProtDesc: "If your account balance is missing verified credits, contact the official support agent. Fraudulent claims or abusive behavior toward support staff will lead to account termination.",
-            homeNav: "Home",
-            earnNav: "Earn",
-            teamNav: "Team",
-            wait: "WAIT...",
-            cdActive: "⏳ Cooldown active! Wait ",
-            adIgnored: "⚠️ Ad ignored! You must click into the ad page to verify.",
-            verified: "✅ Verified! Progress: ",
-            rewardInj: "🎉 $0.0005 Reward injected to your bot balance!",
-            netErr: "❌ Network Error. Claim failed.",
-            shareMsg: "Join the HOWL protocol and earn rewards instantly via your Telegram bot!"
-        },
-        am: {
-            langName: "አማርኛ",
-            splashSub: "ምርጥ የገቢ ማግኛ",
-            loading: "በማስጀመር ላይ... ",
-            selectLang: "ቋንቋ ይምረጡ",
-            welcomeTo: "ወደ HOWL እንኳን በደህና መጡ",
-            tos1Title: "1. ፀረ-ማጭበርበር ስምምነት",
-            tos1Desc: "ይህንን መድረክ በመጠቀም ምንም አይነት ቪፒኤን (VPN)፣ ፕሮክሲ ወይም አውቶሜሽን ስክሪፕት ላለመጠቀም ይስማማሉ። ይህን መጣስ አካውንትዎን በቋሚነት ያሳግዳል።",
-            tos2Title: "2. የአንድ አካውንት ፖሊሲ",
-            tos2Desc: "እርስዎ መመዝገብ እና መጠቀም የሚችሉት አንድ (1) አካውንት ብቻ ነው።",
-            tos3Title: "3. ሂሳብ እና ማመሳሰል",
-            tos3Desc: "በዚህ ሚኒ አፕ ያገኙት ገቢ ከቴሌግራም ቦትዎ ጋር በደህና ይመሳሰላል። አስተዋዋቂዎች ስህተት ካገኙ ክፍያዎን ሊመልሱ ይችላሉ።",
-            tosAgree: "በህጎቹ እስማማለሁ",
-            secureConn: "ደህንነቱ የተጠበቀ ግንኙነት",
-            botConnTitle: "የቦት ዋሌት ተገናኝቷል",
-            botConnDesc: "ሁሉም ሽልማቶች እና ሂሳቦች በቴሌግራም ቦትዎ ውስጥ በደህና ይተዳደራሉ።",
-            opsHeader: "ክዋኔዎች",
-            earnHubTitle: "የገቢ ማግኛ መድረክ",
-            earnHubDesc: "ገቢ ለማግኘት የኦፈርዎል እና የማስታወቂያ ስራዎችን ይድረሱ።",
-            ledgerTitle: "የገንዘብ ዝውውር መዝገብ",
-            ledgerDesc: "የቅርብ ጊዜ የሰሯቸውን ስራዎች እና ክፍያዎች ይመልከቱ።",
-            leaderboardTitle: "ከፍተኛ ተከፋዮች",
-            leaderboardDesc: "የዚህን ሳምንት ከፍተኛ 10 ተከፋዮች ይመልከቱ።",
-            communityHeader: "ማህበረሰብ እና ድጋፍ",
-            globalChat: "የጋራ ውይይት",
-            comHub: "የማህበረሰብ ማዕከል",
-            offInfo: "ኦፊሴላዊ መረጃ",
-            updates: "መረጃዎች እና ማረጋገጫ",
-            supportTitle: "ድጋፍ",
-            accHelp: "የአካውንት እርዳታ",
-            polTitle: "ፖሊሲዎች",
-            polRules: "የመድረኩ ህጎች",
-            offerwallBtn: "ኦፈርዎል (Offerwall)",
-            adsTaskBtn: "የማስታወቂያ ስራ",
-            estConn: "ደህንነቱ የተጠበቀ ግንኙነት በመመስረት ላይ...",
-            strictFraud: "ጥብቅ ፀረ-ማጭበርበር",
-            adsRules: "አረጋግጥ የሚለውን ማስታወቂያ መንካት አለብዎት። ቪፒኤን መጠቀም ያስግዳል።",
-            watchAd: "ማስታወቂያ ይመልከቱ እና ይጫኑ",
-            cycleProg: "የሂደት ደረጃ: ",
-            compTrigger: "ክፍያ ለማግኘት ያጠናቅቁ።",
-            buildNet: "ኔትወርክዎን ይገንቡ",
-            inviteDesc: "ጓደኞችዎን ይጋብዙ እና ከሚሰሩት ስራ የህይወት ዘመን ኮሚሽን ያግኙ።",
-            yourLink: "የእርስዎ መጋበዣ ሊንክ",
-            copyBtn: "ኮፒ (ቅዳ)",
-            copied: "ተቀድቷል!",
-            sendTg: "ለቴሌግራም ጓደኞችዎ ይላኩ",
-            netStats: "የኔትወርክ ስታስቲክስ",
-            liveStats: "የቀጥታ ስታስቲክስ በቦት ውስጥ",
-            liveStatsDesc: "የእርስዎ አጠቃላይ የተጋበዙ ተጠቃሚዎች እና ኮሚሽኖች በቴሌግራም ቦት ውስጥ ይሰላሉ። ዝርዝሩን ለማየት አፑን ዘግተው ቦቱን ይመልከቱ።",
-            retBot: "ወደ ቦት ተመለስ",
-            top10: "ከፍተኛ 10 ኦፈርዎል ተከፋዮች",
-            loadLeader: "የቀጥታ መሪ ሰሌዳን በመጫን ላይ...",
-            noEarn: "እስካሁን ምንም ገቢ አልተመዘገበም። በመሪዎች ሰሌዳ ላይ የመጀመሪያው ይሁኑ!",
-            noTrans: "ለእርስዎ መታወቂያ የተመዘገበ ምንም ዝውውር የለም።",
-            termPol: "ህጎች እና ፖሊሲዎች",
-            accInteg: "1. የአካውንት ታማኝነት",
-            accIntegDesc: "አንድ አካውንት ብቻ መጠቀም ይችላሉ። ብዙ አካውንት መጠቀም በቋሚነት ያሳግዳል።",
-            prohExp: "2. የተከለከሉ ድርጊቶች",
-            prohExpDesc: "ቪፒኤን (VPN)፣ ፕሮክሲ ወይም አውቶሜሽን መጠቀም በጥብቅ የተከለከለ ነው።",
-            balRev: "3. ሂሳብ እና መመለስ",
-            balRevDesc: "ሁሉም ገቢዎ ከቴሌግራም ቦትዎ ጋር ይመሳሰላል። አስተዋዋቂዎች ለሀሰተኛ ስራ ክፍያን ሊመልሱ ይችላሉ።",
-            suppProt: "4. የድጋፍ ፕሮቶኮል",
-            suppProtDesc: "ክፍያ ካልደረስዎ ኦፊሴላዊ የድጋፍ ሰጪን ያነጋግሩ። የሀሰት ጥያቄዎች አካውንትዎን ያዘጋል።",
-            homeNav: "መነሻ",
-            earnNav: "ስራዎች",
-            teamNav: "ቡድን",
-            wait: "ይጠብቁ...",
-            cdActive: "⏳ ቆይታ አለው! ይጠብቁ ",
-            adIgnored: "⚠️ ማስታወቂያው አልተቆጠረም! ለማረጋገጥ ወደ ማስታወቂያው ገፅ መግባት አለብዎት።",
-            verified: "✅ ተረጋግጧል! ደረጃ: ",
-            rewardInj: "🎉 $0.0005 ወደ ቦትዎ ገቢ ተደርጓል!",
-            netErr: "❌ የኔትወርክ ችግር። አልተሳካም።",
-            shareMsg: "የ HOWL ቦትን በመቀላቀል ገንዘብ ይስሩ!"
-        }
-    };
 
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
@@ -778,15 +598,13 @@
             percentTracker += Math.floor(Math.random() * 6) + 3;
             if (percentTracker >= 100) percentTracker = 100;
             
-            // Dynamic language on loading bar (defaulting to EN if unselected)
-            const loadingText = i18n[currentLang] ? i18n[currentLang].loading : "INITIALIZING... ";
-            if (percentEl) percentEl.textContent = `${loadingText}${percentTracker}%`;
+            if (percentEl) percentEl.textContent = `INITIALIZING... ${percentTracker}%`;
             if (barEl) barEl.style.width = `${percentTracker}%`;
 
             if (percentTracker >= 100) {
                 setTimeout(() => { 
                     if (splashEl) splashEl.classList.add('fade-out'); 
-                    checkOnboardingSequence();
+                    checkFirstTimeTos();
                 }, 400);
             } else {
                 setTimeout(tickSplash, 120);
@@ -810,9 +628,6 @@
 
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         
-        const savedLang = localStorage.getItem(`howl_lang_${currentUserId}`);
-        if (savedLang) currentLang = savedLang;
-        
         loadTelegramUser();
         setupOfferwallIframes();
         generateRefLink();
@@ -823,45 +638,6 @@
         showView('home-view');
         checkStoredCooldowns();
         updateDisplayCounters();
-    }
-
-    function checkOnboardingSequence() {
-        const savedLang = localStorage.getItem(`howl_lang_${currentUserId}`);
-        if (!savedLang) {
-            document.getElementById('languageModal').classList.add('active');
-        } else {
-            applyLanguage(savedLang);
-            checkFirstTimeTos();
-        }
-    }
-
-    function openLanguageModal() {
-        document.getElementById('languageModal').classList.add('active');
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.selectionChanged();
-    }
-
-    function selectLanguage(langCode) {
-        currentLang = langCode;
-        localStorage.setItem(`howl_lang_${currentUserId}`, langCode);
-        document.getElementById('languageModal').classList.remove('active');
-        applyLanguage(langCode);
-        
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-        checkFirstTimeTos();
-    }
-
-    function applyLanguage(langCode) {
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (i18n[langCode] && i18n[langCode][key]) {
-                el.textContent = i18n[langCode][key];
-            }
-        });
-        
-        const langTextSpan = document.getElementById('currentLangText');
-        if (langTextSpan && i18n[langCode]) {
-            langTextSpan.textContent = i18n[langCode].langName;
-        }
     }
 
     function checkFirstTimeTos() {
@@ -899,7 +675,7 @@
             if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
             
             const originalText = copyBtn.textContent;
-            copyBtn.textContent = i18n[currentLang].copied;
+            copyBtn.textContent = "Copied!";
             copyBtn.style.background = "var(--mint)";
             copyBtn.style.color = "#000";
             setTimeout(() => {
@@ -973,7 +749,7 @@
                 const left = Math.max(0, 5 - adsbitvexDiff);
                 adsbitvexCard.style.opacity = '0.5';
                 adsbitvexCD.style.display = 'inline-flex';
-                adsbitvexCD.textContent = adsbitvexInFlight ? i18n[currentLang].wait : `${left}s CD`;
+                adsbitvexCD.textContent = adsbitvexInFlight ? "WAIT..." : `${left}s CD`;
                 adsbitvexArrow.style.display = 'none';
             } else {
                 adsbitvexCard.style.opacity = '1';
@@ -1019,7 +795,7 @@
                 historyList.innerHTML = `
                 <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
-                    <p>${i18n[currentLang].noTrans}</p>
+                    <p>No transactions found for your User ID.</p>
                 </div>`;
                 return;
             }
@@ -1060,7 +836,7 @@
                 leaderboardList.innerHTML = `
                 <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
-                    <p>${i18n[currentLang].noEarn}</p>
+                    <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
                 </div>`;
                 return;
             }
@@ -1099,7 +875,7 @@
         const now = Date.now();
         if (now - adsbitvexLastRun < 5000) {
             const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
-            return alert(i18n[currentLang].cdActive + left + "s.");
+            return alert("⏳ Cooldown active! Wait " + left + "s.");
         }
         if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
@@ -1118,7 +894,7 @@
 
             if (!userSwitchedContext) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                return alert(i18n[currentLang].adIgnored);
+                return alert("⚠️ Ad ignored! You must click into the ad page to verify.");
             }
 
             adsCountToday += 1;
@@ -1130,7 +906,7 @@
             } else {
                 const currentProgress = adsCountToday % 3;
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-                alert(i18n[currentLang].verified + currentProgress + "/3");
+                alert("✅ Verified! Progress: " + currentProgress + "/3");
             }
         }).catch((e) => {
             window.removeEventListener('blur', focusLossHandler);
@@ -1153,18 +929,18 @@
             
             if (response.ok) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                alert(i18n[currentLang].rewardInj);
+                alert("🎉 $0.0005 Reward injected to your bot balance!");
             } else {
                 alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
         } catch (err) {
-            alert(i18n[currentLang].netErr);
+            alert("❌ Network Error. Claim failed.");
         }
     }
 
     function shareApp() {
         const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
-        const text = i18n[currentLang].shareMsg;
+        const text = "Join the HOWL protocol and earn rewards instantly via your Telegram bot!";
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
             Telegram.WebApp.openTelegramLink(shareUrl);
