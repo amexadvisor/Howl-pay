@@ -205,7 +205,6 @@
       border-radius: 20px; border: 1px solid var(--hairline); 
       overflow: hidden; position: relative;
     }
-    /* Let iframe naturally fill container height unless strictly overridden */
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; position: relative; z-index: 2; }
     
     .iframe-fallback {
@@ -468,13 +467,12 @@
 
         <!-- TIMEWALL PANEL -->
         <div id="panel-timewall" class="earn-section-panel" style="display: none;">
-          <!-- Adjusted height to accommodate 1000px if needed without clipping badly -->
-          <div class="offerwall-iframe-container" style="height: 1000px;">
+          <div class="offerwall-iframe-container" style="height: 1000px; background: transparent; border: none;">
             <div id="timewall-fallback" class="iframe-fallback">
               <div class="loader-spinner"></div>
               <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
             </div>
-            <!-- EXACT requested TimeWall attributes -->
+            <!-- EXACT User Requested TimeWall Iframe -->
             <iframe id="timewall-iframe" title="TimeWall" src="" frameborder="0" width="100%" height="1000" scrolling="auto" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
         </div>
@@ -678,6 +676,7 @@
 
         const timewallIframe = document.getElementById('timewall-iframe');
         if (timewallIframe) {
+            // Your exact new OID applied here
             const timewallOid = "78a1ef4a7932308b"; 
             timewallIframe.src = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
         }
