@@ -241,8 +241,8 @@
     .ref-link-box button:active { transform: scale(0.95); }
 
     .primary-btn {
-      width: 100%; background: linear-gradient(90deg, #10b981, #059669);
-      color: #fff; border: none; border-radius: 16px; padding: 16px;
+      width: 100%; background: linear-gradient(90deg, var(--mint-dim), var(--mint));
+      color: #000; border: none; border-radius: 16px; padding: 16px;
       font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
       box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition: transform 0.2s;
     }
@@ -403,12 +403,14 @@
             <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
         </div>
         
+        <!-- Transaction Ledger Button -->
         <div class="task-card" onclick="showView('history-view')">
             <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
 
+        <!-- Offerwall Leaderboard Button -->
         <div class="task-card" onclick="showView('leaderboard-view')">
             <div class="task-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
             <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Check the top 10 offerwall earners this week.</p></div>
@@ -467,13 +469,12 @@
 
         <!-- TIMEWALL PANEL -->
         <div id="panel-timewall" class="earn-section-panel" style="display: none;">
-          <div class="offerwall-iframe-container" style="height: 1000px; background: transparent; border: none;">
+          <div class="offerwall-iframe-container">
             <div id="timewall-fallback" class="iframe-fallback">
               <div class="loader-spinner"></div>
               <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
             </div>
-            <!-- EXACT User Requested TimeWall Iframe -->
-            <iframe id="timewall-iframe" title="TimeWall" src="" frameborder="0" width="100%" height="1000" scrolling="auto" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
+            <iframe id="timewall-iframe" src="" title="TimeWall" onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
         </div>
 
@@ -527,7 +528,7 @@
             <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--blue);"><i class="fa-solid fa-robot"></i></div>
             <div class="wallet-text">
               <h4>Live Stats Tracked in Bot</h4>
-              <p>Your total referred users and commission payouts are securely managed directly inside the Telegram Bot. Close this Mini App and check the bot menu for your detailed team statistics.</p>
+              <p>Your total referred users and commission payouts are securely managed and calculated directly inside the Telegram Bot engine to prevent manipulation. Close this Mini App and check the bot menu for your detailed team statistics.</p>
               <button onclick="Telegram.WebApp.close()" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
             </div>
         </div>
@@ -547,7 +548,7 @@
       <div id="leaderboard-view" class="view">
         <div class="detail-header">
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2>Top Earners Leaderboard</h2>
+            <h2>Top 10 Offerwall Earners</h2>
         </div>
         
         <div id="leaderboard-list">
@@ -610,8 +611,7 @@
         function tickSplash() {
             percentTracker += Math.floor(Math.random() * 6) + 3;
             if (percentTracker >= 100) percentTracker = 100;
-            
-            if (percentEl) percentEl.textContent = `INITIALIZING... ${percentTracker}%`;
+            if (percentEl) percentEl.textContent = `LOADING... ${percentTracker}%`;
             if (barEl) barEl.style.width = `${percentTracker}%`;
 
             if (percentTracker >= 100) {
@@ -636,11 +636,18 @@
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
+
+                if (Telegram.WebApp.initData) {
+                    fetch('/api/sync-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: Telegram.WebApp.initData })
+                    }).catch(e => console.log("Profile sync ignored"));
+                }
             }
         } catch (e) {}
 
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
-        
         loadTelegramUser();
         setupOfferwallIframes();
         generateRefLink();
@@ -676,7 +683,6 @@
 
         const timewallIframe = document.getElementById('timewall-iframe');
         if (timewallIframe) {
-            // Your exact new OID applied here
             const timewallOid = "78a1ef4a7932308b"; 
             timewallIframe.src = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
         }
@@ -694,7 +700,6 @@
             refInput.select();
             document.execCommand("copy");
             if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
-            
             const originalText = copyBtn.textContent;
             copyBtn.textContent = "Copied!";
             copyBtn.style.background = "var(--mint)";
@@ -770,7 +775,7 @@
                 const left = Math.max(0, 5 - adsbitvexDiff);
                 adsbitvexCard.style.opacity = '0.5';
                 adsbitvexCD.style.display = 'inline-flex';
-                adsbitvexCD.textContent = adsbitvexInFlight ? "WAIT..." : `${left}s CD`;
+                adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : `${left}s CD`;
                 adsbitvexArrow.style.display = 'none';
             } else {
                 adsbitvexCard.style.opacity = '1';
@@ -896,7 +901,7 @@
         const now = Date.now();
         if (now - adsbitvexLastRun < 5000) {
             const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
-            return alert("⏳ Cooldown active! Wait " + left + "s.");
+            return alert(`⏳ Cooldown active! Wait ${left}s.`);
         }
         if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
@@ -915,7 +920,7 @@
 
             if (!userSwitchedContext) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                return alert("⚠️ Ad ignored! You must click into the ad page to verify.");
+                return alert('⚠️ Ad ignored! You must click into the ad page to verify.');
             }
 
             adsCountToday += 1;
@@ -927,7 +932,7 @@
             } else {
                 const currentProgress = adsCountToday % 3;
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-                alert("✅ Verified! Progress: " + currentProgress + "/3");
+                alert(`✅ Verified! Progress: ${currentProgress}/3`);
             }
         }).catch((e) => {
             window.removeEventListener('blur', focusLossHandler);
@@ -950,18 +955,18 @@
             
             if (response.ok) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                alert("🎉 $0.0005 Reward injected to your bot balance!");
+                alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
                 alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
         } catch (err) {
-            alert("❌ Network Error. Claim failed.");
+            alert(`❌ Network Error. Claim failed.`);
         }
     }
 
     function shareApp() {
         const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
-        const text = "Join the HOWL protocol and earn rewards instantly via your Telegram bot!";
+        const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
             Telegram.WebApp.openTelegramLink(shareUrl);
