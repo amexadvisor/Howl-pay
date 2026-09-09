@@ -184,7 +184,7 @@
       padding: 6px; border-radius: 18px; border: 1px solid var(--hairline); position: relative;
     }
     .tab-pill {
-      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 12px) / 2);
+      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 16px) / 3);
       background: var(--text); border-radius: 12px;
       transform: translateX(calc(var(--active-index, 0) * 100%));
       transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
@@ -241,11 +241,11 @@
     .ref-link-box button:active { transform: scale(0.95); }
 
     .primary-btn {
-      width: 100%; border: none; border-radius: 16px; padding: 16px;
+      width: 100%; background: linear-gradient(90deg, #10b981, #059669);
+      color: #fff; border: none; border-radius: 16px; padding: 16px;
       font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-      transition: transform 0.2s;
+      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition: transform 0.2s;
     }
-    .btn-mint { background: linear-gradient(90deg, #10b981, #059669); color: #fff; box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); }
     .primary-btn:active { transform: scale(0.98); }
 
     .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
@@ -450,6 +450,7 @@
         <div class="earn-category-tabs" id="earn-tabs" style="--active-index: 0;">
           <div class="tab-pill"></div>
           <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall.me</button>
+          <button class="category-tab" id="tab-timewall" onclick="switchEarnTab('timewall')">TimeWall</button>
           <button class="category-tab" id="tab-ads" onclick="switchEarnTab('ads')">Ads Task</button>
         </div>
 
@@ -461,6 +462,20 @@
               <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Establishing Secure Connection...</p>
             </div>
             <iframe id="offerwall-iframe" src="" title="Offerwall" onload="document.getElementById('iframe-fallback').style.display='none';"></iframe>
+          </div>
+        </div>
+
+        <!-- TIMEWALL PANEL -->
+        <div id="panel-timewall" class="earn-section-panel" style="display: none;">
+          <div class="offerwall-iframe-container">
+            <div id="timewall-fallback" class="iframe-fallback">
+              <div class="loader-spinner"></div>
+              <p style="color: var(--text-muted); font-size: 13px; font-weight: 600;">Loading TimeWall...</p>
+            </div>
+            <iframe id="timewall-iframe" src="" title="TimeWall" 
+              referrerpolicy="strict-origin-when-cross-origin" 
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-top-navigation allow-top-navigation-by-user-activation" 
+              onload="document.getElementById('timewall-fallback').style.display='none';"></iframe>
           </div>
         </div>
 
@@ -505,7 +520,7 @@
           <button id="copy-btn" onclick="copyRefLink()">Copy</button>
         </div>
 
-        <button class="primary-btn btn-mint" onclick="shareApp()">
+        <button class="primary-btn" onclick="shareApp()">
           <i class="fa-solid fa-paper-plane"></i> Send to Telegram Contacts
         </button>
 
@@ -633,6 +648,7 @@
         generateRefLink();
         
         document.getElementById('panel-offerwall').style.display = 'block';
+        document.getElementById('panel-timewall').style.display = 'none';
         document.getElementById('panel-ads').style.display = 'none';
         
         showView('home-view');
@@ -658,6 +674,12 @@
         if (offerwallIframe) {
             const offerwallApiKey = "xX8xgdqTIsgOpXHcngm5uiEaDb1wPM";
             offerwallIframe.src = `https://offerwall.me/offerwall/${offerwallApiKey}/${currentUserId}`;
+        }
+
+        const timewallIframe = document.getElementById('timewall-iframe');
+        if (timewallIframe) {
+            const timewallOid = "78a1ef4a7932308b"; 
+            timewallIframe.src = `https://timewall.io/users/login?oid=${timewallOid}&uid=${currentUserId}`;
         }
     }
 
@@ -703,7 +725,7 @@
         document.getElementById('main-content').scrollTop = 0;
     }
 
-    const TAB_ORDER = ['offerwall', 'ads'];
+    const TAB_ORDER = ['offerwall', 'timewall', 'ads'];
 
     function switchEarnTab(tabName) {
         document.querySelectorAll('.earn-section-panel').forEach(panel => {
