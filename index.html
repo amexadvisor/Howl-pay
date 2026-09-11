@@ -5,336 +5,310 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>HOWL | Elite Earning Platform</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
   <style>
     :root {
-      --bg: #09090b; 
-      --bg-gradient: radial-gradient(circle at top right, #131a18, #09090b);
-      --card: rgba(24, 24, 27, 0.7);
-      --card-hover: rgba(39, 39, 42, 0.9);
-      --hairline: rgba(255, 255, 255, 0.08);
-      --mint: #10b981;
-      --mint-glow: rgba(16, 185, 129, 0.4);
-      --mint-soft: rgba(16, 185, 129, 0.1);
-      --amber: #f59e0b;
-      --blue: #3b82f6;
-      --text: #fafafa;
-      --text-muted: #a1a1aa;
-      --glass: blur(16px);
+      /* Dynamic Telegram Theme Variables with Premium Fallbacks */
+      --bg: var(--tg-theme-bg-color, #0f1115); 
+      --card-bg: var(--tg-theme-secondary-bg-color, #1a1d24);
+      --text: var(--tg-theme-text-color, #f1f3f5);
+      --text-muted: var(--tg-theme-hint-color, #8b929e);
+      --accent: var(--tg-theme-button-color, #3b82f6);
+      --accent-text: var(--tg-theme-button-text-color, #ffffff);
+      
+      --border: rgba(255, 255, 255, 0.06);
+      --glass: blur(20px);
+      
+      --success: #10b981;
+      --success-bg: rgba(16, 185, 129, 0.12);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.12);
+      
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
       margin: 0; padding: 0; height: 100vh; width: 100vw;
-      background: var(--bg); background-image: var(--bg-gradient);
+      background-color: var(--bg);
       color: var(--text); font-family: 'Inter', sans-serif; 
       overflow: hidden; overscroll-behavior-y: none;
       -webkit-font-smoothing: antialiased;
     }
 
+    /* Clean Splash Screen */
     #splash-screen {
-      position: absolute; inset: 0; background: #050505; z-index: 9999;
+      position: fixed; inset: 0; background: var(--bg); z-index: 9999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: opacity 0.8s cubic-bezier(0.16,1,0.3,1), visibility 0.8s;
-      overflow: hidden;
+      transition: opacity 0.6s ease, visibility 0.6s ease;
     }
-    #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; transform: scale(1.05); }
+    #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
 
-    .splash-grid {
-      position: absolute; inset: 0; 
-      background-image: linear-gradient(var(--hairline) 1px, transparent 1px), linear-gradient(90deg, var(--hairline) 1px, transparent 1px);
-      background-size: 40px 40px; opacity: 0.3;
-      transform: perspective(500px) rotateX(60deg) translateY(-100px) translateZ(-200px);
-      animation: gridMove 10s linear infinite; pointer-events: none;
-    }
-    @keyframes gridMove { 0% { transform: perspective(500px) rotateX(60deg) translateY(0) translateZ(-200px); } 100% { transform: perspective(500px) rotateX(60deg) translateY(40px) translateZ(-200px); } }
-
-    .logo-wrapper {
-      position: relative; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center;
-      margin-bottom: 24px; z-index: 2;
-    }
     .splash-logo {
-      width: 90px; height: 90px; border-radius: 28px; border: 2px solid var(--mint);
-      box-shadow: 0 0 30px var(--mint-glow), inset 0 0 20px var(--mint-glow);
-      animation: floatLogo 3s ease-in-out infinite; overflow: hidden; z-index: 3;
+      width: 88px; height: 88px; border-radius: 24px; 
+      box-shadow: 0 16px 32px rgba(0,0,0,0.3);
+      overflow: hidden; margin-bottom: 24px;
+      animation: gentleFloat 3s ease-in-out infinite;
     }
     .splash-logo img { width: 100%; height: 100%; object-fit: cover; }
     
-    .pulse-ring-outer {
-      position: absolute; width: 100%; height: 100%; border-radius: 35px;
-      border: 1px solid var(--mint); animation: expandRing 2.5s cubic-bezier(0.2,0.8,0.2,1) infinite; z-index: 1;
-    }
+    @keyframes gentleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
 
-    @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-10px); } }
-    @keyframes expandRing { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
+    .splash-text { text-align: center; margin-bottom: 32px; }
+    .splash-text h1 { font-size: 28px; font-weight: 800; margin: 0 0 4px; letter-spacing: 1px; color: var(--text); }
+    .splash-text p { font-size: 14px; font-weight: 500; color: var(--text-muted); margin: 0; }
 
-    .splash-text { text-align: center; z-index: 2; margin-bottom: 30px; }
-    .splash-text h1 { font-size: 32px; font-weight: 900; margin: 0 0 5px; letter-spacing: 2px; text-transform: uppercase; background: linear-gradient(to right, #fff, var(--mint)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .splash-text p { font-size: 13px; font-weight: 600; color: var(--text-muted); margin: 0; letter-spacing: 3px; text-transform: uppercase; }
-
-    .splash-loading-area { width: 220px; z-index: 2; }
-    .loading-track { width: 100%; height: 6px; background: rgba(255,255,255,0.05); border-radius: 10px; overflow: hidden; position: relative; box-shadow: inset 0 1px 3px rgba(0,0,0,0.5); }
-    .loading-bar { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--mint); border-radius: 10px; transition: width 0.2s ease-out; box-shadow: 0 0 15px var(--mint); }
-    .loading-text { text-align: center; margin-top: 10px; font-family: 'Inter', monospace; font-size: 12px; font-weight: 700; color: var(--mint); }
+    .splash-loading-area { width: 200px; }
+    .loading-track { width: 100%; height: 4px; background: var(--border); border-radius: 4px; overflow: hidden; position: relative; }
+    .loading-bar { position: absolute; top: 0; left: 0; height: 100%; width: 0%; background: var(--accent); border-radius: 4px; transition: width 0.2s ease-out; }
+    .loading-text { text-align: center; margin-top: 12px; font-size: 12px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.5px; }
 
     .container {
-      width: 100%; height: 100%; max-width: 420px; margin: 0 auto; position: relative;
-      display: flex; flex-direction: column; overflow: hidden;
-      border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline);
+      width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative;
+      display: flex; flex-direction: column;
     }
-    
-    .ambient-light { position: absolute; top: -100px; left: -100px; width: 300px; height: 300px; background: var(--mint); filter: blur(150px); opacity: 0.15; pointer-events: none; z-index: 0; }
 
     main { 
-      flex-grow: 1; overflow-y: auto; padding: 20px; padding-bottom: 110px; 
+      flex-grow: 1; overflow-y: auto; padding: 20px 16px 100px 16px; 
       z-index: 1; position: relative; scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch; overscroll-behavior-y: none;
+      -webkit-overflow-scrolling: touch;
     }
-    main::-webkit-scrollbar { width: 0px; } 
+    main::-webkit-scrollbar { display: none; } 
 
     .view { display: none; }
-    .view.active { display: block; animation: slideFade 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes slideFade { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .view.active { display: block; animation: fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
+    /* Elegant User Header */
     .user-header-card {
-      background: var(--card); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
-      border-radius: 20px; padding: 18px; margin-bottom: 16px;
-      display: flex; align-items: center; border: 1px solid var(--hairline);
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2); position: relative; overflow: hidden;
+      background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; 
+      margin-bottom: 16px; display: flex; align-items: center; border: 1px solid var(--border);
     }
     .user-avatar {
-      width: 56px; height: 56px; border-radius: 18px; margin-right: 16px; overflow: hidden;
-      display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 22px; color: #fff;
-      border: 2px solid rgba(255,255,255,0.1); flex-shrink: 0; position: relative; z-index: 2;
+      width: 52px; height: 52px; border-radius: 16px; margin-right: 14px; overflow: hidden;
+      display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 20px; color: #fff;
+      background: var(--accent); flex-shrink: 0;
     }
     .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .user-info { z-index: 2; }
-    .user-info .username { font-size: 18px; font-weight: 800; margin: 0; color: var(--text); letter-spacing: -0.5px; }
-    .user-info .badge-container { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+    .user-info .username { font-size: 17px; font-weight: 700; margin: 0 0 4px 0; color: var(--text); }
     
     .status-pill {
-      display: inline-flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 800;
-      color: #fff; background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.5);
-      padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.5px;
+      display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600;
+      color: var(--success); background: var(--success-bg);
+      padding: 4px 10px; border-radius: 12px;
     }
-    .status-dot { width: 6px; height: 6px; background: var(--mint); border-radius: 50%; box-shadow: 0 0 8px var(--mint); animation: pulseDot 1.5s infinite; }
+    .status-dot { width: 6px; height: 6px; background: var(--success); border-radius: 50%; box-shadow: 0 0 6px var(--success); }
     
     .bot-wallet-card {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(16, 185, 129, 0.05));
-      border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 16px; padding: 14px 16px;
-      margin-bottom: 24px; display: flex; align-items: center; gap: 14px;
+      background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15); 
+      border-radius: var(--radius-lg); padding: 16px; margin-bottom: 24px; display: flex; align-items: flex-start; gap: 14px;
     }
     .wallet-icon {
-      width: 42px; height: 42px; background: rgba(59, 130, 246, 0.15); color: var(--blue);
-      border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+      width: 40px; height: 40px; background: var(--accent); color: var(--accent-text);
+      border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0;
     }
-    .wallet-text h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
-    .wallet-text p { margin: 0; font-size: 12px; color: var(--text-muted); line-height: 1.4; }
+    .wallet-text h4 { margin: 0 0 6px 0; font-size: 15px; font-weight: 700; color: var(--text); }
+    .wallet-text p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 
-    .section-title { font-size: 13px; font-weight: 800; margin: 0 0 12px 4px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+    .section-title { font-size: 14px; font-weight: 700; margin: 0 0 12px 4px; color: var(--text); }
 
+    /* Modern Task Cards */
     .task-card {
-      background: var(--card); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
-      border-radius: 20px; padding: 16px; margin-bottom: 12px;
-      display: flex; align-items: center; cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.16,1,0.3,1); border: 1px solid var(--hairline);
+      background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px;
+      display: flex; align-items: center; cursor: pointer; border: 1px solid var(--border);
+      transition: transform 0.15s ease, background 0.2s ease;
     }
-    .task-card:hover { background: var(--card-hover); border-color: rgba(255,255,255,0.15); transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.3); }
-    .task-card:active { transform: scale(0.97); }
+    .task-card:active { transform: scale(0.97); background: rgba(255,255,255,0.03); }
 
     .task-icon {
-      font-size: 20px; width: 50px; height: 50px; border-radius: 16px; 
-      display: flex; align-items: center; justify-content: center; margin-right: 16px; flex-shrink: 0;
+      font-size: 20px; width: 48px; height: 48px; border-radius: var(--radius-md); 
+      display: flex; align-items: center; justify-content: center; margin-right: 14px; flex-shrink: 0;
     }
-    .icon-primary { color: var(--mint); background: var(--mint-soft); border: 1px solid rgba(16,185,129,0.2); }
-    .icon-support { color: #a855f7; background: rgba(168, 85, 247, 0.1); border: 1px solid rgba(168, 85, 247, 0.2); }
-    .icon-community { color: var(--blue); background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); }
-    .icon-legal { color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2); }
+    .icon-primary { color: var(--accent); background: rgba(59, 130, 246, 0.12); }
+    .icon-warning { color: var(--warning); background: var(--warning-bg); }
+    .icon-success { color: var(--success); background: var(--success-bg); }
+    .icon-community { color: #a855f7; background: rgba(168, 85, 247, 0.12); }
     
     .task-details { flex-grow: 1; }
-    .task-details h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--text); }
-    .task-details p { margin: 4px 0 0; font-size: 12px; color: var(--text-muted); font-weight: 500; line-height: 1.4; }
+    .task-details h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--text); }
+    .task-details p { margin: 4px 0 0; font-size: 13px; color: var(--text-muted); line-height: 1.4; }
 
     .task-arrow {
-      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05);
-      display: flex; align-items: center; justify-content: center; font-size: 12px; color: var(--text-muted);
-      border: 1px solid var(--hairline); transition: all 0.3s;
+      width: 28px; height: 28px; display: flex; align-items: center; justify-content: flex-end; 
+      font-size: 14px; color: var(--text-muted); opacity: 0.7;
     }
-    .task-card:hover .task-arrow { background: var(--text); color: var(--bg); border-color: var(--text); }
 
-    .grid-2-col {
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;
-    }
-    .grid-card {
-      padding: 16px 14px; flex-direction: column; align-items: flex-start; text-align: left; 
-      margin-bottom: 0; position: relative;
-    }
-    .grid-card .task-icon { margin-right: 0; margin-bottom: 12px; width: 44px; height: 44px; font-size: 18px; }
+    /* Grid Layout */
+    .grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .grid-card { flex-direction: column; align-items: flex-start; padding: 16px; margin-bottom: 0; position: relative; }
+    .grid-card .task-icon { margin-right: 0; margin-bottom: 14px; width: 42px; height: 42px; font-size: 18px; }
     .grid-card .task-details h3 { font-size: 14px; }
-    .grid-card .task-details p { font-size: 11px; margin-top: 5px; }
-    .grid-card .task-arrow { position: absolute; top: 14px; right: 14px; width: 26px; height: 26px; font-size: 10px; }
+    .grid-card .task-details p { font-size: 12px; margin-top: 4px; }
+    .grid-card .task-arrow { position: absolute; top: 16px; right: 16px; justify-content: center; width: auto; height: auto; font-size: 12px; }
 
+    /* Segmented Control (Tabs) */
     .earn-category-tabs {
-      display: flex; gap: 6px; margin-bottom: 20px; background: rgba(0,0,0,0.4);
-      padding: 6px; border-radius: 18px; border: 1px solid var(--hairline); position: relative;
+      display: flex; background: var(--card-bg); padding: 4px; border-radius: var(--radius-md); 
+      border: 1px solid var(--border); position: relative; margin-bottom: 20px;
     }
     .tab-pill {
-      position: absolute; top: 6px; bottom: 6px; left: 6px; width: calc((100% - 16px) / 3);
-      background: var(--text); border-radius: 12px;
+      position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 3);
+      background: var(--accent); border-radius: var(--radius-sm);
       transform: translateX(calc(var(--active-index, 0) * 100%));
-      transition: transform 0.4s cubic-bezier(0.65,0,0.35,1);
+      transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
     }
     .category-tab {
-      flex: 1; padding: 10px 2px; text-align: center; font-size: 12px; font-weight: 700;
-      color: var(--text-muted); background: transparent; border: none; border-radius: 12px;
+      flex: 1; padding: 10px 0; text-align: center; font-size: 13px; font-weight: 600;
+      color: var(--text-muted); background: transparent; border: none; border-radius: var(--radius-sm);
       cursor: pointer; transition: color 0.3s ease; position: relative; z-index: 1;
     }
-    .category-tab.active { color: var(--bg); }
+    .category-tab.active { color: var(--accent-text); }
 
     .earn-section-panel { display: none !important; }
-    .earn-section-panel.active { display: block !important; animation: fadeInTab 0.3s forwards; }
-    @keyframes fadeInTab { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .earn-section-panel.active { display: block !important; animation: fadeUp 0.3s forwards; }
 
     .offerwall-iframe-container {
-      width: 100%; height: 72vh; min-height: 500px; background: #050505;
-      border-radius: 20px; border: 1px solid var(--hairline); 
-      overflow: hidden; position: relative;
+      width: 100%; height: 65vh; min-height: 500px; background: var(--card-bg);
+      border-radius: var(--radius-lg); border: 1px solid var(--border); overflow: hidden; position: relative;
     }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; position: relative; z-index: 2; }
     
     .iframe-fallback {
       position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
-      background: var(--bg); z-index: 1; text-align: center; padding: 24px;
+      background: var(--card-bg); z-index: 1;
     }
-    .iframe-fallback .loader-spinner {
-      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--mint);
-      border-radius: 50%; animation: spin 1s linear infinite;
+    .loader-spinner {
+      width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Referral Section */
     .ref-hero {
-      background: radial-gradient(circle at center, rgba(16, 185, 129, 0.15) 0%, transparent 70%);
-      padding: 30px 10px; text-align: center; border-radius: 20px; border: 1px solid var(--hairline);
-      margin-bottom: 20px;
+      background: var(--card-bg); padding: 32px 20px; text-align: center; 
+      border-radius: var(--radius-lg); border: 1px solid var(--border); margin-bottom: 24px;
     }
-    .ref-hero i { font-size: 40px; color: var(--mint); margin-bottom: 16px; filter: drop-shadow(0 0 10px var(--mint-glow)); }
-    .ref-hero h2 { margin: 0 0 8px 0; font-size: 22px; font-weight: 800; color: var(--text); }
-    .ref-hero p { margin: 0; font-size: 13px; color: var(--text-muted); line-height: 1.5; }
+    .ref-hero i { font-size: 42px; color: var(--accent); margin-bottom: 16px; }
+    .ref-hero h2 { margin: 0 0 8px 0; font-size: 20px; font-weight: 700; color: var(--text); }
+    .ref-hero p { margin: 0; font-size: 14px; color: var(--text-muted); line-height: 1.5; }
     
     .ref-link-box {
-      background: rgba(0,0,0,0.4); border: 1px solid var(--hairline); border-radius: 16px;
+      background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-md);
       display: flex; align-items: center; padding: 6px; margin-bottom: 20px;
     }
     .ref-link-box input {
-      flex-grow: 1; background: transparent; border: none; color: var(--text-muted);
-      font-size: 12px; font-family: 'Inter', monospace; padding: 10px 14px; outline: none;
+      flex-grow: 1; background: transparent; border: none; color: var(--text);
+      font-size: 13px; font-family: monospace; padding: 10px 14px; outline: none;
     }
     .ref-link-box button {
-      background: var(--text); color: var(--bg); border: none; border-radius: 12px;
-      padding: 10px 16px; font-weight: 700; font-size: 12px; cursor: pointer; transition: transform 0.2s;
+      background: var(--card-bg); color: var(--text); border: 1px solid var(--border); border-radius: var(--radius-sm);
+      padding: 10px 16px; font-weight: 600; font-size: 13px; cursor: pointer; transition: background 0.2s;
     }
-    .ref-link-box button:active { transform: scale(0.95); }
+    .ref-link-box button:active { background: rgba(255,255,255,0.1); }
 
     .primary-btn {
-      width: 100%; background: linear-gradient(90deg, var(--mint-dim), var(--mint));
-      color: #000; border: none; border-radius: 16px; padding: 16px;
-      font-size: 15px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
-      box-shadow: 0 10px 20px rgba(16, 185, 129, 0.2); transition: transform 0.2s;
+      width: 100%; background: var(--accent); color: var(--accent-text); border: none; 
+      border-radius: var(--radius-md); padding: 16px; font-size: 15px; font-weight: 600; 
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px;
+      transition: transform 0.15s;
     }
     .primary-btn:active { transform: scale(0.98); }
 
-    .detail-header { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; }
+    /* Inner Pages Header */
+    .detail-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
     .back-btn { 
-      background: rgba(255,255,255,0.05); border: 1px solid var(--hairline); 
-      color: var(--text); width: 40px; height: 40px; border-radius: 12px; 
+      background: var(--card-bg); border: 1px solid var(--border); color: var(--text); 
+      width: 40px; height: 40px; border-radius: var(--radius-sm); 
       display: flex; align-items: center; justify-content: center; cursor: pointer;
     }
-    .detail-header h2 { margin: 0; font-size: 20px; font-weight: 800; }
+    .detail-header h2 { margin: 0; font-size: 20px; font-weight: 700; }
     
     .terms-content { 
-      background: var(--card); border: 1px solid var(--hairline); border-radius: 20px; 
-      padding: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.6;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); 
+      padding: 24px; font-size: 14px; color: var(--text-muted); line-height: 1.6;
     }
-    .terms-content h4 { color: var(--text); font-size: 15px; margin: 0 0 8px 0; }
-    .terms-content p { margin: 0 0 20px 0; }
+    .terms-content h4 { color: var(--text); font-size: 15px; font-weight: 600; margin: 0 0 8px 0; }
+    .terms-content p { margin: 0 0 24px 0; }
     .terms-content p:last-child { margin-bottom: 0; }
 
+    /* Lists */
     .history-item, .leaderboard-item {
-      background: var(--card); border: 1px solid var(--hairline); border-radius: 16px; 
-      padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius-md); 
+      padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;
     }
     .history-icon-box {
-      width: 38px; height: 38px; border-radius: 10px; background: rgba(16, 185, 129, 0.1); 
-      color: var(--mint); display: flex; align-items: center; justify-content: center; font-size: 16px;
+      width: 40px; height: 40px; border-radius: var(--radius-sm); background: var(--success-bg); 
+      color: var(--success); display: flex; align-items: center; justify-content: center; font-size: 16px;
     }
     .rank-box {
-      width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.05);
-      display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; color: var(--text-muted);
+      width: 32px; height: 32px; border-radius: 50%; background: var(--border);
+      display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text);
     }
-    .rank-1 { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+    .rank-1 { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
     .rank-2 { background: rgba(156, 163, 175, 0.2); color: #e5e7eb; border: 1px solid #9ca3af; }
     .rank-3 { background: rgba(217, 119, 6, 0.2); color: #d97706; border: 1px solid #d97706; }
 
-    .history-meta h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; color: var(--text); }
-    .history-meta p { margin: 0; font-size: 11px; color: var(--text-muted); }
-    .history-amount { font-size: 14px; font-weight: 800; color: var(--mint); }
+    .history-meta h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 600; color: var(--text); }
+    .history-meta p { margin: 0; font-size: 12px; color: var(--text-muted); }
+    .history-amount { font-size: 15px; font-weight: 700; color: var(--success); }
 
+    /* Modal */
     .full-screen-modal {
-      position: fixed; inset: 0; background: rgba(5, 5, 5, 0.95);
-      backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-      z-index: 100000; display: flex; justify-content: center; align-items: center;
-      opacity: 0; visibility: hidden; transition: all 0.4s ease;
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+      z-index: 100000; display: flex; justify-content: center; align-items: flex-end; /* Bottom sheet style */
+      opacity: 0; visibility: hidden; transition: all 0.3s ease; padding: 16px;
     }
     .full-screen-modal.active { opacity: 1; visibility: visible; }
     .full-screen-modal .modal-content {
-      width: 90%; max-width: 400px; background: var(--card); border: 1px solid var(--hairline);
-      border-radius: 24px; padding: 24px; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-      transform: scale(0.95) translateY(20px); transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
+      width: 100%; max-width: 480px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 24px 24px 16px 16px; padding: 24px; box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
+      transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
     }
-    .full-screen-modal.active .modal-content { transform: scale(1) translateY(0); }
+    .full-screen-modal.active .modal-content { transform: translateY(0); }
     
-    .f-modal-header { text-align: center; margin-bottom: 20px; }
-    .f-modal-header i { font-size: 36px; color: var(--mint); margin-bottom: 12px; }
-    .f-modal-header h2 { margin: 0; font-size: 22px; font-weight: 800; color: var(--text); }
-    .f-modal-body { font-size: 13px; color: var(--text-muted); line-height: 1.6; max-height: 50vh; overflow-y: auto; margin-bottom: 20px; padding-right: 5px; }
-    .f-modal-body h4 { color: #fff; font-size: 14px; margin: 15px 0 5px 0; }
+    .f-modal-header { text-align: center; margin-bottom: 24px; }
+    .f-modal-header i { font-size: 32px; color: var(--accent); margin-bottom: 16px; }
+    .f-modal-header h2 { margin: 0; font-size: 22px; font-weight: 700; color: var(--text); }
+    
+    .f-modal-body { font-size: 14px; color: var(--text-muted); line-height: 1.6; max-height: 50vh; overflow-y: auto; margin-bottom: 24px; }
+    .f-modal-body h4 { color: var(--text); font-size: 15px; font-weight: 600; margin: 16px 0 6px 0; }
     .f-modal-body h4:first-child { margin-top: 0; }
     
     .f-modal-footer button {
-      width: 100%; background: var(--mint); color: #000; border: none; padding: 16px;
-      border-radius: 16px; font-size: 15px; font-weight: 800; cursor: pointer; transition: transform 0.2s;
+      width: 100%; background: var(--accent); color: var(--accent-text); border: none; padding: 16px;
+      border-radius: var(--radius-md); font-size: 15px; font-weight: 600; cursor: pointer; transition: transform 0.15s;
     }
-    .f-modal-footer button:active { transform: scale(0.97); }
+    .f-modal-footer button:active { transform: scale(0.98); }
 
+    /* Bottom Navigation */
     .footer-nav {
-      position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 420px; margin: 0 auto;
-      display: flex; background: rgba(9, 9, 11, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-      padding: 12px 12px 24px 12px; border-top: 1px solid var(--hairline); z-index: 100;
+      position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto;
+      display: flex; background: var(--bg); border-top: 1px solid var(--border); z-index: 100;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
     }
     .nav-button {
       flex: 1; display: flex; flex-direction: column; align-items: center; color: var(--text-muted);
-      background: transparent; border: none; font-size: 11px; font-weight: 700; cursor: pointer; padding: 10px 4px;
-      border-radius: 16px; transition: all 0.3s ease;
+      background: transparent; border: none; font-size: 11px; font-weight: 600; cursor: pointer; padding: 12px 0;
+      transition: color 0.2s ease;
     }
-    .nav-button .icon { font-size: 20px; margin-bottom: 6px; transition: transform 0.3s cubic-bezier(0.16,1,0.3,1); }
-    .nav-button.active { color: var(--text); }
-    .nav-button.active .icon { transform: translateY(-4px); color: var(--mint); }
+    .nav-button .icon { font-size: 20px; margin-bottom: 6px; transition: transform 0.2s cubic-bezier(0.16,1,0.3,1); }
+    .nav-button.active { color: var(--accent); }
+    .nav-button.active .icon { transform: translateY(-3px); }
   </style>
 </head>
 <body>
 
   <!-- Premium Splash Screen -->
   <div id="splash-screen">
-    <div class="splash-grid"></div>
-    <div class="logo-wrapper">
-      <div class="pulse-ring-outer"></div>
-      <div class="splash-logo"><img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="HOWL"></div>
-    </div>
+    <div class="splash-logo"><img src="https://i.ibb.co/SDdZDqpq/Pokecut-1788095357320.png" alt="HOWL"></div>
     <div class="splash-text">
       <h1>HOWL</h1>
       <p>Elite Earning</p>
@@ -349,7 +323,7 @@
   <div id="firstTimeTosModal" class="full-screen-modal">
     <div class="modal-content">
       <div class="f-modal-header">
-        <i class="fa-solid fa-shield-halved"></i>
+        <i class="fa-solid fa-shield-check"></i>
         <h2>Welcome to HOWL</h2>
       </div>
       <div class="f-modal-body">
@@ -369,9 +343,8 @@
   </div>
 
   <div class="container">
-    <div class="ambient-light"></div>
-
     <main id="main-content">
+      
       <!-- HOME VIEW -->
       <div id="home-view" class="view active">
         
@@ -400,19 +373,17 @@
         <div class="task-card" onclick="showView('tasks-view')">
             <div class="task-icon icon-primary"><i class="fa-solid fa-bolt"></i></div>
             <div class="task-details"><h3>Launch Earning Hub</h3><p>Access offerwalls and ad tasks to generate rewards.</p></div>
-            <div class="task-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+            <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
         
-        <!-- Transaction Ledger Button -->
         <div class="task-card" onclick="showView('history-view')">
-            <div class="task-icon" style="color: var(--amber); background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.2);"><i class="fa-solid fa-clock-rotate-left"></i></div>
+            <div class="task-icon icon-warning"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <div class="task-details"><h3>Transaction Ledger</h3><p>View your recent task completions and payouts.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
 
-        <!-- Offerwall Leaderboard Button -->
         <div class="task-card" onclick="showView('leaderboard-view')">
-            <div class="task-icon" style="color: #3b82f6; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2);"><i class="fa-solid fa-trophy"></i></div>
+            <div class="task-icon icon-success"><i class="fa-solid fa-trophy"></i></div>
             <div class="task-details"><h3>Top Earners Leaderboard</h3><p>Check the top 10 offerwall earners this week.</p></div>
             <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
         </div>
@@ -421,26 +392,26 @@
         
         <!-- SIDE BY SIDE GRID -->
         <div class="grid-2-col">
-            <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank')">
-                <div class="task-icon icon-community"><i class="fa-solid fa-users"></i></div>
+            <div class="task-card grid-card" onclick="window.open('https://t.me/reffer_x_reffer', '_blank'); triggerHaptic('light');">
+                <div class="task-icon icon-primary"><i class="fa-solid fa-users"></i></div>
                 <div class="task-details"><h3>Global Chat</h3><p>Community hub</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
-            <div class="task-card grid-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank')">
-                <div class="task-icon icon-community"><i class="fa-solid fa-bullhorn"></i></div>
+            <div class="task-card grid-card" onclick="window.open('https://t.me/howl_for_money_24h', '_blank'); triggerHaptic('light');">
+                <div class="task-icon icon-primary"><i class="fa-solid fa-bullhorn"></i></div>
                 <div class="task-details"><h3>Official Info</h3><p>Updates & proof</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
-            <div class="task-card grid-card" onclick="window.open('https://t.me/Amanuel_los', '_blank')">
-                <div class="task-icon icon-support"><i class="fa-solid fa-headset"></i></div>
+            <div class="task-card grid-card" onclick="window.open('https://t.me/Amanuel_los', '_blank'); triggerHaptic('light');">
+                <div class="task-icon icon-community"><i class="fa-solid fa-headset"></i></div>
                 <div class="task-details"><h3>Support</h3><p>Account help</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-arrow-up-right-from-square"></i></div>
             </div>
 
             <div class="task-card grid-card" onclick="showView('terms-view')">
-                <div class="task-icon icon-legal"><i class="fa-solid fa-scale-balanced"></i></div>
+                <div class="task-icon icon-warning"><i class="fa-solid fa-scale-balanced"></i></div>
                 <div class="task-details"><h3>Policies</h3><p>Platform rules</p></div>
                 <div class="task-arrow"><i class="fa-solid fa-chevron-right"></i></div>
             </div>
@@ -480,8 +451,8 @@
 
         <!-- ADS PANEL -->
         <div id="panel-ads" class="earn-section-panel" style="display: none;">
-          <div class="bot-wallet-card" style="background: rgba(245, 158, 11, 0.05); border-color: rgba(245, 158, 11, 0.2);">
-            <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--amber);"><i class="fa-solid fa-triangle-exclamation"></i></div>
+          <div class="bot-wallet-card" style="background: var(--warning-bg); border-color: rgba(245, 158, 11, 0.2);">
+            <div class="wallet-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--warning);"><i class="fa-solid fa-triangle-exclamation"></i></div>
             <div class="wallet-text">
               <h4>Strict Anti-Fraud</h4>
               <p>You must click through the opened ad to verify. VPNs/Bots will cause a permanent ban.</p>
@@ -493,9 +464,9 @@
               <div class="task-details">
                 <div style="display: flex; align-items: center; gap: 8px;">
                   <h3>Watch & Click Ad</h3>
-                  <span style="background: rgba(16, 185, 129, 0.2); border: 1px solid rgba(16, 185, 129, 0.4); color: var(--mint); font-size: 10px; font-weight: 800; padding: 2px 6px; border-radius: 6px; letter-spacing: 0.5px;">+$0.0005</span>
+                  <span style="background: var(--success-bg); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--success); font-size: 11px; font-weight: 700; padding: 2px 6px; border-radius: 6px;">+$0.0005</span>
                 </div>
-                <p>Cycle progress: <span id="adStepIndicator">1/3</span>. Complete to trigger payout.</p>
+                <p>Cycle progress: <span id="adStepIndicator" style="font-weight: 600; color: var(--text);">1/3</span></p>
               </div>
               <div class="task-action-meta">
                 <span id="adsbitvexCD" class="status-pill" style="display:none;"></span>
@@ -523,13 +494,13 @@
           <i class="fa-solid fa-paper-plane"></i> Send to Telegram Contacts
         </button>
 
-        <h2 class="section-title" style="margin-top: 24px;">Network Statistics</h2>
-        <div class="bot-wallet-card" style="background: rgba(59, 130, 246, 0.05); border-color: rgba(59, 130, 246, 0.2); align-items: flex-start;">
-            <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.1); color: var(--blue);"><i class="fa-solid fa-robot"></i></div>
+        <h2 class="section-title" style="margin-top: 32px;">Network Statistics</h2>
+        <div class="bot-wallet-card" style="background: rgba(59, 130, 246, 0.08); border-color: rgba(59, 130, 246, 0.2); align-items: flex-start;">
+            <div class="wallet-icon" style="background: rgba(59, 130, 246, 0.15); color: var(--accent);"><i class="fa-solid fa-robot"></i></div>
             <div class="wallet-text">
               <h4>Live Stats Tracked in Bot</h4>
-              <p>Your total referred users and commission payouts are securely managed and calculated directly inside the Telegram Bot engine to prevent manipulation. Close this Mini App and check the bot menu for your detailed team statistics.</p>
-              <button onclick="Telegram.WebApp.close()" style="margin-top: 12px; background: rgba(255,255,255,0.05); color: var(--text); border: 1px solid var(--hairline); padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;">Return to Bot</button>
+              <p>Your total referred users and commission payouts are securely managed and calculated directly inside the Telegram Bot engine to prevent manipulation.</p>
+              <button onclick="triggerHaptic('medium'); Telegram.WebApp.close()" style="margin-top: 14px; background: var(--card-bg); color: var(--text); border: 1px solid var(--border); padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: background 0.2s;">Return to Bot</button>
             </div>
         </div>
       </div>
@@ -540,7 +511,6 @@
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>Transaction Ledger</h2>
         </div>
-        
         <div id="history-list"></div>
       </div>
 
@@ -550,10 +520,9 @@
             <button class="back-btn" onclick="showView('home-view')"><i class="fa-solid fa-arrow-left"></i></button>
             <h2>Top 10 Offerwall Earners</h2>
         </div>
-        
         <div id="leaderboard-list">
             <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
-                <div class="loader-spinner" style="margin: 0 auto 15px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>
+                <div class="loader-spinner" style="margin: 0 auto 15px auto;"></div>
                 <p>Loading live leaderboard...</p>
             </div>
         </div>
@@ -599,6 +568,13 @@
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
 
+    // Global haptic helper function
+    function triggerHaptic(style = 'light') {
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
+            Telegram.WebApp.HapticFeedback.impactOccurred(style);
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         setInterval(updateCooldownTimers, 1000);
@@ -620,7 +596,7 @@
                     checkFirstTimeTos();
                 }, 400);
             } else {
-                setTimeout(tickSplash, 120);
+                setTimeout(tickSplash, 100);
             }
         }
         tickSplash();
@@ -631,7 +607,9 @@
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
-                Telegram.WebApp.setHeaderColor('#09090b');
+                
+                // Let Telegram handle the header color based on theme
+                Telegram.WebApp.setHeaderColor('bg_color');
                 
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -669,9 +647,9 @@
     }
 
     function agreeToFirstTimeTos() {
+        triggerHaptic('medium');
         localStorage.setItem(`howl_tos_agreed_${currentUserId}`, 'true');
         document.getElementById('firstTimeTosModal').classList.remove('active');
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     }
 
     function setupOfferwallIframes() {
@@ -694,25 +672,27 @@
     }
 
     function copyRefLink() {
+        triggerHaptic('light');
         const refInput = document.getElementById('ref-link-input');
         const copyBtn = document.getElementById('copy-btn');
         if (refInput && copyBtn) {
             refInput.select();
             document.execCommand("copy");
-            if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('light');
+            
             const originalText = copyBtn.textContent;
             copyBtn.textContent = "Copied!";
-            copyBtn.style.background = "var(--mint)";
+            copyBtn.style.background = "var(--success)";
             copyBtn.style.color = "#000";
             setTimeout(() => {
                 copyBtn.textContent = originalText;
-                copyBtn.style.background = "var(--text)";
-                copyBtn.style.color = "var(--bg)";
+                copyBtn.style.background = "";
+                copyBtn.style.color = "";
             }, 2000);
         }
     }
 
     function showView(viewId) {
+        triggerHaptic('light');
         document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
         const targetView = document.getElementById(viewId);
         if (targetView) targetView.classList.add('active');
@@ -732,6 +712,7 @@
     const TAB_ORDER = ['offerwall', 'timewall', 'ads'];
 
     function switchEarnTab(tabName) {
+        triggerHaptic('light');
         document.querySelectorAll('.earn-section-panel').forEach(panel => {
             panel.classList.remove('active');
             panel.style.display = 'none'; 
@@ -750,9 +731,6 @@
         const tabsContainer = document.getElementById('earn-tabs');
         if (tabsContainer) {
             tabsContainer.style.setProperty('--active-index', TAB_ORDER.indexOf(tabName));
-        }
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.selectionChanged();
         }
     }
 
@@ -773,12 +751,14 @@
         if (adsbitvexCard && adsbitvexCD && adsbitvexArrow) {
             if (adsbitvexInFlight || adsbitvexDiff < 5) {
                 const left = Math.max(0, 5 - adsbitvexDiff);
-                adsbitvexCard.style.opacity = '0.5';
+                adsbitvexCard.style.opacity = '0.6';
+                adsbitvexCard.style.pointerEvents = 'none';
                 adsbitvexCD.style.display = 'inline-flex';
                 adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : `${left}s CD`;
                 adsbitvexArrow.style.display = 'none';
             } else {
                 adsbitvexCard.style.opacity = '1';
+                adsbitvexCard.style.pointerEvents = 'auto';
                 adsbitvexCD.style.display = 'none';
                 adsbitvexArrow.style.display = 'flex';
             }
@@ -809,7 +789,7 @@
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
 
-        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>`;
+        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch(`/api/history?userId=${currentUserId}`);
@@ -850,7 +830,7 @@
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
 
-        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto; width:30px; height:30px; border:3px solid rgba(255,255,255,0.1); border-top-color:var(--mint); border-radius:50%; animation: spin 1s linear infinite;"></div>`;
+        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch('/api/leaderboard');
@@ -880,7 +860,7 @@
                 <div class="leaderboard-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="rank-box ${rankClass}">#${index + 1}</div>
-                        <div style="width: 40px; height: 40px; border-radius: 12px; overflow: hidden; background: rgba(16, 185, 129, 0.1); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--mint); border: 1px solid rgba(16, 185, 129, 0.3); flex-shrink: 0;">
+                        <div style="width: 42px; height: 42px; border-radius: 12px; overflow: hidden; background: var(--accent); display: flex; align-items: center; justify-content: center; font-weight: bold; color: var(--accent-text); flex-shrink: 0;">
                             ${avatarHtml}
                         </div>
                         <div class="history-meta">
@@ -897,6 +877,7 @@
     }
 
     function startAdsBitvexTask() {
+        triggerHaptic('medium');
         if (adsbitvexInFlight) return;
         const now = Date.now();
         if (now - adsbitvexLastRun < 5000) {
@@ -931,7 +912,7 @@
                 sendRewardWebhook();
             } else {
                 const currentProgress = adsCountToday % 3;
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 alert(`✅ Verified! Progress: ${currentProgress}/3`);
             }
         }).catch((e) => {
@@ -965,6 +946,7 @@
     }
 
     function shareApp() {
+        triggerHaptic('medium');
         const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
         const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
