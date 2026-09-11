@@ -12,7 +12,7 @@
 
   <style>
     :root {
-      var(--bg-dark): #080c14;
+      --bg-dark: #080c14;
       --bg-gradient: linear-gradient(180deg, #0f1725 0%, #080c14 100%);
       --card-bg: #141c2c;
       --card-bg-light: #1c2638;
@@ -57,7 +57,7 @@
     .view.active { display: block; animation: fadeIn 0.3s ease forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* New Splash Animation */
+    /* Splash Animation */
     .splash-ring {
       position: absolute; width: 140px; height: 140px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
@@ -72,6 +72,8 @@
     }
     @keyframes rippleOut { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
     @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
@@ -95,14 +97,12 @@
     .stat-card h4 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-main); font-weight: 600; }
     .stat-card .val { font-size: 24px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-muted); }
     .stat-card .sub { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
-    .action-row { display: flex; gap: 12px; margin-top: 12px; }
-    .btn-half { flex: 1; background: var(--accent-blue); color: #fff; text-align: center; padding: 12px; border-radius: var(--radius-lg); font-weight: 700; font-size: 14px; border: none; }
-    .btn-half.green { background: var(--accent-green); color: #000; }
 
     /* Promo Cards & Items */
     .promo-card { background: var(--card-bg); border-radius: var(--radius-xl); padding: 20px; border: 1px solid var(--border-soft); margin-bottom: 16px; }
     .promo-actions { display: flex; gap: 12px; margin-top: 16px; }
-    .btn-secondary { flex: 1; background: var(--card-bg-light); color: var(--text-main); border: 1px solid var(--border-highlight); padding: 12px; border-radius: var(--radius-lg); font-weight: 600; font-size: 14px; display: flex; justify-content: center; gap: 8px; }
+    .btn-secondary { flex: 1; background: var(--card-bg-light); color: var(--text-main); border: 1px solid var(--border-highlight); padding: 12px; border-radius: var(--radius-lg); font-weight: 600; font-size: 14px; display: flex; justify-content: center; gap: 8px; border: none; cursor:pointer;}
+    .btn-secondary:active { transform: scale(0.98); }
 
     .ad-task-item { background: var(--card-bg); border-radius: var(--radius-xl); padding: 16px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; cursor: pointer; }
     .ad-task-left { display: flex; align-items: center; gap: 14px; }
@@ -122,7 +122,7 @@
 
     /* Bottom Nav */
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(14, 20, 31, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border-soft); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 12px 0 0 0; background: transparent; border: none; width: 25%; transition: color 0.2s; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; transition: color 0.2s; cursor: pointer; }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
     .nav-item.active { color: var(--text-main); }
     .nav-item.center-btn { position: relative; }
@@ -130,7 +130,7 @@
     .center-inner { width: 100%; height: 100%; background: var(--accent-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 4px 20px rgba(28, 123, 242, 0.4); }
     .nav-item.active .center-inner { box-shadow: 0 0 0 2px var(--accent-green); }
 
-    /* Lists */
+    /* Data Lists (Leaderboard & History) */
     .data-item { background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
     .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; }
     .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
@@ -140,6 +140,14 @@
     .rank-1 { color: var(--accent-orange); background: rgba(245, 158, 11, 0.1); }
     .rank-2 { color: #e5e7eb; background: rgba(156, 163, 175, 0.1); }
     .rank-3 { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+
+    /* Modals */
+    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
+    .full-screen-modal.active { opacity: 1; visibility: visible; }
+    .modal-content { background: var(--card-bg); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; }
+    .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
+    .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
+    .modal-btn { background: var(--accent-blue); color: #fff; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; border: none; font-size: 15px; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -157,6 +165,15 @@
     <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px;">ELITE EARNING</p>
   </div>
 
+  <!-- TOS Modal -->
+  <div id="tosModal" class="full-screen-modal">
+    <div class="modal-content">
+      <h2 style="color:var(--accent-orange)"><i class="fa-solid fa-triangle-exclamation"></i> Rules</h2>
+      <p>1. No VPNs, Proxies, or Emulators.<br><br>2. Multiple accounts will trigger an automatic, unappealable ban.<br><br>3. Rewards sync directly to your Bot Wallet.</p>
+      <button class="modal-btn" onclick="document.getElementById('tosModal').classList.remove('active'); triggerHaptic('light');">I Understand</button>
+    </div>
+  </div>
+
   <div class="container">
     <main id="main-content">
       
@@ -171,10 +188,10 @@
 
         <div class="balance-section">
           <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
-          <div class="balance-amount"><i class="fa-solid fa-lock"></i> Synced to Bot</div>
+          <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
           <div class="balance-actions">
-            <button class="btn-claim" onclick="showView('tasks-view'); triggerHaptic('medium');"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
-            <button class="btn-earn" onclick="showView('leaderboard-view');"><i class="fa-solid fa-trophy"></i> Top Earners</button>
+            <button class="btn-claim" onclick="showView('tasks-view')"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
+            <button class="btn-earn" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Top Earners</button>
           </div>
         </div>
 
@@ -229,11 +246,14 @@
               <div class="ad-task-icon" style="background: rgba(28, 123, 242, 0.1); color: var(--accent-blue);"><i class="fa-solid fa-play"></i></div>
               <div class="ad-task-info">
                 <h4>AdsBitvex</h4>
-                <p>Official rewarded video ads</p>
+                <p>Cycle progress: <span id="adStepIndicator" style="color:#fff; font-weight:600;">1/3</span></p>
                 <div style="font-size: 13px; font-weight: 800; color: var(--accent-green);">+0.0005 USDT / view</div>
               </div>
             </div>
-            <button class="ad-btn" id="adsbitvexBtn" onclick="startAdsBitvexTask()"><i class="fa-solid fa-play"></i> Watch</button>
+            <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                <span id="adsbitvexCD" style="font-size:10px; color:var(--accent-orange); display:none; margin-bottom:4px; font-weight:700;"></span>
+                <button class="ad-btn" id="adsbitvexArrow" onclick="startAdsBitvexTask()"><i class="fa-solid fa-play"></i> Watch</button>
+            </div>
           </div>
         </div>
       </div>
@@ -260,9 +280,9 @@
           <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Your Referral Link</div>
           <div style="display:flex; gap:10px;">
             <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:var(--card-bg-light); border:1px solid var(--border-soft); color:var(--text-main); padding:12px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
-            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 16px;"><i class="fa-regular fa-copy"></i></button>
+            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 16px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
           </div>
-          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
+          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
       </div>
 
@@ -282,7 +302,7 @@
           <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
         </div>
 
-        <div class="ad-task-item" onclick="alert('Platform rules sync active via bot.')">
+        <div class="ad-task-item" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
           <div class="ad-task-left">
             <div class="ad-task-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fa-solid fa-shield-halved"></i></div>
             <div class="ad-task-info">
@@ -322,9 +342,16 @@
       <button class="nav-item" onclick="showView('team-view')">
         <i class="fa-solid fa-users"></i> Friends
       </button>
+      
+      <!-- Center Tasks Button -->
       <button class="nav-item center-btn" onclick="showView('tasks-view')">
         <div class="center-icon-wrap"><div class="center-inner"><i class="fa-solid fa-bolt"></i></div></div>
         <span style="margin-top: 22px;">Tasks</span>
+      </button>
+      
+      <!-- Replaced Contest with Leaderboard -->
+      <button class="nav-item" onclick="showView('leaderboard-view')">
+        <i class="fa-solid fa-trophy"></i> Leaderboard
       </button>
       <button class="nav-item" onclick="showView('profile-view')">
         <i class="fa-regular fa-user"></i> Profile
@@ -355,7 +382,7 @@
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 500);
-        }, 2200);
+        }, 1800);
     });
 
     function initApp() {
@@ -364,8 +391,18 @@
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#080c14');
+                
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
+                }
+                
+                // RESTORED: Your Profile Sync Logic
+                if (Telegram.WebApp.initData) {
+                    fetch('/api/sync-profile', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ initData: Telegram.WebApp.initData })
+                    }).catch(e => console.log("Profile sync ignored"));
                 }
             }
         } catch (e) {}
@@ -374,8 +411,11 @@
         loadTelegramUser();
         setupOfferwallIframes();
         generateRefLink();
+        
+        document.getElementById('panel-offerwall').style.display = 'block';
         showView('home-view');
         checkStoredCooldowns();
+        updateDisplayCounters();
     }
 
     function setupOfferwallIframes() {
@@ -408,11 +448,14 @@
         
         document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
         
+        // Navigation mappings
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(viewId === 'team-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[2].classList.add('active');
-        if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[3].classList.add('active');
+        if(viewId === 'leaderboard-view') document.querySelectorAll('.nav-item')[3].classList.add('active');
+        if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
         
+        // RESTORED: Trigger fetch logic on view changes
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
         
@@ -439,18 +482,29 @@
     function updateCooldownTimers() {
         const now = Date.now();
         const adsbitvexDiff = Math.floor((now - adsbitvexLastRun) / 1000);
-        const adsBtn = document.getElementById('adsbitvexBtn');
+        const adsbitvexCard = document.getElementById('adsbitvexCard');
+        const adsbitvexCD = document.getElementById('adsbitvexCD');
+        const adsbitvexArrow = document.getElementById('adsbitvexArrow');
 
-        if (adsBtn) {
+        if (adsbitvexCard && adsbitvexCD && adsbitvexArrow) {
             if (adsbitvexInFlight || adsbitvexDiff < 5) {
                 const left = Math.max(0, 5 - adsbitvexDiff);
-                adsBtn.classList.add('disabled');
-                adsBtn.innerHTML = `<i class="fa-solid fa-clock"></i> ${left}s`;
+                adsbitvexCard.style.opacity = '0.7';
+                adsbitvexCD.style.display = 'block';
+                adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : `${left}s CD`;
+                adsbitvexArrow.style.display = 'none';
             } else {
-                adsBtn.classList.remove('disabled');
-                adsBtn.innerHTML = `<i class="fa-solid fa-play"></i> Watch`;
+                adsbitvexCard.style.opacity = '1';
+                adsbitvexCD.style.display = 'none';
+                adsbitvexArrow.style.display = 'flex';
             }
         }
+    }
+
+    function updateDisplayCounters() {
+        const currentProgress = adsCountToday % 3;
+        const stepEl = document.getElementById('adStepIndicator');
+        if (stepEl) stepEl.textContent = `${currentProgress + 1}/3`;
     }
 
     function loadTelegramUser() {
@@ -465,26 +519,35 @@
         }
     }
 
-    // Restore History Fetch Logic
+    // RESTORED: Exact history fetch API
     async function renderHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
-        historyList.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:30px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading ledger...</p>`;
+
+        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch(`/api/history?userId=${currentUserId}`);
             const data = await response.json();
+
             if (!response.ok) throw new Error(data.error);
+
             if (!data || data.length === 0) {
-                historyList.innerHTML = `<div style="text-align:center; padding: 40px 20px; color: var(--text-muted);"><i class="fa-solid fa-receipt" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i><p>No transactions found for your User ID.</p></div>`;
+                historyList.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                    <p>No transactions found for your User ID.</p>
+                </div>`;
                 return;
             }
+
+            // Outputing matching PaidZ CSS formatting
             historyList.innerHTML = data.map(item => {
                 const dateObj = new Date(item.created_at);
                 const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 return `
                 <div class="data-item">
-                    <div style="display: flex; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="data-icon" style="background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-check"></i></div>
                         <div class="data-info">
                             <h4>${item.task_type || 'Offerwall Reward'}</h4>
@@ -499,29 +562,45 @@
         }
     }
 
-    // Restore Leaderboard Fetch Logic
+    // RESTORED: Exact leaderboard fetch API
     async function fetchLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
-        leaderboardList.innerHTML = `<p style="text-align:center; color:var(--text-muted); margin-top:30px;"><i class="fa-solid fa-spinner fa-spin"></i> Loading top earners...</p>`;
+
+        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch('/api/leaderboard');
             const sortedEarners = await response.json();
+
             if (!response.ok) throw new Error(sortedEarners.error);
+
             if (!sortedEarners || sortedEarners.length === 0) {
-                leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px 20px; color: var(--text-muted);"><i class="fa-solid fa-trophy" style="font-size: 32px; margin-bottom: 12px; opacity: 0.5;"></i><p>No offerwall earnings recorded yet. Be the first!</p></div>`;
+                leaderboardList.innerHTML = `
+                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
+                    <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
+                    <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
+                </div>`;
                 return;
             }
+
+            // Outputing matching PaidZ CSS formatting
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
-                let avatarHtml = earner.photo_url ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">` : `<span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>`;
+                
+                let avatarHtml = earner.photo_url 
+                    ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">`
+                    : `<span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>`;
+                
                 let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
+
                 return `
                 <div class="data-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="data-icon ${rankClass}" style="width:30px; height:30px; border-radius:50%; font-size:12px; font-weight:700; margin-right:0;">#${index + 1}</div>
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${avatarHtml}</div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow:hidden;">
+                            ${avatarHtml}
+                        </div>
                         <div class="data-info">
                             <h4>${earner.name}</h4>
                             <p>ID: ${maskedId}</p>
@@ -535,32 +614,46 @@
         }
     }
 
+    // RESTORED: Anti-cheat adsbitvex logic
     function startAdsBitvexTask() {
-        triggerHaptic('medium');
         if (adsbitvexInFlight) return;
         const now = Date.now();
-        if (now - adsbitvexLastRun < 5000) return;
-        if (typeof window.showadsbitvex !== 'function') return alert('SDK loading...');
+        if (now - adsbitvexLastRun < 5000) {
+            const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
+            return alert(`⏳ Cooldown active! Wait ${left}s.`);
+        }
+        if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
+
         adsbitvexInFlight = true;
         let userSwitchedContext = false;
         const focusLossHandler = () => { userSwitchedContext = true; };
+        
         window.addEventListener('blur', focusLossHandler);
+        window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') userSwitchedContext = true; });
 
         window.showadsbitvex().then(() => {
             window.removeEventListener('blur', focusLossHandler);
             adsbitvexLastRun = Date.now();
             localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
-            if (!userSwitchedContext) return alert('⚠️ Ad ignored! Click ad to verify.');
+
+            if (!userSwitchedContext) {
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
+                return alert('⚠️ Ad ignored! You must click into the ad page to verify.');
+            }
+
             adsCountToday += 1;
             localStorage.setItem(`howl_ads_count_${currentUserId}`, adsCountToday.toString());
+            updateDisplayCounters();
+
             if (adsCountToday % 3 === 0) {
                 sendRewardWebhook();
             } else {
-                triggerHaptic('success');
-                alert(`✅ Verified! Progress: ${adsCountToday % 3}/3`);
+                const currentProgress = adsCountToday % 3;
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
+                alert(`✅ Verified! Progress: ${currentProgress}/3`);
             }
-        }).catch(() => {
+        }).catch((e) => {
             window.removeEventListener('blur', focusLossHandler);
             adsbitvexLastRun = Date.now();
             localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
@@ -568,20 +661,39 @@
         });
     }
 
+    // RESTORED: Security Header X-Telegram-Init-Data
     async function sendRewardWebhook() {
         const bonusEndpoint = webhookUrl || '/api/claim-bonus';
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
+
         try {
-            const response = await fetch(bonusEndpoint, { method: "POST", headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload }, body: JSON.stringify({ completed: true, initData: initDataPayload }) });
-            if (response.ok) { triggerHaptic('success'); alert(`🎉 +$0.0005 Reward sent to your balance!`); }
-        } catch (err) {}
+            const response = await fetch(bonusEndpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
+                body: JSON.stringify({ completed: true, initData: initDataPayload })
+            });
+            
+            if (response.ok) {
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                alert(`🎉 $0.0005 Reward injected to your bot balance!`);
+            } else {
+                alert(`⚠️ Claim failed: Unauthorized signature.`);
+            }
+        } catch (err) {
+            alert(`❌ Network Error. Claim failed.`);
+        }
     }
 
     function shareApp() {
         triggerHaptic('medium');
-        const refLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(refLink)}&text=Earn rewards instantly!`;
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) { Telegram.WebApp.openTelegramLink(shareUrl); } else { window.open(shareUrl, '_blank'); }
+        const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+            Telegram.WebApp.openTelegramLink(shareUrl);
+        } else {
+            window.open(shareUrl, '_blank');
+        }
     }
 </script>
 </body>
