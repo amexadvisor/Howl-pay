@@ -9,6 +9,7 @@
   
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://openfpcdn.io/fingerprintjs/v4" async></script>
 
   <style>
     :root {
@@ -87,7 +88,8 @@
     .balance-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
     .balance-amount { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin: 0 0 20px 0; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-main); }
     .balance-actions { display: flex; gap: 12px; justify-content: center; }
-    .btn-claim { background: var(--accent-green); color: #000; font-weight: 800; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(178, 255, 37, 0.15); }
+    .btn-claim { background: var(--accent-green); color: #000; font-weight: 800; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 20px rgba(178, 255, 37, 0.15); transition: transform 0.2s;}
+    .btn-claim:active { transform: scale(0.97); }
     .btn-earn { background: var(--card-bg-light); color: var(--accent-blue); font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: 1px solid var(--accent-blue); cursor: pointer; }
 
     /* Stats Grid */
@@ -106,14 +108,14 @@
 
     .ad-task-item { background: var(--card-bg); border-radius: var(--radius-xl); padding: 16px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; cursor: pointer; }
     .ad-task-left { display: flex; align-items: center; gap: 14px; }
-    .ad-task-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+    .ad-task-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
     .ad-task-info h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
     .ad-task-info p { margin: 0 0 4px 0; font-size: 12px; color: var(--text-muted); }
     .ad-btn { background: var(--accent-blue); color: #fff; border: none; padding: 10px 20px; border-radius: var(--radius-pill); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
     
     /* Tabs & Iframes */
     .earn-category-tabs { display: flex; background: var(--card-bg); padding: 4px; border-radius: var(--radius-lg); border: 1px solid var(--border-soft); position: relative; margin-bottom: 20px; }
-    .category-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 12px; transition: all 0.3s; }
+    .category-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 12px; transition: all 0.3s; cursor: pointer; }
     .category-tab.active { background: var(--accent-blue); color: #fff; }
     .earn-section-panel { display: none !important; }
     .earn-section-panel.active { display: block !important; animation: fadeIn 0.3s forwards; }
@@ -130,7 +132,7 @@
     .center-inner { width: 100%; height: 100%; background: var(--accent-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 4px 20px rgba(28, 123, 242, 0.4); }
     .nav-item.active .center-inner { box-shadow: 0 0 0 2px var(--accent-green); }
 
-    /* Data Lists (Leaderboard & History) */
+    /* Data Lists */
     .data-item { background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
     .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; }
     .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
@@ -165,20 +167,52 @@
     <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px;">ELITE EARNING</p>
   </div>
 
-  <!-- TOS Modal -->
-  <div id="tosModal" class="full-screen-modal">
-    <div class="modal-content">
-      <h2 style="color:var(--accent-orange)"><i class="fa-solid fa-triangle-exclamation"></i> Rules</h2>
-      <p>1. No VPNs, Proxies, or Emulators.<br><br>2. Multiple accounts will trigger an automatic, unappealable ban.<br><br>3. Rewards sync directly to your Bot Wallet.</p>
-      <button class="modal-btn" onclick="document.getElementById('tosModal').classList.remove('active'); triggerHaptic('light');">I Understand</button>
-    </div>
-  </div>
-
   <div class="container">
     <main id="main-content">
       
+      <!-- GATE VIEW (Mandatory Channel Verification) -->
+      <div id="gate-view" class="view" style="display:flex; flex-direction:column; justify-content:center; min-height:80vh;">
+        <div style="text-align:center; margin-bottom:24px;">
+            <div style="width: 72px; height: 72px; background: rgba(28, 123, 242, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 32px;"><i class="fa-solid fa-shield-check" style="color:var(--accent-blue);"></i></div>
+            <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Access Check</h2>
+            <p style="color: var(--text-muted); font-size: 13px; padding: 0 20px;">Join our official channels to continue. Device and VPN checks run automatically.</p>
+        </div>
+
+        <div class="promo-card" style="padding:16px;">
+            <div class="ad-task-item" onclick="window.open('https://t.me/howlnews')" style="margin-bottom:8px; padding:12px;">
+                <div class="ad-task-left">
+                    <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(28, 123, 242, 0.1); color:var(--accent-blue); font-size:18px;"><i class="fa-solid fa-newspaper"></i></div>
+                    <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">HOWL News</h4></div>
+                </div>
+                <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
+            </div>
+            
+            <div class="ad-task-item" onclick="window.open('https://t.me/howl_community')" style="margin-bottom:8px; padding:12px;">
+                <div class="ad-task-left">
+                    <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(168, 85, 247, 0.1); color:#a855f7; font-size:18px;"><i class="fa-solid fa-users"></i></div>
+                    <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Community</h4></div>
+                </div>
+                <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
+            </div>
+
+            <div class="ad-task-item" onclick="window.open('https://t.me/howlnotification')" style="margin-bottom:0; padding:12px;">
+                <div class="ad-task-left">
+                    <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(245, 158, 11, 0.1); color:var(--accent-orange); font-size:18px;"><i class="fa-solid fa-bell"></i></div>
+                    <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Notifications</h4></div>
+                </div>
+                <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
+            </div>
+        </div>
+
+        <button id="verifyBtn" class="btn-claim" style="width:100%; padding:16px; margin-top:8px; border-radius: var(--radius-lg);" onclick="executeSecurityCheck()">
+            <i class="fa-solid fa-circle-notch fa-spin" id="verifySpinner" style="display:none;"></i> 
+            <span id="verifyText">Verify & Enter</span>
+        </button>
+        <p id="verifyStatus" style="text-align:center; color:var(--accent-orange); font-size:12px; margin-top:16px; font-weight:600;"></p>
+      </div>
+
       <!-- HOME VIEW -->
-      <div id="home-view" class="view active">
+      <div id="home-view" class="view">
         <div class="top-bar">
           <div class="user-badge">
             <div class="user-avatar" id="profile-pic">U</div>
@@ -188,9 +222,9 @@
 
         <div class="balance-section">
           <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
-          <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
+          <div class="balance-amount" id="main-usdt-display"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
           <div class="balance-actions">
-            <button class="btn-claim" onclick="showView('tasks-view')"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
+            <button class="btn-claim" onclick="showView('tasks-view'); triggerHaptic('medium');"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
             <button class="btn-earn" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Top Earners</button>
           </div>
         </div>
@@ -199,13 +233,13 @@
           <div class="stat-card">
             <div class="icon-tr" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange);"><i class="fa-solid fa-gift"></i></div>
             <h4>HOWL Coins</h4>
-            <div class="val">***</div>
+            <div class="val" id="stat-coins">0.00</div>
             <div class="sub">Tracked via backend</div>
           </div>
           <div class="stat-card">
             <div class="icon-tr" style="background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-dollar-sign"></i></div>
             <h4>USDT Balance</h4>
-            <div class="val">***</div>
+            <div class="val" id="stat-usdt">$0.0000</div>
             <div class="sub">Syncs to Bot</div>
           </div>
         </div>
@@ -284,6 +318,17 @@
           </div>
           <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <h4 style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Total Earned</h4>
+            <div class="val" id="stat-total-earned" style="font-size:18px;">$0.0000</div>
+          </div>
+          <div class="stat-card">
+            <h4 style="font-size:11px; color:var(--text-muted); text-transform:uppercase;">Active Friends</h4>
+            <div class="val" id="stat-friends" style="font-size:18px;">0</div>
+          </div>
+        </div>
       </div>
 
       <!-- PROFILE VIEW -->
@@ -297,17 +342,6 @@
             <div class="ad-task-info">
               <h4>Transaction History</h4>
               <p>Earnings, withdrawals & expenses</p>
-            </div>
-          </div>
-          <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
-        </div>
-
-        <div class="ad-task-item" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
-          <div class="ad-task-left">
-            <div class="ad-task-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fa-solid fa-shield-halved"></i></div>
-            <div class="ad-task-info">
-              <h4>Platform Rules</h4>
-              <p>Anti-fraud & compliance</p>
             </div>
           </div>
           <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
@@ -334,28 +368,16 @@
 
     </main>
 
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
-      <button class="nav-item active" onclick="showView('home-view')">
-        <i class="fa-solid fa-house"></i> Home
-      </button>
-      <button class="nav-item" onclick="showView('team-view')">
-        <i class="fa-solid fa-users"></i> Friends
-      </button>
-      
-      <!-- Center Tasks Button -->
+    <!-- Bottom Navigation (Hidden until verified) -->
+    <nav class="bottom-nav" id="main-nav" style="display:none;">
+      <button class="nav-item active" onclick="showView('home-view')"><i class="fa-solid fa-house"></i> Home</button>
+      <button class="nav-item" onclick="showView('team-view')"><i class="fa-solid fa-users"></i> Friends</button>
       <button class="nav-item center-btn" onclick="showView('tasks-view')">
         <div class="center-icon-wrap"><div class="center-inner"><i class="fa-solid fa-bolt"></i></div></div>
         <span style="margin-top: 22px;">Tasks</span>
       </button>
-      
-      <!-- Replaced Contest with Leaderboard -->
-      <button class="nav-item" onclick="showView('leaderboard-view')">
-        <i class="fa-solid fa-trophy"></i> Leaderboard
-      </button>
-      <button class="nav-item" onclick="showView('profile-view')">
-        <i class="fa-regular fa-user"></i> Profile
-      </button>
+      <button class="nav-item" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Leaderboard</button>
+      <button class="nav-item" onclick="showView('profile-view')"><i class="fa-regular fa-user"></i> Profile</button>
     </nav>
   </div>
 
@@ -376,46 +398,137 @@
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        initApp();
-        setInterval(updateCooldownTimers, 1000);
-        setTimeout(() => { 
-            const splash = document.getElementById('splash-screen');
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
-        }, 1800);
-    });
-
-    function initApp() {
         try {
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#080c14');
-                
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
-                
-                // RESTORED: Your Profile Sync Logic
-                if (Telegram.WebApp.initData) {
-                    fetch('/api/sync-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ initData: Telegram.WebApp.initData })
-                    }).catch(e => console.log("Profile sync ignored"));
-                }
             }
         } catch (e) {}
-
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
+
+        setTimeout(() => { 
+            const splash = document.getElementById('splash-screen');
+            splash.style.opacity = '0';
+            setTimeout(() => {
+                splash.style.display = 'none';
+                checkVerificationState();
+            }, 500);
+        }, 1800);
+        
+        setInterval(updateCooldownTimers, 1000);
+    });
+
+    function checkVerificationState() {
+        const isVerified = localStorage.getItem(`howl_verified_${currentUserId}`) === 'true';
+        if (!isVerified) {
+            document.getElementById('main-nav').style.display = 'none';
+            showView('gate-view');
+        } else {
+            document.getElementById('main-nav').style.display = 'flex';
+            runAppCore();
+        }
+    }
+
+    async function executeSecurityCheck() {
+        const btn = document.getElementById('verifyBtn');
+        const spinner = document.getElementById('verifySpinner');
+        const text = document.getElementById('verifyText');
+        const statusEl = document.getElementById('verifyStatus');
+
+        btn.style.pointerEvents = 'none';
+        spinner.style.display = 'inline-block';
+        text.innerText = ' Analyzing Device...';
+        statusEl.innerText = '';
+        triggerHaptic('medium');
+
+        let hardwareHash = "fallback_hash";
+        try {
+            const fpPromise = window.FingerprintJS.load();
+            const fp = await fpPromise;
+            const result = await fp.get();
+            hardwareHash = result.visitorId; 
+        } catch (e) {}
+
+        const storedUser = localStorage.getItem('verified_tg_user');
+        const isLocalMulti = (storedUser && storedUser != currentUserId);
+        if (!isLocalMulti) localStorage.setItem('verified_tg_user', currentUserId);
+
+        const initData = window.Telegram?.WebApp?.initData;
+        const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
+
+        try {
+            const response = await fetch("/api/verify", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    initData: initData,
+                    startParam: startParam,
+                    isLocalMulti: isLocalMulti, 
+                    fingerprint: hardwareHash 
+                })
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                triggerHaptic('success');
+                localStorage.setItem(`howl_verified_${currentUserId}`, 'true');
+                text.innerText = 'Success!';
+                spinner.style.display = 'none';
+                
+                setTimeout(() => {
+                    document.getElementById('main-nav').style.display = 'flex';
+                    runAppCore(result.user_data);
+                }, 1000);
+            } else {
+                triggerHaptic('error');
+                btn.style.pointerEvents = 'auto';
+                spinner.style.display = 'none';
+                text.innerText = 'Verify & Enter';
+                statusEl.innerText = "✖ " + result.message;
+            }
+        } catch (error) {
+            triggerHaptic('error');
+            btn.style.pointerEvents = 'auto';
+            spinner.style.display = 'none';
+            text.innerText = 'Verify & Enter';
+            statusEl.innerText = "Connection error. Please try again.";
+        }
+    }
+
+    function runAppCore(preloadedData = null) {
         loadTelegramUser();
         setupOfferwallIframes();
         generateRefLink();
-        
-        document.getElementById('panel-offerwall').style.display = 'block';
-        showView('home-view');
         checkStoredCooldowns();
         updateDisplayCounters();
+        document.getElementById('panel-offerwall').style.display = 'block';
+        showView('home-view');
+
+        if (preloadedData) {
+            updateDashboardUI(preloadedData);
+        } else if (window.Telegram && Telegram.WebApp.initData) {
+            // Normal sync if already verified
+            fetch('/api/verify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData: Telegram.WebApp.initData, syncOnly: true })
+            }).then(r => r.json()).then(data => {
+                if (data.success && data.user_data) updateDashboardUI(data.user_data);
+            }).catch(e => console.log("Sync error"));
+        }
+    }
+
+    function updateDashboardUI(data) {
+        document.getElementById('main-usdt-display').innerHTML = `<span style="font-size:32px; color:var(--text-main);">$${parseFloat(data.balance).toFixed(4)}</span>`;
+        document.getElementById('stat-coins').textContent = parseFloat(data.coins).toFixed(2);
+        document.getElementById('stat-usdt').textContent = `$${parseFloat(data.balance).toFixed(4)}`;
+        document.getElementById('stat-total-earned').textContent = `$${parseFloat(data.total_earned).toFixed(4)}`;
+        document.getElementById('stat-friends').textContent = data.active_friends;
     }
 
     function setupOfferwallIframes() {
@@ -447,18 +560,14 @@
         if (targetView) targetView.classList.add('active');
         
         document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-        
-        // Navigation mappings
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(viewId === 'team-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[2].classList.add('active');
         if(viewId === 'leaderboard-view') document.querySelectorAll('.nav-item')[3].classList.add('active');
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
         
-        // RESTORED: Trigger fetch logic on view changes
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
-        
         document.getElementById('main-content').scrollTop = 0;
     }
 
@@ -519,29 +628,21 @@
         }
     }
 
-    // RESTORED: Exact history fetch API
     async function renderHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
-
         historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch(`/api/history?userId=${currentUserId}`);
             const data = await response.json();
-
             if (!response.ok) throw new Error(data.error);
 
             if (!data || data.length === 0) {
-                historyList.innerHTML = `
-                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
-                    <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
-                    <p>No transactions found for your User ID.</p>
-                </div>`;
+                historyList.innerHTML = `<div style="text-align:center; padding: 40px 20px; color: var(--text-muted);"><i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i><p>No transactions found.</p></div>`;
                 return;
             }
 
-            // Outputing matching PaidZ CSS formatting
             historyList.innerHTML = data.map(item => {
                 const dateObj = new Date(item.created_at);
                 const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -562,45 +663,31 @@
         }
     }
 
-    // RESTORED: Exact leaderboard fetch API
     async function fetchLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
-
         leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch('/api/leaderboard');
             const sortedEarners = await response.json();
-
             if (!response.ok) throw new Error(sortedEarners.error);
 
             if (!sortedEarners || sortedEarners.length === 0) {
-                leaderboardList.innerHTML = `
-                <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
-                    <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
-                    <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
-                </div>`;
+                leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px 20px; color: var(--text-muted);"><i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i><p>No earnings recorded yet.</p></div>`;
                 return;
             }
 
-            // Outputing matching PaidZ CSS formatting
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
-                
-                let avatarHtml = earner.photo_url 
-                    ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">`
-                    : `<span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>`;
-                
+                let avatarHtml = earner.photo_url ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>`;
                 let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
 
                 return `
                 <div class="data-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="data-icon ${rankClass}" style="width:30px; height:30px; border-radius:50%; font-size:12px; font-weight:700; margin-right:0;">#${index + 1}</div>
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow:hidden;">
-                            ${avatarHtml}
-                        </div>
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; flex-shrink: 0; overflow:hidden;">${avatarHtml}</div>
                         <div class="data-info">
                             <h4>${earner.name}</h4>
                             <p>ID: ${maskedId}</p>
@@ -614,7 +701,6 @@
         }
     }
 
-    // RESTORED: Anti-cheat adsbitvex logic
     function startAdsBitvexTask() {
         if (adsbitvexInFlight) return;
         const now = Date.now();
@@ -661,7 +747,6 @@
         });
     }
 
-    // RESTORED: Security Header X-Telegram-Init-Data
     async function sendRewardWebhook() {
         const bonusEndpoint = webhookUrl || '/api/claim-bonus';
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
@@ -674,8 +759,10 @@
             });
             
             if (response.ok) {
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                triggerHaptic('success');
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
+                // Auto-refresh balances
+                runAppCore();
             } else {
                 alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
