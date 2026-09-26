@@ -83,10 +83,7 @@ export default async function handler(req, res) {
     const channelChecks = await Promise.all(
       requiredChannels.map(async (ch) => {
         try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 second max wait per fetch
-            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`, { signal: controller.signal });
-            clearTimeout(timeoutId);
+            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`);
             const tgData = await tgRes.json();
             const isMember = tgData.ok && ['member', 'administrator', 'creator'].includes(tgData.result?.status);
             return { channel: ch.name, ok: isMember };
@@ -106,7 +103,7 @@ export default async function handler(req, res) {
 
     // 4. Anti-Cheat Device Fingerprint Verification
     let isMultiAccount = Boolean(isLocalMulti);
-    if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch')) {
+    if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch') && !fingerprint.startsWith('hw_timeout')) {
         const { data: fpMatch } = await supabase
             .from('users')
             .select('user_id')
