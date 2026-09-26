@@ -37,7 +37,9 @@
     }
 
     .container { width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative; display: flex; flex-direction: column; overflow: hidden; }
-    main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 100px 16px; position: relative; -webkit-overflow-scrolling: touch; }
+    
+    /* Fixed main element to ensure touch events propagate cleanly */
+    main { flex-grow: 1; overflow-y: auto; padding: 20px 16px 100px 16px; position: relative; z-index: 10; -webkit-overflow-scrolling: touch; }
     main::-webkit-scrollbar { display: none; } 
 
     .view { display: none; }
@@ -60,7 +62,7 @@
     .balance-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
     .balance-amount { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin: 0 0 16px 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-main); }
     .balance-actions { display: flex; gap: 12px; justify-content: center; }
-    .btn-claim { background: var(--accent-green); color: #000; font-weight: 800; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .btn-claim { background: var(--accent-green); color: #000; font-weight: 800; font-size: 14px; padding: 14px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; z-index: 20; position: relative; }
     .btn-earn { background: var(--card-bg-light); color: var(--accent-blue); font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: 1px solid var(--accent-blue); cursor: pointer; }
 
     .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
@@ -72,9 +74,9 @@
 
     .promo-card { background: var(--card-bg); border-radius: var(--radius-xl); padding: 18px; border: 1px solid var(--border-soft); margin-bottom: 16px; }
     .promo-actions { display: flex; gap: 12px; margin-top: 14px; }
-    .btn-secondary { flex: 1; background: var(--card-bg-light); color: var(--text-main); border: 1px solid var(--border-highlight); padding: 12px; border-radius: var(--radius-lg); font-weight: 600; font-size: 14px; display: flex; justify-content: center; gap: 8px; border: none; cursor:pointer;}
+    .btn-secondary { flex: 1; background: var(--card-bg-light); color: var(--text-main); border: 1px solid var(--border-highlight); padding: 12px; border-radius: var(--radius-lg); font-weight: 600; font-size: 14px; display: flex; justify-content: center; gap: 8px; border: none; cursor:pointer; z-index: 20; position: relative; }
 
-    .ad-task-item { background: var(--card-bg); border-radius: var(--radius-xl); padding: 14px 16px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer; }
+    .ad-task-item { background: var(--card-bg); border-radius: var(--radius-xl); padding: 14px 16px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; cursor: pointer; z-index: 20; position: relative; }
     .ad-task-left { display: flex; align-items: center; gap: 14px; }
     .ad-task-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
     .ad-task-info h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
@@ -89,8 +91,8 @@
     .offerwall-iframe-container { width: 100%; height: 62vh; background: #000; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; position: relative; }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; }
 
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(8, 12, 20, 0.95); backdrop-filter: blur(20px); border-top: 1px solid var(--border-soft); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 14px 10px; z-index: 100; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 10px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(8, 12, 20, 0.95); backdrop-filter: blur(20px); border-top: 1px solid var(--border-soft); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 14px 10px; z-index: 1000; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 10px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; z-index: 1001; }
     .nav-item i { font-size: 18px; margin-bottom: 4px; }
     .nav-item.active { color: var(--text-main); }
     .nav-item.center-btn { position: relative; }
@@ -114,8 +116,8 @@
     <main id="main-content">
       
       <!-- GATE VIEW (Channel Verification) -->
-      <div id="gate-view" class="view" style="display:flex; flex-direction:column; justify-content:center; min-height:100%;">
-        <div style="text-align:center; margin-bottom:20px;">
+      <div id="gate-view" class="view" style="display:block;">
+        <div style="text-align:center; margin: 20px 0 24px 0;">
             <div style="width: 64px; height: 64px; background: rgba(28, 123, 242, 0.1); border-radius: 18px; display: flex; align-items: center; justify-content: center; margin: 0 auto 14px auto; font-size: 28px;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-blue);"></i></div>
             <h2 style="font-size: 22px; font-weight: 800; margin: 0 0 6px 0;">Membership Check</h2>
             <p style="color: var(--text-muted); font-size: 13px; padding: 0 10px;">Join our official channels to activate your dashboard.</p>
@@ -147,7 +149,7 @@
             </div>
         </div>
 
-        <button id="verifyBtn" class="btn-claim" style="width:100%; padding:14px; margin-top:4px; border-radius: var(--radius-lg);" onclick="executeSecurityCheck()">
+        <button id="verifyBtn" class="btn-claim" style="width:100%; padding:14px; margin-top:12px; border-radius: var(--radius-lg);" onclick="executeSecurityCheck()">
             <div class="css-spinner" id="verifySpinner" style="display:none; margin-right:8px;"></div>
             <span id="verifyText">Verify & Enter</span>
         </button>
@@ -349,7 +351,6 @@
         }
     }
 
-    // INSTANT EXECUTION (No Splash Screen, loads gate or dashboard immediately)
     (function initializeApp() {
         try {
             if (window.Telegram && Telegram.WebApp) {
