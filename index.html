@@ -36,8 +36,11 @@
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+    /* Fixed Viewport for Telegram WebApp */
     html, body {
-      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      margin: 0; padding: 0; width: 100vw;
+      height: 100vh; /* Fallback */
+      height: var(--tg-viewport-stable-height, 100vh);
       background-color: #080c14;
       background-image: radial-gradient(circle at 50% 0%, rgba(28, 123, 242, 0.1) 0%, transparent 50%), var(--bg-gradient);
       color: var(--text-main); font-family: 'Inter', sans-serif; 
@@ -58,7 +61,7 @@
     .view.active { display: block; animation: fadeIn 0.3s ease forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Splash Animation & Glowing Wolf */
+    /* Splash Animation */
     .splash-ring {
       position: absolute; width: 160px; height: 160px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
@@ -69,20 +72,19 @@
       width: 100px; height: 100px; background: var(--card-bg-light); border-radius: 28px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
       border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
-      animation: pulseLogo 2s ease-in-out infinite;
+      animation: pulseLogo 2s ease-in-out infinite; overflow: hidden;
     }
-    .premium-emoji {
-      font-size: 54px;
-      line-height: 1;
-      text-shadow: 0 0 20px rgba(28, 123, 242, 0.6);
-      transform: scale(1.1);
+    /* Fixed Image Emoji for Telegram compatibility */
+    .premium-emoji-img {
+      width: 70px; height: 70px; object-fit: contain;
+      filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.8));
     }
     @keyframes rippleOut { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
     @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     
-    /* Native CSS Spinner (Guaranteed to work if FontAwesome fails) */
+    /* Native CSS Spinner (Guarantees no broken font-awesome squares) */
     .css-spinner {
-        width: 16px; height: 16px; border: 2px solid #000; border-top-color: transparent; 
+        width: 16px; height: 16px; border: 2.5px solid #000; border-top-color: transparent; 
         border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -165,13 +167,14 @@
 </head>
 <body>
 
-  <!-- Splash Screen with Glowing Wolf -->
+  <!-- Splash Screen with Glowing Wolf Placeholder Image -->
+  <!-- WebApps cannot render raw <tg-emoji>, using a high-quality 3D equivalent -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <span class="premium-emoji">🐺</span>
+        <img src="https://em-content.zobj.net/source/apple/354/wolf_1f43a.png" class="premium-emoji-img" alt="Wolf">
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
@@ -182,16 +185,16 @@
     <main id="main-content">
       
       <!-- GATE VIEW (Channel Verification) -->
-      <div id="gate-view" class="view" style="display:flex; flex-direction:column; padding-top: 40px; min-height:80vh;">
-        <div style="text-align:center; margin-bottom:24px;">
-            <!-- Swapped to fa-shield-halved so it works perfectly in FontAwesome Free -->
+      <!-- Added overflow and flex rules to prevent squishing on small phones -->
+      <div id="gate-view" class="view" style="display:flex; flex-direction:column; justify-content:flex-start; padding-top: 20px; min-height:100%; overflow-y:auto;">
+        <div style="text-align:center; margin-bottom:20px;">
             <div style="width: 72px; height: 72px; background: rgba(28, 123, 242, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 32px;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-blue);"></i></div>
             <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Membership Check</h2>
             <p style="color: var(--text-muted); font-size: 13px; padding: 0 20px;">Join our official channels to activate your dashboard.</p>
         </div>
 
         <div class="promo-card" style="padding:16px;">
-            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnews')" style="margin-bottom:8px; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnews')" style="margin-bottom:8px; padding:10px 12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(28, 123, 242, 0.1); color:var(--accent-blue); font-size:18px;"><i class="fa-solid fa-newspaper"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">HOWL News</h4></div>
@@ -199,7 +202,7 @@
                 <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
             </div>
             
-            <div class="ad-task-item" onclick="openChannel('https://t.me/howl_community')" style="margin-bottom:8px; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howl_community')" style="margin-bottom:8px; padding:10px 12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(168, 85, 247, 0.1); color:#a855f7; font-size:18px;"><i class="fa-solid fa-users"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Community</h4></div>
@@ -207,7 +210,7 @@
                 <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
             </div>
 
-            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnotification')" style="margin-bottom:0; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnotification')" style="margin-bottom:0; padding:10px 12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(245, 158, 11, 0.1); color:var(--accent-orange); font-size:18px;"><i class="fa-solid fa-bell"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Notifications</h4></div>
@@ -217,7 +220,6 @@
         </div>
 
         <button id="verifyBtn" class="btn-claim" style="width:100%; padding:16px; margin-top:8px; border-radius: var(--radius-lg);" onclick="executeSecurityCheck()">
-            <!-- Uses native CSS spinner -->
             <div class="css-spinner" id="verifySpinner" style="display:none; margin-right:8px;"></div>
             <span id="verifyText">Verify & Enter</span>
         </button>
@@ -455,29 +457,33 @@
         }
     }
 
-    // GUARANTEED RESOLUTION: Will never hang Vercel fetch
+    // Watertight Promise: This function will absolutely NEVER hang your app
     async function getFastFingerprint() {
         return new Promise((resolve) => {
+            let isResolved = false;
+            
             const timer = setTimeout(() => {
-                resolve('hw_' + Math.random().toString(36).substr(2, 9));
-            }, 800); // 800ms force timeout
+                if(!isResolved) {
+                    isResolved = true;
+                    resolve('hw_timeout_' + Date.now());
+                }
+            }, 1000); 
 
             try {
                 if (window.FingerprintJS) {
                     window.FingerprintJS.load()
                         .then(fp => fp.get())
                         .then(res => {
-                            clearTimeout(timer);
-                            resolve(res.visitorId);
+                            if(!isResolved) { isResolved = true; clearTimeout(timer); resolve(res.visitorId); }
                         })
                         .catch(() => {
-                            clearTimeout(timer);
-                            resolve('hw_err');
+                            if(!isResolved) { isResolved = true; clearTimeout(timer); resolve('hw_err_fp'); }
                         });
+                } else {
+                    if(!isResolved) { isResolved = true; clearTimeout(timer); resolve('hw_no_fp'); }
                 }
             } catch (e) {
-                clearTimeout(timer);
-                resolve('hw_catch');
+                if(!isResolved) { isResolved = true; clearTimeout(timer); resolve('hw_catch'); }
             }
         });
     }
@@ -505,7 +511,8 @@
 
             if (!initData) throw new Error("Please open this app inside Telegram.");
 
-            const response = await fetch("/api/verify", {
+            // Failsafe timeout for the Vercel fetch itself
+            const fetchPromise = fetch("/api/verify", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
@@ -516,6 +523,13 @@
                 })
             });
 
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Server response timed out")), 8000)
+            );
+
+            const response = await Promise.race([fetchPromise, timeoutPromise]);
+            
+            if (!response.ok) throw new Error(`HTTP Error ${response.status}`);
             const result = await response.json();
             
             if (result.success) {
@@ -540,7 +554,7 @@
             btn.style.pointerEvents = 'auto';
             spinner.style.display = 'none';
             text.innerText = 'Verify & Enter';
-            statusEl.innerText = "✖ Network Error: " + error.message;
+            statusEl.innerText = "✖ " + error.message;
         }
     }
 
