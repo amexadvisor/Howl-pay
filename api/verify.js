@@ -17,13 +17,9 @@ export default async function handler(req, res) {
     const { initData, startParam, fingerprint, isLocalMulti, syncOnly } = req.body || {};
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
-    if (!BOT_TOKEN || !supabase) {
-      return res.status(500).json({ error: "Server configuration error: missing tokens" });
-    }
-
-    if (!initData || typeof initData !== 'string') {
-      return res.status(401).json({ error: "Missing Telegram WebApp context" });
-    }
+    if (!BOT_TOKEN) return res.status(200).json({ success: false, message: "Bot connection missing." });
+    if (!supabase) return res.status(200).json({ success: false, message: "Database connection missing." });
+    if (!initData || typeof initData !== 'string') return res.status(200).json({ success: false, message: "Missing Telegram WebApp secure context." });
 
     let targetUserId = null;
     let fullName = "Anonymous User";
@@ -32,7 +28,7 @@ export default async function handler(req, res) {
     // 1. Cryptographic Telegram Validation
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
-    if (!hash) return res.status(401).json({ error: "Missing signature hash" });
+    if (!hash) return res.status(200).json({ success: false, message: "Missing signature hash" });
 
     params.delete('hash');
     params.sort();
@@ -44,7 +40,7 @@ export default async function handler(req, res) {
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckArr.join('\n')).digest('hex');
 
-    if (calculatedHash !== hash) return res.status(403).json({ error: "Invalid Telegram signature" });
+    if (calculatedHash !== hash) return res.status(200).json({ success: false, message: "Invalid Telegram signature" });
 
     const userStr = params.get('user');
     if (userStr) {
@@ -56,7 +52,7 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!targetUserId) return res.status(400).json({ error: "Missing user ID in session" });
+    if (!targetUserId) return res.status(200).json({ success: false, message: "Missing user ID in session" });
 
     // 2. Fetch User Record
     const { data: existingUser } = await supabase.from('users').select('*').eq('user_id', targetUserId).single();
@@ -77,7 +73,7 @@ export default async function handler(req, res) {
         });
     }
 
-    // 3. Parallel Telegram Channel Verification (Runs in ~300ms)
+    // 3. Parallel Telegram Channel Verification (Super Fast)
     const requiredChannels = [
       { id: '@howlnews', name: 'HOWL News' },
       { id: '@howl_community', name: 'Community' },
@@ -85,12 +81,16 @@ export default async function handler(req, res) {
     ];
 
     const channelChecks = await Promise.all(
-      requiredChannels.map(ch => 
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`)
-          .then(r => r.json())
-          .then(data => ({ channel: ch.name, ok: data.ok && ['member', 'administrator', 'creator'].includes(data.result?.status) }))
-          .catch(() => ({ channel: ch.name, ok: false }))
-      )
+      requiredChannels.map(async (ch) => {
+        try {
+            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`);
+            const tgData = await tgRes.json();
+            const isMember = tgData.ok && ['member', 'administrator', 'creator'].includes(tgData.result?.status);
+            return { channel: ch.name, ok: isMember };
+        } catch (e) {
+            return { channel: ch.name, ok: false };
+        }
+      })
     );
 
     const missingChannel = channelChecks.find(c => !c.ok);
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
 
     // 4. Anti-Cheat Device Fingerprint Verification
     let isMultiAccount = Boolean(isLocalMulti);
-    if (fingerprint && fingerprint !== 'fallback_hash') {
+    if (fingerprint && fingerprint !== 'hw_fallback') {
         const { data: fpMatch } = await supabase
             .from('users')
             .select('user_id')
@@ -163,6 +163,6 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    return res.status(200).json({ success: false, message: error.message });
   }
 }
