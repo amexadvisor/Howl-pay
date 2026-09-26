@@ -14,21 +14,16 @@
   <style>
     :root {
       --bg-dark: #080c14;
-      --bg-gradient: linear-gradient(180deg, #0f1725 0%, #080c14 100%);
       --card-bg: #141c2c;
       --card-bg-light: #1c2638;
-      
       --text-main: #ffffff;
       --text-muted: #7f8ea3;
-      
       --accent-blue: #1c7bf2;
       --accent-green: #b2ff25; 
       --accent-green-dim: rgba(178, 255, 37, 0.15);
       --accent-orange: #f59e0b;
-      
       --border-soft: rgba(255, 255, 255, 0.05);
       --border-highlight: rgba(255, 255, 255, 0.1);
-      
       --radius-xl: 24px;
       --radius-lg: 16px;
       --radius-pill: 50px;
@@ -36,68 +31,33 @@
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
-    /* Strict Mobile Viewport Locking */
     html, body {
       margin: 0; padding: 0; width: 100vw; height: 100vh;
       height: var(--tg-viewport-stable-height, 100vh);
       background-color: var(--bg-dark);
-      background-image: radial-gradient(circle at 50% 0%, rgba(28, 123, 242, 0.15) 0%, transparent 60%), var(--bg-gradient);
       color: var(--text-main); font-family: 'Inter', sans-serif; 
       overflow: hidden; overscroll-behavior-y: none;
       -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative;
-      display: flex; flex-direction: column; overflow: hidden;
-    }
-
-    main { 
-      flex-grow: 1; overflow-y: auto; padding: 16px 16px 100px 16px; 
-      position: relative; scroll-behavior: smooth;
-      -webkit-overflow-scrolling: touch;
-    }
+    .container { width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative; display: flex; flex-direction: column; overflow: hidden; }
+    main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 100px 16px; position: relative; scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
     main::-webkit-scrollbar { display: none; } 
 
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.3s cubic-bezier(0.16,1,0.3,1) forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    .view.active { display: block; animation: fadeIn 0.25s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Fixed Splash Screen (No box artifacts) */
+    /* Clean, foolproof full-screen loader (No box artifacts) */
     #splash-screen {
       position: fixed; inset: 0; background: #080c14; z-index: 99999;
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      transition: opacity 0.5s ease, visibility 0.5s;
+      transition: opacity 0.4s ease, visibility 0.4s;
     }
     #splash-screen.fade-out { opacity: 0; visibility: hidden; pointer-events: none; }
 
-    .logo-wrapper {
-      position: relative; width: 110px; height: 110px; display: flex; align-items: center; justify-content: center;
-      margin-bottom: 20px; z-index: 2;
-    }
-    .splash-logo {
-      width: 88px; height: 88px; border-radius: 24px; background: rgba(28, 123, 242, 0.08);
-      border: 2px solid var(--accent-blue);
-      box-shadow: 0 0 35px rgba(28, 123, 242, 0.4);
-      animation: floatLogo 3s ease-in-out infinite; display: flex; align-items: center; justify-content: center; z-index: 3;
-    }
-    .splash-logo img { width: 54px; height: 54px; object-fit: contain; filter: drop-shadow(0 0 10px rgba(28, 123, 242, 0.9)); }
-    
-    .pulse-ring-outer {
-      position: absolute; width: 100%; height: 100%; border-radius: 30px;
-      border: 1px solid var(--accent-blue); animation: expandRing 2.5s cubic-bezier(0.2,0.8,0.2,1) infinite; z-index: 1;
-    }
-
-    @keyframes floatLogo { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-6px); } }
-    @keyframes expandRing { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(1.8); opacity: 0; } }
-
-    .splash-text { text-align: center; z-index: 2; }
-    .splash-text h1 { font-size: 28px; font-weight: 900; margin: 0 0 4px; letter-spacing: 2px; text-transform: uppercase; color: #fff; }
-    .splash-text p { font-size: 11px; font-weight: 600; color: var(--accent-green); margin: 0; letter-spacing: 3px; text-transform: uppercase; }
-
-    /* Native CSS Spinner */
     .css-spinner {
-        width: 18px; height: 18px; border: 2.5px solid #000; border-top-color: transparent; 
+        width: 22px; height: 22px; border: 3px solid rgba(255,255,255,0.2); border-top-color: var(--accent-green); 
         border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -172,18 +132,13 @@
 </head>
 <body>
 
-  <!-- Fixed Splash Screen -->
+  <!-- Clean, Artifact-Free Splash Screen -->
   <div id="splash-screen">
-    <div class="logo-wrapper">
-      <div class="pulse-ring-outer"></div>
-      <div class="splash-logo">
-        <img src="https://em-content.zobj.net/source/apple/354/wolf_1f43a.png" alt="HOWL Wolf">
-      </div>
+    <div style="width: 80px; height: 80px; background: rgba(28, 123, 242, 0.1); border-radius: 24px; display: flex; align-items: center; justify-content: center; margin-bottom: 20px; border: 1px solid var(--accent-blue);">
+      <img src="https://em-content.zobj.net/source/apple/354/wolf_1f43a.png" style="width:45px; height:45px; object-fit:contain;" alt="Wolf">
     </div>
-    <div class="splash-text">
-      <h1>HOWL</h1>
-      <p>Elite Earning</p>
-    </div>
+    <h1 style="font-size: 26px; font-weight: 900; margin: 0 0 4px; letter-spacing: 2px; color: #fff;">HOWL</h1>
+    <p style="color: var(--accent-green); font-size: 11px; font-weight: 600; letter-spacing: 3px; margin: 0;">ELITE EARNING</p>
   </div>
 
   <div class="container">
@@ -436,7 +391,8 @@
                 }
             }
         } catch (e) {}
-        currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
+        
+        currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_' + Math.random().toString(36).substring(2,8);
 
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
@@ -444,8 +400,8 @@
             setTimeout(() => {
                 splash.style.display = 'none';
                 checkVerificationState();
-            }, 500);
-        }, 1500);
+            }, 400);
+        }, 1200);
         
         setInterval(updateCooldownTimers, 1000);
     });
@@ -466,7 +422,7 @@
             let done = false;
             const t = setTimeout(() => {
                 if(!done) { done = true; resolve('hw_fp_' + Math.random().toString(36).substring(2, 8)); }
-            }, 600);
+            }, 500);
 
             try {
                 if (window.FingerprintJS) {
