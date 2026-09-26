@@ -17,18 +17,19 @@ export default async function handler(req, res) {
     const { initData, startParam, fingerprint, isLocalMulti, syncOnly } = req.body || {};
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
-    if (!BOT_TOKEN) return res.status(200).json({ success: false, message: "Bot connection missing." });
-    if (!supabase) return res.status(200).json({ success: false, message: "Database connection missing." });
-    if (!initData || typeof initData !== 'string') return res.status(200).json({ success: false, message: "Missing Telegram WebApp secure context." });
+    // Hard fail responses as 200 OK so the frontend catch block doesn't explode and freeze.
+    if (!BOT_TOKEN) return res.status(200).json({ success: false, message: "Server misconfigured: Bot token missing." });
+    if (!supabase) return res.status(200).json({ success: false, message: "Server misconfigured: DB connection missing." });
+    if (!initData || typeof initData !== 'string') return res.status(200).json({ success: false, message: "Please open this app inside Telegram." });
 
     let targetUserId = null;
     let fullName = "Anonymous User";
     let photoUrl = null;
 
-    // 1. Cryptographic Telegram Validation
+    // 1. Cryptographic Validation
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
-    if (!hash) return res.status(200).json({ success: false, message: "Missing signature hash" });
+    if (!hash) return res.status(200).json({ success: false, message: "Invalid access: Missing hash." });
 
     params.delete('hash');
     params.sort();
@@ -40,7 +41,7 @@ export default async function handler(req, res) {
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckArr.join('\n')).digest('hex');
 
-    if (calculatedHash !== hash) return res.status(200).json({ success: false, message: "Invalid Telegram signature" });
+    if (calculatedHash !== hash) return res.status(200).json({ success: false, message: "Security failure: Invalid Telegram signature." });
 
     const userStr = params.get('user');
     if (userStr) {
@@ -52,14 +53,13 @@ export default async function handler(req, res) {
       }
     }
 
-    if (!targetUserId) return res.status(200).json({ success: false, message: "Missing user ID in session" });
+    if (!targetUserId) return res.status(200).json({ success: false, message: "Missing Telegram User ID." });
 
     // 2. Fetch User Record
     const { data: existingUser } = await supabase.from('users').select('*').eq('user_id', targetUserId).single();
     const { count } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('referred_by', targetUserId);
     const activeFriends = count || 0;
 
-    // Fast-path: Quick sync for returning verified users
     if (syncOnly && existingUser) {
         return res.status(200).json({
             success: true,
@@ -73,7 +73,7 @@ export default async function handler(req, res) {
         });
     }
 
-    // 3. Parallel Telegram Channel Verification (Super Fast)
+    // 3. Parallel Telegram Channel Verification (Protected from hangs)
     const requiredChannels = [
       { id: '@howlnews', name: 'HOWL News' },
       { id: '@howl_community', name: 'Community' },
@@ -83,7 +83,10 @@ export default async function handler(req, res) {
     const channelChecks = await Promise.all(
       requiredChannels.map(async (ch) => {
         try {
-            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`);
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000); // 4 second max wait per fetch
+            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`, { signal: controller.signal });
+            clearTimeout(timeoutId);
             const tgData = await tgRes.json();
             const isMember = tgData.ok && ['member', 'administrator', 'creator'].includes(tgData.result?.status);
             return { channel: ch.name, ok: isMember };
@@ -103,7 +106,7 @@ export default async function handler(req, res) {
 
     // 4. Anti-Cheat Device Fingerprint Verification
     let isMultiAccount = Boolean(isLocalMulti);
-    if (fingerprint && fingerprint !== 'hw_fallback') {
+    if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch')) {
         const { data: fpMatch } = await supabase
             .from('users')
             .select('user_id')
@@ -119,9 +122,7 @@ export default async function handler(req, res) {
     let finalUserData = null;
 
     if (!existingUser) {
-        // Nullify referral commission if device duplication was detected
         const finalReferrer = (isMultiAccount || startParam === targetUserId) ? null : startParam;
-        
         await supabase.from('users').insert([{
             user_id: targetUserId,
             name: fullName,
@@ -133,13 +134,7 @@ export default async function handler(req, res) {
             total_earned: 0.0000
         }]);
 
-        finalUserData = { 
-            user_id: targetUserId, 
-            balance: 0.0000, 
-            coins: 0.00, 
-            total_earned: 0.0000, 
-            active_friends: 0 
-        };
+        finalUserData = { user_id: targetUserId, balance: 0.0000, coins: 0.00, total_earned: 0.0000, active_friends: 0 };
     } else {
         await supabase.from('users').update({ 
             name: fullName, 
@@ -156,11 +151,7 @@ export default async function handler(req, res) {
         };
     }
 
-    return res.status(200).json({ 
-        success: true, 
-        message: "Verified", 
-        user_data: finalUserData 
-    });
+    return res.status(200).json({ success: true, message: "Verified", user_data: finalUserData });
 
   } catch (error) {
     return res.status(200).json({ success: false, message: error.message });
