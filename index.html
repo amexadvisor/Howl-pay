@@ -37,7 +37,7 @@
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
     html, body {
-      margin: 0; padding: 0; height: 100vh; width: 100vw;
+      margin: 0; padding: 0; height: var(--app-height, 100vh); width: 100vw;
       background-color: #080c14;
       background-image: radial-gradient(circle at 50% 0%, rgba(28, 123, 242, 0.1) 0%, transparent 50%), var(--bg-gradient);
       color: var(--text-main); font-family: 'Inter', sans-serif; 
@@ -438,6 +438,29 @@
         }
     }
 
+    // === Telegram viewport fix ===
+    // 100vh in Telegram's mobile WebView can be taller than the BottomSheet's
+    // actual visible height (the sheet opens partially collapsed, and expand()
+    // doesn't always reach full height). That mismatch is what shows up as a
+    // gray/dotted gap at the bottom. We drive our real height from Telegram's
+    // own viewportStableHeight instead, and lock the sheet fully open.
+    function syncAppHeight() {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        const h = (tg && tg.viewportStableHeight) ? tg.viewportStableHeight : window.innerHeight;
+        document.documentElement.style.setProperty('--app-height', h + 'px');
+    }
+
+    function lockTelegramViewport() {
+        const tg = window.Telegram && window.Telegram.WebApp;
+        if (!tg) return;
+        try { tg.expand(); } catch (e) {}
+        try { if (typeof tg.requestFullscreen === 'function') tg.requestFullscreen(); } catch (e) {}
+        try { if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch (e) {}
+        try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#080c14'); } catch (e) {}
+        try { if (typeof tg.setBottomBarColor === 'function') tg.setBottomBarColor('#080c14'); } catch (e) {}
+        try { tg.onEvent('viewportChanged', syncAppHeight); } catch (e) {}
+    }
+
     let adsCountToday = 0;
     let tgUser = null;
     let currentUserId = 'guest_user';
@@ -464,11 +487,14 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         loadPremiumEmoji();
+        syncAppHeight();
+        window.addEventListener('resize', syncAppHeight);
         try {
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#080c14');
+                lockTelegramViewport();
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
