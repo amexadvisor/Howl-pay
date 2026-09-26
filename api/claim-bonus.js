@@ -2,8 +2,9 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
-const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+// Use the powerful service_role key to bypass RLS for writes
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
+const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -74,7 +75,7 @@ export default async function handler(req, res) {
 
   let supabaseErrorDetails = null;
 
-  // Securely log the verified ad transaction to Supabase
+  // Securely log the verified ad transaction to Supabase using the service role key
   if (supabase) {
     try {
       const { error } = await supabase.from('transactions').insert([{
