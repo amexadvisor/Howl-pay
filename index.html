@@ -450,16 +450,6 @@
         document.documentElement.style.setProperty('--app-height', h + 'px');
     }
 
-    function lockTelegramViewport() {
-        const tg = window.Telegram && window.Telegram.WebApp;
-        if (!tg) return;
-        try { tg.expand(); } catch (e) {}
-        try { if (typeof tg.disableVerticalSwipes === 'function') tg.disableVerticalSwipes(); } catch (e) {}
-        try { if (typeof tg.setBackgroundColor === 'function') tg.setBackgroundColor('#080c14'); } catch (e) {}
-        try { if (typeof tg.setBottomBarColor === 'function') tg.setBottomBarColor('#080c14'); } catch (e) {}
-        try { tg.onEvent('viewportChanged', syncAppHeight); } catch (e) {}
-    }
-
     let adsCountToday = 0;
     let tgUser = null;
     let currentUserId = 'guest_user';
@@ -488,12 +478,14 @@
         loadPremiumEmoji();
         syncAppHeight();
         window.addEventListener('resize', syncAppHeight);
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') syncAppHeight();
+        });
         try {
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
                 Telegram.WebApp.setHeaderColor('#080c14');
-                lockTelegramViewport();
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
@@ -895,4 +887,4 @@
     }
 </script>
 </body>
-                  </html>
+  </html>
