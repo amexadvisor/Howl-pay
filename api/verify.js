@@ -14,11 +14,11 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
   try {
-    const { initData, startParam, fingerprint, isLocalMulti, syncOnly } = req.body;
+    const { initData, startParam, fingerprint, isLocalMulti, syncOnly } = req.body || {};
     const BOT_TOKEN = process.env.BOT_TOKEN;
 
     if (!BOT_TOKEN || !supabase) {
-      return res.status(500).json({ error: "Server configuration error." });
+      return res.status(500).json({ error: "Server configuration error: missing tokens" });
     }
 
     if (!initData || typeof initData !== 'string') {
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     let fullName = "Anonymous User";
     let photoUrl = null;
 
-    // 1. Cryptographic Validation
+    // 1. Cryptographic Telegram Validation
     const params = new URLSearchParams(initData);
     const hash = params.get('hash');
     if (!hash) return res.status(401).json({ error: "Missing signature hash" });
@@ -51,67 +51,75 @@ export default async function handler(req, res) {
       const parsed = JSON.parse(userStr);
       if (parsed && parsed.id) {
         targetUserId = String(parsed.id);
-        fullName = `${parsed.first_name} ${parsed.last_name || ''}`.trim();
+        fullName = `${parsed.first_name || ''} ${parsed.last_name || ''}`.trim() || 'Telegram User';
         photoUrl = parsed.photo_url || null;
       }
     }
 
-    if (!targetUserId) return res.status(400).json({ error: "Missing user identification" });
+    if (!targetUserId) return res.status(400).json({ error: "Missing user ID in session" });
 
-    // 2. Fetch or Create User from Supabase
-    let userData = null;
+    // 2. Fetch User Record
     const { data: existingUser } = await supabase.from('users').select('*').eq('user_id', targetUserId).single();
-    
-    // Check active friends count
     const { count } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('referred_by', targetUserId);
     const activeFriends = count || 0;
 
-    // If it's just a background sync (user is already verified locally), skip the slow API checks
+    // Fast-path: Quick sync for returning verified users
     if (syncOnly && existingUser) {
         return res.status(200).json({
             success: true,
             user_data: {
-                user_id: existingUser.user_id, balance: existingUser.balance, coins: existingUser.coins, 
-                total_earned: existingUser.total_earned, active_friends: activeFriends
+                user_id: existingUser.user_id,
+                balance: existingUser.balance || 0,
+                coins: existingUser.coins || 0, 
+                total_earned: existingUser.total_earned || 0,
+                active_friends: activeFriends
             }
         });
     }
 
-    // 3. Strict Channel Verification (Using Bot Token)
-    const requiredChannels = ['@howlnews', '@howl_community', '@howlnotification'];
-    for (let channel of requiredChannels) {
-        const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${channel}&user_id=${targetUserId}`);
-        const tgData = await tgRes.json();
-        const status = tgData.result?.status;
-        
-        if (!tgData.ok || !['member', 'administrator', 'creator'].includes(status)) {
-            let neatName = channel.replace('@', '');
-            if (neatName === 'howlnotification') neatName = "HOWL Notifications";
-            return res.status(200).json({ success: false, message: `Please join ${neatName} to continue.` });
+    // 3. Parallel Telegram Channel Verification (Runs in ~300ms)
+    const requiredChannels = [
+      { id: '@howlnews', name: 'HOWL News' },
+      { id: '@howl_community', name: 'Community' },
+      { id: '@howlnotification', name: 'Notifications' }
+    ];
+
+    const channelChecks = await Promise.all(
+      requiredChannels.map(ch => 
+        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`)
+          .then(r => r.json())
+          .then(data => ({ channel: ch.name, ok: data.ok && ['member', 'administrator', 'creator'].includes(data.result?.status) }))
+          .catch(() => ({ channel: ch.name, ok: false }))
+      )
+    );
+
+    const missingChannel = channelChecks.find(c => !c.ok);
+    if (missingChannel) {
+        return res.status(200).json({ 
+            success: false, 
+            message: `Please join ${missingChannel.channel} first.` 
+        });
+    }
+
+    // 4. Anti-Cheat Device Fingerprint Verification
+    let isMultiAccount = Boolean(isLocalMulti);
+    if (fingerprint && fingerprint !== 'fallback_hash') {
+        const { data: fpMatch } = await supabase
+            .from('users')
+            .select('user_id')
+            .eq('fingerprint', fingerprint)
+            .neq('user_id', targetUserId)
+            .limit(1);
+            
+        if (fpMatch && fpMatch.length > 0) {
+            isMultiAccount = true;
         }
     }
 
-    // 4. VPN Check
-    const clientIp = req.headers['x-forwarded-for'] || '127.0.0.1';
-    let isVpn = 'N';
-    try {
-        const vpnCheckResponse = await fetch(`https://blackbox.ipinfo.app/lookup/${clientIp}`);
-        isVpn = await vpnCheckResponse.text();
-    } catch (e) { isVpn = 'N'; }
-
-    if (isVpn.trim() === 'Y') {
-        return res.status(200).json({ success: false, message: "VPN or Proxy detected. Please disable to continue." });
-    }
-
-    // 5. Anti-Cheat Fingerprint Check & DB Execution
-    let isMultiAccount = isLocalMulti;
-    if (fingerprint) {
-        const { data: fpMatch } = await supabase.from('users').select('user_id').eq('fingerprint', fingerprint).neq('user_id', targetUserId).limit(1);
-        if (fpMatch && fpMatch.length > 0) isMultiAccount = true;
-    }
+    let finalUserData = null;
 
     if (!existingUser) {
-        // New User Registration. If they are abusing multi-accounts, nullify the referral!
+        // Nullify referral commission if device duplication was detected
         const finalReferrer = (isMultiAccount || startParam === targetUserId) ? null : startParam;
         
         await supabase.from('users').insert([{
@@ -119,19 +127,40 @@ export default async function handler(req, res) {
             name: fullName,
             photo_url: photoUrl,
             referred_by: finalReferrer,
-            fingerprint: fingerprint,
+            fingerprint: fingerprint || null,
             balance: 0.0000,
+            coins: 0.00,
             total_earned: 0.0000
         }]);
 
-        userData = { user_id: targetUserId, balance: 0.0000, coins: 0, total_earned: 0.0000, active_friends: 0 };
+        finalUserData = { 
+            user_id: targetUserId, 
+            balance: 0.0000, 
+            coins: 0.00, 
+            total_earned: 0.0000, 
+            active_friends: 0 
+        };
     } else {
-        // Update returning user details
-        await supabase.from('users').update({ name: fullName, photo_url: photoUrl, fingerprint: fingerprint }).eq('user_id', targetUserId);
-        userData = { user_id: existingUser.user_id, balance: existingUser.balance, coins: existingUser.coins, total_earned: existingUser.total_earned, active_friends: activeFriends };
+        await supabase.from('users').update({ 
+            name: fullName, 
+            photo_url: photoUrl, 
+            fingerprint: fingerprint || existingUser.fingerprint 
+        }).eq('user_id', targetUserId);
+
+        finalUserData = { 
+            user_id: existingUser.user_id, 
+            balance: existingUser.balance || 0, 
+            coins: existingUser.coins || 0, 
+            total_earned: existingUser.total_earned || 0, 
+            active_friends: activeFriends 
+        };
     }
 
-    return res.status(200).json({ success: true, message: "Verified", user_data: userData });
+    return res.status(200).json({ 
+        success: true, 
+        message: "Verified", 
+        user_data: finalUserData 
+    });
 
   } catch (error) {
     return res.status(500).json({ error: error.message });
