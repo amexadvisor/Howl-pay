@@ -142,20 +142,12 @@
     .rank-1 { color: var(--accent-orange); background: rgba(245, 158, 11, 0.1); }
     .rank-2 { color: #e5e7eb; background: rgba(156, 163, 175, 0.1); }
     .rank-3 { color: #d97706; background: rgba(217, 119, 6, 0.1); }
-
-    /* Modals */
-    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
-    .full-screen-modal.active { opacity: 1; visibility: visible; }
-    .modal-content { background: var(--card-bg); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; }
-    .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
-    .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
-    .modal-btn { background: var(--accent-blue); color: #fff; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; border: none; font-size: 15px; cursor: pointer; }
   </style>
 </head>
 <body>
 
   <!-- Splash Screen -->
-  <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+  <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
@@ -170,16 +162,16 @@
   <div class="container">
     <main id="main-content">
       
-      <!-- GATE VIEW (Mandatory Channel Verification) -->
+      <!-- GATE VIEW (Channel Verification) -->
       <div id="gate-view" class="view" style="display:flex; flex-direction:column; justify-content:center; min-height:80vh;">
         <div style="text-align:center; margin-bottom:24px;">
             <div style="width: 72px; height: 72px; background: rgba(28, 123, 242, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 32px;"><i class="fa-solid fa-shield-check" style="color:var(--accent-blue);"></i></div>
-            <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Access Check</h2>
-            <p style="color: var(--text-muted); font-size: 13px; padding: 0 20px;">Join our official channels to continue. Device and VPN checks run automatically.</p>
+            <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Membership Check</h2>
+            <p style="color: var(--text-muted); font-size: 13px; padding: 0 20px;">Join our official channels to activate your dashboard.</p>
         </div>
 
         <div class="promo-card" style="padding:16px;">
-            <div class="ad-task-item" onclick="window.open('https://t.me/howlnews')" style="margin-bottom:8px; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnews')" style="margin-bottom:8px; padding:12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(28, 123, 242, 0.1); color:var(--accent-blue); font-size:18px;"><i class="fa-solid fa-newspaper"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">HOWL News</h4></div>
@@ -187,7 +179,7 @@
                 <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
             </div>
             
-            <div class="ad-task-item" onclick="window.open('https://t.me/howl_community')" style="margin-bottom:8px; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howl_community')" style="margin-bottom:8px; padding:12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(168, 85, 247, 0.1); color:#a855f7; font-size:18px;"><i class="fa-solid fa-users"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Community</h4></div>
@@ -195,7 +187,7 @@
                 <button class="btn-secondary" style="width:auto; padding:6px 14px; font-size:12px; margin:0;">Join</button>
             </div>
 
-            <div class="ad-task-item" onclick="window.open('https://t.me/howlnotification')" style="margin-bottom:0; padding:12px;">
+            <div class="ad-task-item" onclick="openChannel('https://t.me/howlnotification')" style="margin-bottom:0; padding:12px;">
                 <div class="ad-task-left">
                     <div class="ad-task-icon" style="width:40px; height:40px; background:rgba(245, 158, 11, 0.1); color:var(--accent-orange); font-size:18px;"><i class="fa-solid fa-bell"></i></div>
                     <div class="ad-task-info"><h4 style="font-size:14px; margin:0;">Notifications</h4></div>
@@ -397,6 +389,15 @@
         }
     }
 
+    function openChannel(url) {
+        triggerHaptic('light');
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
+            Telegram.WebApp.openTelegramLink(url);
+        } else {
+            window.open(url, '_blank');
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         try {
             if (window.Telegram && Telegram.WebApp) {
@@ -416,8 +417,8 @@
             setTimeout(() => {
                 splash.style.display = 'none';
                 checkVerificationState();
-            }, 500);
-        }, 1800);
+            }, 400);
+        }, 1200);
         
         setInterval(updateCooldownTimers, 1000);
     });
@@ -433,6 +434,29 @@
         }
     }
 
+    // Fast Fingerprint retrieval with an immediate fallback
+    async function getFastFingerprint() {
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+                resolve(localStorage.getItem('saved_fingerprint') || 'hw_' + Math.random().toString(36).substring(2, 10));
+            }, 800); // 800ms max timeout
+
+            if (window.FingerprintJS) {
+                window.FingerprintJS.load()
+                    .then(fp => fp.get())
+                    .then(res => {
+                        clearTimeout(timer);
+                        localStorage.setItem('saved_fingerprint', res.visitorId);
+                        resolve(res.visitorId);
+                    })
+                    .catch(() => {
+                        clearTimeout(timer);
+                        resolve(localStorage.getItem('saved_fingerprint') || 'hw_fallback');
+                    });
+            }
+        });
+    }
+
     async function executeSecurityCheck() {
         const btn = document.getElementById('verifyBtn');
         const spinner = document.getElementById('verifySpinner');
@@ -441,18 +465,11 @@
 
         btn.style.pointerEvents = 'none';
         spinner.style.display = 'inline-block';
-        text.innerText = ' Analyzing Device...';
+        text.innerText = ' Checking Membership...';
         statusEl.innerText = '';
         triggerHaptic('medium');
 
-        let hardwareHash = "fallback_hash";
-        try {
-            const fpPromise = window.FingerprintJS.load();
-            const fp = await fpPromise;
-            const result = await fp.get();
-            hardwareHash = result.visitorId; 
-        } catch (e) {}
-
+        const hardwareHash = await getFastFingerprint();
         const storedUser = localStorage.getItem('verified_tg_user');
         const isLocalMulti = (storedUser && storedUser != currentUserId);
         if (!isLocalMulti) localStorage.setItem('verified_tg_user', currentUserId);
@@ -477,13 +494,13 @@
             if (result.success) {
                 triggerHaptic('success');
                 localStorage.setItem(`howl_verified_${currentUserId}`, 'true');
-                text.innerText = 'Success!';
+                text.innerText = 'Verified!';
                 spinner.style.display = 'none';
                 
                 setTimeout(() => {
                     document.getElementById('main-nav').style.display = 'flex';
                     runAppCore(result.user_data);
-                }, 1000);
+                }, 400);
             } else {
                 triggerHaptic('error');
                 btn.style.pointerEvents = 'auto';
@@ -512,7 +529,6 @@
         if (preloadedData) {
             updateDashboardUI(preloadedData);
         } else if (window.Telegram && Telegram.WebApp.initData) {
-            // Normal sync if already verified
             fetch('/api/verify', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -524,11 +540,11 @@
     }
 
     function updateDashboardUI(data) {
-        document.getElementById('main-usdt-display').innerHTML = `<span style="font-size:32px; color:var(--text-main);">$${parseFloat(data.balance).toFixed(4)}</span>`;
-        document.getElementById('stat-coins').textContent = parseFloat(data.coins).toFixed(2);
-        document.getElementById('stat-usdt').textContent = `$${parseFloat(data.balance).toFixed(4)}`;
-        document.getElementById('stat-total-earned').textContent = `$${parseFloat(data.total_earned).toFixed(4)}`;
-        document.getElementById('stat-friends').textContent = data.active_friends;
+        document.getElementById('main-usdt-display').innerHTML = `<span style="font-size:32px; color:var(--text-main);">$${parseFloat(data.balance || 0).toFixed(4)}</span>`;
+        document.getElementById('stat-coins').textContent = parseFloat(data.coins || 0).toFixed(2);
+        document.getElementById('stat-usdt').textContent = `$${parseFloat(data.balance || 0).toFixed(4)}`;
+        document.getElementById('stat-total-earned').textContent = `$${parseFloat(data.total_earned || 0).toFixed(4)}`;
+        document.getElementById('stat-friends').textContent = data.active_friends || 0;
     }
 
     function setupOfferwallIframes() {
@@ -760,8 +776,7 @@
             
             if (response.ok) {
                 triggerHaptic('success');
-                alert(`🎉 $0.0005 Reward injected to your bot balance!`);
-                // Auto-refresh balances
+                alert(`🎉 $0.0005 Reward added!`);
                 runAppCore();
             } else {
                 alert(`⚠️ Claim failed: Unauthorized signature.`);
