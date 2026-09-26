@@ -58,7 +58,7 @@
     .view.active { display: block; animation: fadeIn 0.3s ease forwards; }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* Splash Animation */
+    /* Splash Animation & Glowing Wolf */
     .splash-ring {
       position: absolute; width: 160px; height: 160px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
@@ -69,17 +69,22 @@
       width: 100px; height: 100px; background: var(--card-bg-light); border-radius: 28px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
       border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
-      animation: pulseLogo 2s ease-in-out infinite; overflow: hidden;
+      animation: pulseLogo 2s ease-in-out infinite;
     }
     .premium-emoji {
-      font-size: 64px;
-      width: 100%; text-align: center;
-      display: inline-block;
+      font-size: 54px;
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(28, 123, 242, 0.6);
       transform: scale(1.1);
     }
     @keyframes rippleOut { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
     @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    
+    /* Native CSS Spinner (Guaranteed to work if FontAwesome fails) */
+    .css-spinner {
+        width: 16px; height: 16px; border: 2px solid #000; border-top-color: transparent; 
+        border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block;
+    }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Top Bar */
@@ -160,13 +165,13 @@
 </head>
 <body>
 
-  <!-- Splash Screen with Wide Premium Emoji -->
+  <!-- Splash Screen with Glowing Wolf -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <tg-emoji emoji-id="5276289730256842699" class="premium-emoji">🚀</tg-emoji>
+        <span class="premium-emoji">🐺</span>
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
@@ -177,9 +182,10 @@
     <main id="main-content">
       
       <!-- GATE VIEW (Channel Verification) -->
-      <div id="gate-view" class="view" style="display:flex; flex-direction:column; justify-content:center; min-height:80vh;">
+      <div id="gate-view" class="view" style="display:flex; flex-direction:column; padding-top: 40px; min-height:80vh;">
         <div style="text-align:center; margin-bottom:24px;">
-            <div style="width: 72px; height: 72px; background: rgba(28, 123, 242, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 32px;"><i class="fa-solid fa-shield-check" style="color:var(--accent-blue);"></i></div>
+            <!-- Swapped to fa-shield-halved so it works perfectly in FontAwesome Free -->
+            <div style="width: 72px; height: 72px; background: rgba(28, 123, 242, 0.1); border-radius: 20px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px auto; font-size: 32px;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-blue);"></i></div>
             <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Membership Check</h2>
             <p style="color: var(--text-muted); font-size: 13px; padding: 0 20px;">Join our official channels to activate your dashboard.</p>
         </div>
@@ -211,7 +217,8 @@
         </div>
 
         <button id="verifyBtn" class="btn-claim" style="width:100%; padding:16px; margin-top:8px; border-radius: var(--radius-lg);" onclick="executeSecurityCheck()">
-            <i class="fa-solid fa-circle-notch fa-spin" id="verifySpinner" style="display:none;"></i> 
+            <!-- Uses native CSS spinner -->
+            <div class="css-spinner" id="verifySpinner" style="display:none; margin-right:8px;"></div>
             <span id="verifyText">Verify & Enter</span>
         </button>
         <p id="verifyStatus" style="text-align:center; color:var(--accent-orange); font-size:12px; margin-top:16px; font-weight:600;"></p>
@@ -448,15 +455,31 @@
         }
     }
 
+    // GUARANTEED RESOLUTION: Will never hang Vercel fetch
     async function getFastFingerprint() {
-        try {
-            if (window.FingerprintJS) {
-                const fp = await window.FingerprintJS.load();
-                const res = await fp.get();
-                return res.visitorId;
+        return new Promise((resolve) => {
+            const timer = setTimeout(() => {
+                resolve('hw_' + Math.random().toString(36).substr(2, 9));
+            }, 800); // 800ms force timeout
+
+            try {
+                if (window.FingerprintJS) {
+                    window.FingerprintJS.load()
+                        .then(fp => fp.get())
+                        .then(res => {
+                            clearTimeout(timer);
+                            resolve(res.visitorId);
+                        })
+                        .catch(() => {
+                            clearTimeout(timer);
+                            resolve('hw_err');
+                        });
+                }
+            } catch (e) {
+                clearTimeout(timer);
+                resolve('hw_catch');
             }
-        } catch (e) {}
-        return 'hw_' + Math.random().toString(36).substr(2, 9);
+        });
     }
 
     async function executeSecurityCheck() {
@@ -480,9 +503,7 @@
             const initData = window.Telegram?.WebApp?.initData;
             const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param || null;
 
-            if (!initData) {
-                throw new Error("Please open this app inside Telegram.");
-            }
+            if (!initData) throw new Error("Please open this app inside Telegram.");
 
             const response = await fetch("/api/verify", {
                 method: 'POST',
@@ -519,7 +540,7 @@
             btn.style.pointerEvents = 'auto';
             spinner.style.display = 'none';
             text.innerText = 'Verify & Enter';
-            statusEl.innerText = "✖ Error: " + error.message;
+            statusEl.innerText = "✖ Network Error: " + error.message;
         }
     }
 
