@@ -726,6 +726,7 @@
         } catch (e) {}
 
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
+        generateRefLink();
         loadTelegramUser();
         
         verifyChannelMembership();
@@ -784,15 +785,24 @@
 
     function generateRefLink() {
         const refInput = document.getElementById('ref-link-input');
-        if (refInput) refInput.value = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        if (refInput && currentUserId && currentUserId !== 'guest_user') {
+            refInput.value = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        }
     }
 
     function copyRefLink() {
         triggerHaptic('light');
         const refInput = document.getElementById('ref-link-input');
-        if (refInput) {
-            refInput.select();
-            document.execCommand("copy");
+        const link = refInput ? refInput.value : `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(() => {
+                alert("Copied to clipboard!");
+            }).catch(() => {
+                if (refInput) { refInput.select(); document.execCommand("copy"); }
+                alert("Copied to clipboard!");
+            });
+        } else {
+            if (refInput) { refInput.select(); document.execCommand("copy"); }
             alert("Copied to clipboard!");
         }
     }
@@ -808,6 +818,7 @@
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(viewId === 'team-view') {
             document.querySelectorAll('.nav-item')[1].classList.add('active');
+            generateRefLink();
             syncUserProfile();
         }
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[2].classList.add('active');
