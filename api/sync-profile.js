@@ -50,6 +50,24 @@ export default async function handler(req, res) {
       .eq('user_id', userIdStr)
       .maybeSingle();
 
+    function isOlderAccount(current, other) {
+      if (!current) return false;
+      if (!other) return true;
+      const currentCreated = current.created_at ? new Date(current.created_at).getTime() : null;
+      const otherCreated = other.created_at ? new Date(other.created_at).getTime() : null;
+      if (currentCreated && otherCreated && !isNaN(currentCreated) && !isNaN(otherCreated)) {
+        return currentCreated < otherCreated;
+      }
+      if (currentCreated && !isNaN(currentCreated)) return true;
+      if (otherCreated && !isNaN(otherCreated)) return false;
+      const currentNum = parseInt(current.user_id, 10);
+      const otherNum = parseInt(other.user_id, 10);
+      if (!isNaN(currentNum) && !isNaN(otherNum)) {
+        return currentNum < otherNum;
+      }
+      return false;
+    }
+
     // Multi-Account Device Verification (Ban 2nd+ accounts on same device)
     if (clientFingerprint) {
       const { data: primaryAccount } = await supabase
@@ -62,7 +80,7 @@ export default async function handler(req, res) {
         .maybeSingle();
 
       if (primaryAccount) {
-        const isCurrentOlder = existingUser && existingUser.created_at && (new Date(existingUser.created_at) < new Date(primaryAccount.created_at));
+        const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
         if (!isCurrentOlder) {
           console.log(`[Anti-Fraud] Multi-account ban triggered: Device owned by ${primaryAccount.user_id}, blocked ${userIdStr}`);
           
@@ -150,6 +168,7 @@ export default async function handler(req, res) {
         balance: 0.0000,
         coins: 0.00,
         total_earned: 0.0000,
+        created_at: new Date().toISOString(),
         last_seen: new Date().toISOString()
       }]);
 
@@ -161,7 +180,7 @@ export default async function handler(req, res) {
         last_seen: new Date().toISOString()
       };
       if (clientIp) updatePayload.last_ip = clientIp;
-      if (clientFingerprint && !existingUser.fingerprint) updatePayload.fingerprint = clientFingerprint;
+      if (clientFingerprint) updatePayload.fingerprint = clientFingerprint;
 
       await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
     }

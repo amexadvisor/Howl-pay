@@ -78,6 +78,24 @@ export default async function handler(req, res) {
   // Securely log the verified ad transaction to Supabase using the service role key
   if (supabase) {
     try {
+      function isOlderAccount(current, other) {
+        if (!current) return false;
+        if (!other) return true;
+        const currentCreated = current.created_at ? new Date(current.created_at).getTime() : null;
+        const otherCreated = other.created_at ? new Date(other.created_at).getTime() : null;
+        if (currentCreated && otherCreated && !isNaN(currentCreated) && !isNaN(otherCreated)) {
+          return currentCreated < otherCreated;
+        }
+        if (currentCreated && !isNaN(currentCreated)) return true;
+        if (otherCreated && !isNaN(otherCreated)) return false;
+        const currentNum = parseInt(current.user_id, 10);
+        const otherNum = parseInt(other.user_id, 10);
+        if (!isNaN(currentNum) && !isNaN(otherNum)) {
+          return currentNum < otherNum;
+        }
+        return false;
+      }
+
       // Guard: Check if user is a secondary account on the same device
       const { data: currentAccount } = await supabase
         .from('users')
@@ -95,7 +113,7 @@ export default async function handler(req, res) {
           .limit(1)
           .maybeSingle();
 
-        if (primaryAccount && (!currentAccount.created_at || new Date(currentAccount.created_at) > new Date(primaryAccount.created_at))) {
+        if (primaryAccount && !isOlderAccount(currentAccount, primaryAccount)) {
           return res.status(403).json({ error: "Access denied: Account suspended due to multi-account policy." });
         }
       }

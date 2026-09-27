@@ -101,6 +101,24 @@ export default async function handler(req, res) {
         });
     }
 
+    function isOlderAccount(current, other) {
+        if (!current) return false;
+        if (!other) return true;
+        const currentCreated = current.created_at ? new Date(current.created_at).getTime() : null;
+        const otherCreated = other.created_at ? new Date(other.created_at).getTime() : null;
+        if (currentCreated && otherCreated && !isNaN(currentCreated) && !isNaN(otherCreated)) {
+            return currentCreated < otherCreated;
+        }
+        if (currentCreated && !isNaN(currentCreated)) return true;
+        if (otherCreated && !isNaN(otherCreated)) return false;
+        const currentNum = parseInt(current.user_id, 10);
+        const otherNum = parseInt(other.user_id, 10);
+        if (!isNaN(currentNum) && !isNaN(otherNum)) {
+            return currentNum < otherNum;
+        }
+        return false;
+    }
+
     // 4. Anti-Cheat Device Fingerprint Verification
     let isMultiAccount = Boolean(isLocalMulti);
     if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch') && !fingerprint.startsWith('hw_timeout')) {
@@ -114,7 +132,7 @@ export default async function handler(req, res) {
             .maybeSingle();
             
         if (primaryAccount) {
-            const isCurrentOlder = existingUser && existingUser.created_at && (new Date(existingUser.created_at) < new Date(primaryAccount.created_at));
+            const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
             if (!isCurrentOlder) {
                 return res.status(200).json({ 
                     success: false, 
