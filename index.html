@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
   <title>HOWL | Premium Earning</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -13,21 +13,24 @@
 
   <style>
     :root {
-      --bg-dark: #080c14;
-      --bg-gradient: linear-gradient(180deg, #0f1725 0%, #080c14 100%);
-      --card-bg: #141c2c;
-      --card-bg-light: #1c2638;
+      --bg-dark: #060911;
+      --bg-gradient: radial-gradient(circle at 50% -20%, #1e2942 0%, #060911 80%);
+      --card-bg: rgba(18, 26, 41, 0.7);
+      --card-bg-solid: #121a29;
+      --card-bg-light: rgba(28, 40, 62, 0.8);
       
       --text-main: #ffffff;
-      --text-muted: #7f8ea3;
+      --text-muted: #8b9bb4;
       
-      --accent-blue: #1c7bf2;
-      --accent-green: #b2ff25; 
-      --accent-green-dim: rgba(178, 255, 37, 0.15);
+      --accent-blue: #2563eb;
+      --accent-blue-glow: rgba(37, 99, 235, 0.4);
+      --accent-green: #22c55e; 
+      --accent-green-dim: rgba(34, 197, 94, 0.15);
       --accent-orange: #f59e0b;
+      --accent-purple: #a855f7;
       
-      --border-soft: rgba(255, 255, 255, 0.05);
-      --border-highlight: rgba(255, 255, 255, 0.1);
+      --border-soft: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(255, 255, 255, 0.15);
       
       --radius-xl: 24px;
       --radius-lg: 16px;
@@ -38,161 +41,270 @@
 
     html, body {
       margin: 0; padding: 0; height: 100vh; width: 100vw;
-      background-color: #080c14;
-      background-image: radial-gradient(circle at 50% 0%, rgba(28, 123, 242, 0.1) 0%, transparent 50%), var(--bg-gradient);
-      color: var(--text-main); font-family: 'Inter', sans-serif; 
+      background-color: var(--bg-dark);
+      background-image: var(--bg-gradient);
+      color: var(--text-main); 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
       overflow: hidden; overscroll-behavior-y: none;
       -webkit-font-smoothing: antialiased;
     }
 
     body::before {
       content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-      background-image: radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
-      background-size: 40px 40px, 30px 30px; background-position: 0 0, 15px 15px; opacity: 0.4;
+      background-image: radial-gradient(rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 28px 28px; opacity: 0.3;
     }
 
     .container { width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative; display: flex; flex-direction: column; z-index: 1; }
     main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 110px 16px; position: relative; scroll-behavior: smooth; }
     main::-webkit-scrollbar { display: none; } 
+    
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.3s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .view.active { display: block; animation: slideUpFade 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes slideUpFade { 
+      from { opacity: 0; transform: translateY(12px) scale(0.99); } 
+      to { opacity: 1; transform: translateY(0) scale(1); } 
+    }
 
-    /* Splash Animation - With Hardware Acceleration Fixes */
+    /* Splash Animation */
     .splash-ring {
-      position: absolute; width: 140px; height: 140px; border-radius: 50%;
+      position: absolute; width: 150px; height: 150px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
       animation: rippleOut 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translateZ(0);
+      backface-visibility: hidden; transform: translateZ(0);
     }
     .splash-ring:nth-child(2) { animation-delay: 0.6s; }
     
     .splash-logo-box {
-      width: 90px; height: 90px; background: var(--card-bg-light); border-radius: 24px;
+      width: 96px; height: 96px; background: var(--card-bg-light); border-radius: 28px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
-      border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
+      border: 1px solid var(--border-highlight); box-shadow: 0 0 50px var(--accent-blue-glow);
       animation: pulseLogo 2s ease-in-out infinite;
-      
-      /* The ultimate WebView anti-glitch stack */
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translate3d(0, 0, 0);
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      backface-visibility: hidden; transform: translate3d(0, 0, 0);
       overflow: hidden;
     }
     
-    @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2) translateZ(0); opacity: 0; } }
-    @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } }
-    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2.2) translateZ(0); opacity: 0; } }
+    @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.06) translateZ(0); } }
+    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Channel Gate Overlay */
     #channel-gate {
-      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990; /* Sits below splash but above app */
-      display: flex; flex-direction: column; padding: 24px;
-      transition: opacity 0.4s;
+      position: fixed; inset: 0; background: rgba(6, 9, 17, 0.95);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      z-index: 99990; display: flex; flex-direction: column; justify-content: center; padding: 24px;
+      transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1);
     }
     #channel-gate.hidden { opacity: 0; pointer-events: none; }
-    .gate-header { text-align: center; margin: 40px 0 30px 0; }
-    .gate-header h2 { font-size: 24px; font-weight: 900; margin: 0 0 8px 0; }
-    .gate-header p { color: var(--text-muted); font-size: 14px; margin: 0; }
+    
+    .gate-box {
+      background: var(--card-bg-solid);
+      border: 1px solid var(--border-highlight);
+      border-radius: var(--radius-xl);
+      padding: 28px 20px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5), 0 0 30px rgba(37, 99, 235, 0.15);
+    }
+
+    .gate-header { text-align: center; margin-bottom: 24px; }
+    .gate-icon-wrap {
+      width: 64px; height: 64px; 
+      background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%);
+      border-radius: 20px; display: flex; align-items: center; justify-content: center; 
+      font-size: 26px; margin: 0 auto 16px auto; color:#fff;
+      box-shadow: 0 8px 25px var(--accent-blue-glow);
+    }
+    .gate-header h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px 0; letter-spacing: -0.5px; }
+    .gate-header p { color: var(--text-muted); font-size: 13px; margin: 0; }
+    
+    /* Channel Item Styles */
     .channel-item {
       display: flex; align-items: center; justify-content: space-between;
-      background: var(--card-bg-light); padding: 12px 16px;
+      background: rgba(255,255,255,0.03); padding: 14px 16px;
       border-radius: var(--radius-lg); margin-bottom: 12px;
       border: 1px solid var(--border-soft); cursor: pointer; text-decoration: none;
+      transition: all 0.2s ease;
     }
-    .channel-item:active { transform: scale(0.98); }
+    .channel-item:hover, .channel-item:active { 
+      transform: translateY(-2px); 
+      border-color: rgba(37, 99, 235, 0.4); 
+      background: rgba(255,255,255,0.06); 
+    }
     .channel-left { display: flex; align-items: center; gap: 14px; }
-    .channel-logo { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--card-bg); border: 2px solid #080c14; }
+    
+    .channel-logo { 
+      width: 46px; height: 46px; border-radius: 14px; overflow: hidden; 
+      background: var(--bg-dark); border: 1px solid var(--border-highlight);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
     .channel-logo img { width: 100%; height: 100%; object-fit: cover; }
-    .channel-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
+    
+    .channel-name { font-weight: 700; font-size: 14px; color: var(--text-main); }
     .channel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
-    .status-badge { font-size: 12px; font-weight: 800; padding: 8px 14px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.05); color: var(--text-muted); transition: 0.3s; }
-    .status-badge.joined { background: var(--accent-green-dim); color: var(--accent-green); }
-    .auto-check-notice { text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .status-badge { 
+      font-size: 12px; font-weight: 700; padding: 8px 16px; border-radius: var(--radius-pill); 
+      background: rgba(255,255,255,0.06); color: var(--text-muted); transition: 0.3s;
+      border: 1px solid var(--border-soft);
+    }
+    .status-badge.joined { 
+      background: var(--accent-green-dim); color: var(--accent-green); 
+      border-color: rgba(34, 197, 94, 0.3);
+    }
 
     /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
-    .user-badge { display: flex; align-items: center; background: var(--card-bg-light); border-radius: var(--radius-pill); padding: 4px 16px 4px 4px; border: 1px solid var(--border-soft); }
-    .user-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-weight: 700; margin-right: 10px; overflow: hidden; border: 2px solid #080c14; }
+    .user-badge { 
+      display: flex; align-items: center; background: var(--card-bg); 
+      backdrop-filter: blur(10px); border-radius: var(--radius-pill); 
+      padding: 4px 16px 4px 4px; border: 1px solid var(--border-soft); 
+    }
+    .user-avatar { 
+      width: 36px; height: 36px; border-radius: 50%; background: var(--accent-blue); 
+      display: flex; align-items: center; justify-content: center; font-weight: 700; 
+      margin-right: 10px; overflow: hidden; border: 2px solid var(--bg-dark); 
+    }
     .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-    .user-name { font-size: 14px; font-weight: 600; color: var(--text-main); }
+    .user-name { font-size: 14px; font-weight: 700; color: var(--text-main); }
     
     /* Balance Section */
-    .balance-section { text-align: center; margin-bottom: 30px; }
-    .balance-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--text-muted); font-weight: 600; margin-bottom: 8px; }
-    .balance-amount { font-size: 32px; font-weight: 900; letter-spacing: -1px; margin: 0 0 20px 0; display: flex; align-items: center; justify-content: center; gap: 12px; color: var(--text-main); }
+    .balance-section { text-align: center; margin-bottom: 28px; }
+    .balance-card {
+      background: var(--card-bg); backdrop-filter: blur(10px);
+      border-radius: var(--radius-xl); padding: 24px 16px;
+      border: 1px solid var(--border-soft);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .balance-label { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: var(--text-muted); font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .balance-amount { font-size: 26px; font-weight: 900; letter-spacing: -0.5px; margin: 0 0 20px 0; display: flex; align-items: center; justify-content: center; gap: 10px; color: var(--text-main); }
     .balance-actions { display: flex; gap: 12px; justify-content: center; }
-    .btn-claim { background: var(--accent-green); color: #000; font-weight: 800; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: none; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 20px rgba(178, 255, 37, 0.15); }
-    .btn-earn { background: var(--card-bg-light); color: var(--accent-blue); font-weight: 700; font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); border: 1px solid var(--accent-blue); cursor: pointer; }
+    
+    .btn-claim { 
+      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); 
+      color: #000; font-weight: 800; font-size: 14px; padding: 12px 24px; 
+      border-radius: var(--radius-pill); border: none; cursor: pointer; 
+      display: flex; align-items: center; gap: 8px; 
+      box-shadow: 0 6px 20px rgba(34, 197, 94, 0.3); transition: transform 0.2s;
+    }
+    .btn-claim:active { transform: scale(0.96); }
+    
+    .btn-earn { 
+      background: var(--card-bg-light); color: #fff; font-weight: 700; 
+      font-size: 14px; padding: 12px 24px; border-radius: var(--radius-pill); 
+      border: 1px solid var(--border-highlight); cursor: pointer; transition: transform 0.2s;
+    }
+    .btn-earn:active { transform: scale(0.96); }
 
     /* Stats Grid */
-    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-    .stat-card { background: var(--card-bg); border-radius: var(--radius-xl); padding: 16px; border: 1px solid var(--border-soft); position: relative; overflow: hidden; }
-    .stat-card .icon-tr { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
-    .stat-card h4 { margin: 0 0 8px 0; font-size: 14px; color: var(--text-main); font-weight: 600; }
-    .stat-card .val { font-size: 24px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-muted); }
-    .stat-card .sub { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; color: var(--text-muted); }
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .stat-card { 
+      background: var(--card-bg); backdrop-filter: blur(10px); 
+      border-radius: var(--radius-xl); padding: 18px; 
+      border: 1px solid var(--border-soft); position: relative; overflow: hidden; 
+    }
+    .stat-card .icon-tr { position: absolute; top: 16px; right: 16px; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+    .stat-card h4 { margin: 0 0 8px 0; font-size: 13px; color: var(--text-muted); font-weight: 600; }
+    .stat-card .val { font-size: 22px; font-weight: 800; margin: 0 0 4px 0; color: var(--text-main); }
+    .stat-card .sub { font-size: 11px; font-weight: 600; display: flex; align-items: center; gap: 4px; color: var(--accent-green); }
 
     /* Promo Cards & Items */
-    .promo-card { background: var(--card-bg); border-radius: var(--radius-xl); padding: 20px; border: 1px solid var(--border-soft); margin-bottom: 16px; }
+    .promo-card { 
+      background: var(--card-bg); backdrop-filter: blur(10px); 
+      border-radius: var(--radius-xl); padding: 20px; 
+      border: 1px solid var(--border-soft); margin-bottom: 16px; 
+    }
+    .promo-card h3 { margin: 0 0 12px 0; font-size: 16px; font-weight: 800; }
     .promo-actions { display: flex; gap: 12px; margin-top: 16px; }
-    .btn-secondary { flex: 1; background: var(--card-bg-light); color: var(--text-main); border: 1px solid var(--border-highlight); padding: 12px; border-radius: var(--radius-lg); font-weight: 600; font-size: 14px; display: flex; justify-content: center; gap: 8px; border: none; cursor:pointer;}
-    .btn-secondary:active { transform: scale(0.98); }
+    .btn-secondary { 
+      flex: 1; background: var(--card-bg-light); color: var(--text-main); 
+      border: 1px solid var(--border-highlight); padding: 12px; 
+      border-radius: var(--radius-lg); font-weight: 700; font-size: 13px; 
+      display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .btn-secondary:active { transform: scale(0.96); }
 
-    .ad-task-item { background: var(--card-bg); border-radius: var(--radius-xl); padding: 16px; border: 1px solid var(--border-soft); display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; cursor: pointer; }
+    .ad-task-item { 
+      background: var(--card-bg); backdrop-filter: blur(10px); 
+      border-radius: var(--radius-xl); padding: 16px; 
+      border: 1px solid var(--border-soft); display: flex; align-items: center; 
+      justify-content: space-between; margin-bottom: 12px; cursor: pointer; 
+      transition: border-color 0.2s;
+    }
+    .ad-task-item:active { border-color: var(--border-highlight); }
     .ad-task-left { display: flex; align-items: center; gap: 14px; }
-    .ad-task-icon { width: 48px; height: 48px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; }
-    .ad-task-info h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 6px; }
+    .ad-task-icon { width: 48px; height: 48px; border-radius: 16px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+    .ad-task-info h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; }
     .ad-task-info p { margin: 0 0 4px 0; font-size: 12px; color: var(--text-muted); }
-    .ad-btn { background: var(--accent-blue); color: #fff; border: none; padding: 10px 20px; border-radius: var(--radius-pill); font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; }
+    
+    .ad-btn { 
+      background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%); 
+      color: #fff; border: none; padding: 10px 20px; border-radius: var(--radius-pill); 
+      font-weight: 700; font-size: 13px; display: flex; align-items: center; gap: 6px; 
+      box-shadow: 0 4px 15px var(--accent-blue-glow); cursor: pointer;
+    }
     
     /* Tabs & Iframes */
     .earn-category-tabs { display: flex; background: var(--card-bg); padding: 4px; border-radius: var(--radius-lg); border: 1px solid var(--border-soft); position: relative; margin-bottom: 20px; }
-    .category-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 12px; transition: all 0.3s; }
-    .category-tab.active { background: var(--accent-blue); color: #fff; }
+    .category-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 12px; transition: all 0.3s; cursor: pointer; }
+    .category-tab.active { background: var(--accent-blue); color: #fff; box-shadow: 0 4px 15px var(--accent-blue-glow); }
     .earn-section-panel { display: none !important; }
-    .earn-section-panel.active { display: block !important; animation: fadeIn 0.3s forwards; }
+    .earn-section-panel.active { display: block !important; animation: slideUpFade 0.3s forwards; }
     .offerwall-iframe-container { width: 100%; height: 65vh; background: #000; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; position: relative; }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; }
 
     /* Bottom Nav */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(14, 20, 31, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid var(--border-soft); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; }
-    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; transition: color 0.2s; cursor: pointer; }
+    .bottom-nav { 
+      position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; 
+      background: rgba(10, 15, 26, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); 
+      border-top: 1px solid var(--border-soft); display: flex; justify-content: space-around; 
+      align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; 
+    }
+    .nav-item { 
+      display: flex; flex-direction: column; align-items: center; justify-content: center; 
+      color: var(--text-muted); font-size: 11px; font-weight: 600; padding: 12px 0 0 0; 
+      background: transparent; border: none; width: 20%; transition: color 0.2s; cursor: pointer; 
+    }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
-    .nav-item.active { color: var(--text-main); }
+    .nav-item.active { color: #fff; }
     .nav-item.center-btn { position: relative; }
-    .center-icon-wrap { width: 56px; height: 56px; background: #080c14; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid #080c14; }
-    .center-inner { width: 100%; height: 100%; background: var(--accent-blue); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; box-shadow: 0 4px 20px rgba(28, 123, 242, 0.4); }
-    .nav-item.active .center-inner { box-shadow: 0 0 0 2px var(--accent-green); }
-
-    /* Data Lists (Leaderboard & History) */
-    .data-item { background: var(--card-bg); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
-    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; }
-    .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
-    .data-info p { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .data-val { font-size: 15px; font-weight: 700; color: var(--accent-green); }
     
-    .rank-1 { color: var(--accent-orange); background: rgba(245, 158, 11, 0.1); }
-    .rank-2 { color: #e5e7eb; background: rgba(156, 163, 175, 0.1); }
-    .rank-3 { color: #d97706; background: rgba(217, 119, 6, 0.1); }
+    .center-icon-wrap { 
+      width: 56px; height: 56px; background: var(--bg-dark); border-radius: 50%; 
+      display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; 
+      border: 4px solid var(--bg-dark); 
+    }
+    .center-inner { 
+      width: 100%; height: 100%; background: linear-gradient(135deg, var(--accent-blue) 0%, #1d4ed8 100%); 
+      border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; 
+      font-size: 22px; box-shadow: 0 4px 20px var(--accent-blue-glow); 
+    }
+    .nav-item.active .center-inner { box-shadow: 0 0 0 2px var(--accent-green), 0 4px 20px rgba(34, 197, 94, 0.4); }
+
+    /* Data Lists */
+    .data-item { background: var(--card-bg); backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
+    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; }
+    .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 700; }
+    .data-info p { margin: 0; font-size: 12px; color: var(--text-muted); }
+    .data-val { font-size: 15px; font-weight: 800; color: var(--accent-green); }
+    
+    .rank-1 { color: var(--accent-orange); background: rgba(245, 158, 11, 0.15); }
+    .rank-2 { color: #e5e7eb; background: rgba(156, 163, 175, 0.15); }
+    .rank-3 { color: #d97706; background: rgba(217, 119, 6, 0.15); }
 
     /* Modals */
-    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
+    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(12px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
     .full-screen-modal.active { opacity: 1; visibility: visible; }
-    .modal-content { background: var(--card-bg); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; }
+    .modal-content { background: var(--card-bg-solid); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-highlight); padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
     .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; }
-    .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
-    .modal-btn { background: var(--accent-blue); color: #fff; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; border: none; font-size: 15px; cursor: pointer; }
+    .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; text-align: left; }
+    .modal-btn { background: var(--accent-blue); color: #fff; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; border: none; font-size: 15px; cursor: pointer; box-shadow: 0 4px 15px var(--accent-blue-glow); }
   </style>
 </head>
 <body>
 
   <!-- Splash Screen -->
-  <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+  <div id="splash-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
@@ -200,65 +312,84 @@
         <div id="splash-wolf-emoji" style="width: 60px; height: 60px; transform: translateZ(0);"></div>
       </div>
     </div>
-    <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
-    <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px;">ELITE EARNING</p>
+    <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 6px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
+    <p style="color: var(--accent-green); font-weight: 700; letter-spacing: 2px; font-size: 12px; text-transform: uppercase;">Elite Earning Protocol</p>
   </div>
 
   <!-- Mandatory Channel Gate -->
   <div id="channel-gate">
-    <div class="gate-header">
-      <div style="width: 60px; height: 60px; background: var(--accent-blue); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color:#fff;">
-        <i class="fa-solid fa-lock"></i>
+    <div class="gate-box">
+      <div class="gate-header">
+        <div class="gate-icon-wrap">
+          <i class="fa-solid fa-shield-halved"></i>
+        </div>
+        <h2>Join Community</h2>
+        <p>Subscribe to our official channels to unlock access.</p>
       </div>
-      <h2>Unlock App</h2>
-      <p>Join our official channels to continue.</p>
-    </div>
 
-    <div class="channel-list">
-      <a href="https://t.me/howlnotification" target="_blank" class="channel-item">
-        <div class="channel-left">
-          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HN&background=1c7bf2&color=fff" alt="Logo"></div>
-          <div>
-            <div class="channel-name">HOWL Notifications</div>
-            <div class="channel-sub">Official Updates</div>
+      <div class="channel-list">
+        <a href="https://t.me/howlnotification" target="_blank" class="channel-item">
+          <div class="channel-left">
+            <div class="channel-logo">
+              <!-- Custom Brand Channel Logo -->
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2L2 7L12 12L22 7L12 2Z" fill="#2563EB"/>
+                <path d="M2 17L12 22L22 17" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M2 12L12 17L22 12" stroke="#2563EB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="channel-name">HOWL Notifications</div>
+              <div class="channel-sub">Official Announcements</div>
+            </div>
           </div>
-        </div>
-        <div id="status-howlnotification" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
+          <div id="status-howlnotification" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+        </a>
 
-      <a href="https://t.me/howlnews" target="_blank" class="channel-item">
-        <div class="channel-left">
-          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HN&background=f59e0b&color=fff" alt="Logo"></div>
-          <div>
-            <div class="channel-name">HOWL News</div>
-            <div class="channel-sub">Latest Ecosystem News</div>
+        <a href="https://t.me/howlnews" target="_blank" class="channel-item">
+          <div class="channel-left">
+            <div class="channel-logo">
+              <!-- Custom News Brand Logo -->
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M19 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H19C20.1046 21 21 20.1046 21 19V5C21 3.89543 20.1046 3 19 3Z" stroke="#F59E0B" stroke-width="2"/>
+                <path d="M7 7H17M7 11H17M7 15H13" stroke="#F59E0B" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="channel-name">HOWL News</div>
+              <div class="channel-sub">Ecosystem & Updates</div>
+            </div>
           </div>
-        </div>
-        <div id="status-howlnews" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
+          <div id="status-howlnews" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+        </a>
 
-      <a href="https://t.me/howl_community" target="_blank" class="channel-item">
-        <div class="channel-left">
-          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HC&background=b2ff25&color=000" alt="Logo"></div>
-          <div>
-            <div class="channel-name">HOWL Community</div>
-            <div class="channel-sub">Global Chat</div>
+        <a href="https://t.me/howl_community" target="_blank" class="channel-item">
+          <div class="channel-left">
+            <div class="channel-logo">
+              <!-- Custom Community Brand Logo -->
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3482 20 15.13" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M16 3.13C16.8604 3.35031 17.623 3.85607 18.1676 4.55831 C18.7122 5.26054 19.0078 6.1235 19.0078 7.01C19.0078 7.8965 18.7122 8.75946 18.1676 9.46169C17.623 10.1639 16.8604 10.6697 16 10.89" stroke="#22C55E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <div>
+              <div class="channel-name">HOWL Community</div>
+              <div class="channel-sub">Global Member Chat</div>
+            </div>
           </div>
-        </div>
-        <div id="status-howl_community" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
-    </div>
-
-    <div class="auto-check-notice">
-      <i class="fa-solid fa-circle-notch fa-spin"></i> Auto-checking membership...
+          <div id="status-howl_community" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+        </a>
+      </div>
     </div>
   </div>
 
   <!-- TOS Modal -->
   <div id="tosModal" class="full-screen-modal">
     <div class="modal-content">
-      <h2 style="color:var(--accent-orange)"><i class="fa-solid fa-triangle-exclamation"></i> Rules</h2>
-      <p>1. No VPNs, Proxies, or Emulators.<br><br>2. Multiple accounts will trigger an automatic, unappealable ban.<br><br>3. Rewards sync directly to your Bot Wallet.</p>
+      <h2 style="color:var(--accent-orange)"><i class="fa-solid fa-triangle-exclamation"></i> Platform Rules</h2>
+      <p>1. <b>Strict Compliance:</b> No VPNs, Proxies, or Emulators permitted.<br><br>2. <b>Fair Play:</b> Multiple account creation will trigger an automated ban.<br><br>3. <b>Payouts:</b> Earned rewards sync directly to your Telegram Bot Wallet.</p>
       <button class="modal-btn" onclick="document.getElementById('tosModal').classList.remove('active'); triggerHaptic('light');">I Understand</button>
     </div>
   </div>
@@ -276,34 +407,36 @@
         </div>
 
         <div class="balance-section">
-          <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4)); transform: translateZ(0);"></div>
-          <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
-          <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
-          <div class="balance-actions">
-            <button class="btn-claim" onclick="showView('tasks-view')"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
-            <button class="btn-earn" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Top Earners</button>
+          <div class="balance-card">
+            <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 20px var(--accent-blue-glow)); transform: translateZ(0);"></div>
+            <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
+            <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:22px; color:rgba(255,255,255,0.25);"></i> Synced to Bot</div>
+            <div class="balance-actions">
+              <button class="btn-claim" onclick="showView('tasks-view')"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
+              <button class="btn-earn" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Top Earners</button>
+            </div>
           </div>
         </div>
 
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="icon-tr" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange);"><i class="fa-solid fa-gift"></i></div>
+            <div class="icon-tr" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange);"><i class="fa-solid fa-coins"></i></div>
             <h4>HOWL Coins</h4>
             <div class="val">***</div>
-            <div class="sub">Tracked via backend</div>
+            <div class="sub"><i class="fa-solid fa-circle-check"></i> Tracked via backend</div>
           </div>
           <div class="stat-card">
             <div class="icon-tr" style="background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-dollar-sign"></i></div>
             <h4>USDT Balance</h4>
             <div class="val">***</div>
-            <div class="sub">Syncs to Bot</div>
+            <div class="sub"><i class="fa-solid fa-rotate"></i> Syncs to Bot</div>
           </div>
         </div>
 
         <div class="promo-card">
           <h3>Expand Your Network</h3>
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;"><i class="fa-solid fa-bolt" style="color:var(--accent-green);"></i> Increase earning potential</div>
-          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;"><i class="fa-solid fa-star" style="color:var(--accent-green);"></i> Lifetime reward splits</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;"><i class="fa-solid fa-bolt" style="color:var(--accent-green);"></i> Multiply your daily payout rates</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text-muted); margin-bottom: 8px;"><i class="fa-solid fa-star" style="color:var(--accent-green);"></i> Automatic lifetime commission splits</div>
           <div class="promo-actions">
             <button class="btn-secondary" onclick="copyRefLink()"><i class="fa-regular fa-copy"></i> Copy Link</button>
             <button class="btn-secondary" style="background: var(--accent-blue); color:#fff; border:none;" onclick="shareApp()"><i class="fa-solid fa-paper-plane"></i> Share</button>
@@ -313,8 +446,8 @@
 
       <!-- TASKS VIEW -->
       <div id="tasks-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Tasks</h2>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Complete offers and watch video ads to boost your balance.</p>
+        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 6px 0;">Earning Hub</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Complete high-yield offers and video ads to boost balance.</p>
         
         <div class="earn-category-tabs" id="earn-tabs">
           <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
@@ -330,13 +463,13 @@
         </div>
 
         <div id="panel-ads" class="earn-section-panel">
-          <div style="margin-bottom: 16px; font-size: 14px; font-weight: 600;">Ad Networks</div>
+          <div style="margin-bottom: 14px; font-size: 14px; font-weight: 700;">Featured Ad Networks</div>
           <div class="ad-task-item" id="adsbitvexCard">
             <div class="ad-task-left">
-              <div class="ad-task-icon" style="background: rgba(28, 123, 242, 0.1); color: var(--accent-blue);"><i class="fa-solid fa-play"></i></div>
+              <div class="ad-task-icon" style="background: rgba(37, 99, 235, 0.15); color: var(--accent-blue);"><i class="fa-solid fa-play"></i></div>
               <div class="ad-task-info">
                 <h4>AdsBitvex</h4>
-                <p>Cycle progress: <span id="adStepIndicator" style="color:#fff; font-weight:600;">1/3</span></p>
+                <p>Cycle progress: <span id="adStepIndicator" style="color:#fff; font-weight:700;">1/3</span></p>
                 <div style="font-size: 13px; font-weight: 800; color: var(--accent-green);">+0.0005 USDT / view</div>
               </div>
             </div>
@@ -350,43 +483,43 @@
       
       <!-- FRIENDS VIEW -->
       <div id="team-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Friends</h2>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Invite your network to grow your USDT earnings.</p>
+        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 6px 0;">Invite Friends</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Grow your network to earn persistent referral commissions.</p>
 
         <div class="promo-card" style="margin-bottom: 24px;">
-          <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-users" style="color:var(--accent-green)"></i> Referral Program</h3>
+          <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-users" style="color:var(--accent-green)"></i> Partner Program</h3>
           
           <div style="display: flex; gap: 10px; margin: 16px 0;">
-            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:12px; text-align:center;">
+            <div style="flex:1; background:var(--card-bg-light); border-radius:14px; padding:12px; text-align:center;">
               <div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">BONUS PER FRIEND</div>
               <div style="color:var(--accent-green); font-weight:800; font-size:14px;">Active</div>
             </div>
-            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:12px; text-align:center;">
+            <div style="flex:1; background:var(--card-bg-light); border-radius:14px; padding:12px; text-align:center;">
               <div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">LIFETIME REWARDS</div>
               <div style="color:var(--accent-blue); font-weight:800; font-size:14px;">Enabled</div>
             </div>
           </div>
 
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Your Referral Link</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 8px;">Your Referral Link</div>
           <div style="display:flex; gap:10px;">
             <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:var(--card-bg-light); border:1px solid var(--border-soft); color:var(--text-main); padding:12px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
             <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 16px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
           </div>
-          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
+          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px; cursor:pointer; box-shadow:0 4px 15px var(--accent-blue-glow);"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
       </div>
 
       <!-- PROFILE VIEW -->
       <div id="profile-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Profile</h2>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Manage settings and view transaction history.</p>
+        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 6px 0;">User Profile</h2>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Manage settings and view transaction ledgers.</p>
 
         <div class="ad-task-item" onclick="showView('history-view')">
           <div class="ad-task-left">
-            <div class="ad-task-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
+            <div class="ad-task-icon" style="background: rgba(168, 85, 247, 0.15); color: var(--accent-purple);"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
             <div class="ad-task-info">
               <h4>Transaction History</h4>
-              <p>Earnings, withdrawals & expenses</p>
+              <p>Earnings, withdrawals & rewards</p>
             </div>
           </div>
           <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
@@ -394,10 +527,10 @@
 
         <div class="ad-task-item" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
           <div class="ad-task-left">
-            <div class="ad-task-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--accent-orange);"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="ad-task-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange);"><i class="fa-solid fa-shield-halved"></i></div>
             <div class="ad-task-info">
               <h4>Platform Rules</h4>
-              <p>Anti-fraud & compliance</p>
+              <p>Anti-fraud & security parameters</p>
             </div>
           </div>
           <i class="fa-solid fa-chevron-right" style="color:var(--text-muted)"></i>
@@ -406,7 +539,7 @@
 
       <!-- HISTORY SUB-VIEW -->
       <div id="history-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
           <button onclick="showView('profile-view')" style="background:var(--card-bg); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
           <h2 style="font-size: 20px; font-weight: 800; margin:0;">Transaction Ledger</h2>
         </div>
@@ -415,7 +548,7 @@
       
       <!-- LEADERBOARD SUB-VIEW -->
       <div id="leaderboard-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
           <button onclick="showView('home-view')" style="background:var(--card-bg); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
           <h2 style="font-size: 20px; font-weight: 800; margin:0;">Top Earners</h2>
         </div>
@@ -439,7 +572,7 @@
       </button>
       
       <button class="nav-item" onclick="showView('leaderboard-view')">
-        <i class="fa-solid fa-trophy"></i> Leaderboard
+        <i class="fa-solid fa-trophy"></i> Ranks
       </button>
       <button class="nav-item" onclick="showView('profile-view')">
         <i class="fa-regular fa-user"></i> Profile
@@ -488,7 +621,7 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Hide splash screen after 1.8 seconds, revealing the Channel Gate below it
+        // Hide splash screen after 1.8 seconds, revealing the Channel Gate
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -501,7 +634,7 @@
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
-                Telegram.WebApp.setHeaderColor('#080c14');
+                Telegram.WebApp.setHeaderColor('#060911');
                 
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
@@ -520,9 +653,9 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         
-        // Start membership verification gate checking
+        // Start membership verification gate checking at 1 SECOND interval (1000ms)
         verifyChannelMembership();
-        gateCheckInterval = setInterval(verifyChannelMembership, 4000); 
+        gateCheckInterval = setInterval(verifyChannelMembership, 1000); 
     }
 
     async function verifyChannelMembership() {
