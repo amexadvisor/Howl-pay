@@ -106,7 +106,7 @@
     .channel-item:active { transform: scale(0.98); }
     .channel-left { display: flex; align-items: center; gap: 14px; }
     .channel-logo { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--card-bg); border: 2px solid #080c14; display: flex; align-items: center; justify-content: center; }
-    .channel- logo img { width: 100%; height: 100%; object-fit: cover; }
+    .channel-logo img { width: 100%; height: 100%; object-fit: cover; }
     .channel-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
     .channel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .status-badge { font-size: 12px; font-weight: 800; padding: 8px 14px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.05); color: var(--text-muted); transition: 0.3s; }
@@ -189,7 +189,7 @@
 </head>
 <body>
 
-  <!-- Splash Screen -->
+  <!-- Splash Screen (With Audio Unmute Button for Mobile Browsers) -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
@@ -199,7 +199,12 @@
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
-    <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px;">ELITE EARNING</p>
+    <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px; margin-bottom: 24px;">ELITE EARNING</p>
+    
+    <!-- Audio Trigger Banner to bypass mobile browser block -->
+    <button id="audio-trigger-btn" onclick="playHowlAudio()" style="background: rgba(28, 123, 242, 0.2); border: 1px solid var(--accent-blue); color: #fff; padding: 10px 20px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-volume-high" style="color: var(--accent-green);"></i> Tap to Enable Sound
+    </button>
   </div>
 
   <!-- Mandatory Channel Gate -->
@@ -467,6 +472,16 @@
     let adsbitvexLastRun = 0;
     let gateCheckInterval = null;
 
+    const howlAudio = new Audio('assets/howl.mp3');
+    howlAudio.volume = 1.0;
+
+    function playHowlAudio() {
+        howlAudio.play().then(() => {
+            const btn = document.getElementById('audio-trigger-btn');
+            if (btn) btn.style.display = 'none';
+        }).catch(e => console.log("Audio play error", e));
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
@@ -480,20 +495,13 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
-        // Force audio playback using direct JS Audio constructor with touch fallback
-        const howlAudio = new Audio('assets/howl.mp3');
-        howlAudio.volume = 1.0;
-        howlAudio.play().catch(err => {
-            console.log("Autoplay restricted, enabling touch unlock", err);
+        // Try automatic playback immediately; if blocked by mobile browser, button fallback is visible
+        howlAudio.play().then(() => {
+            const btn = document.getElementById('audio-trigger-btn');
+            if (btn) btn.style.display = 'none';
+        }).catch(err => {
+            console.log("Autoplay restricted by browser, waiting for user tap on button.");
         });
-
-        const unlockAudio = () => {
-            howlAudio.play().catch(e => {});
-            document.removeEventListener('click', unlockAudio);
-            document.removeEventListener('touchstart', unlockAudio);
-        };
-        document.addEventListener('click', unlockAudio);
-        document.addEventListener('touchstart', unlockAudio);
 
         if (typeof lottie !== 'undefined') {
             lottie.loadAnimation({
@@ -515,7 +523,7 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Extended splash screen timer to exactly 7.0 seconds matching howl.mp3
+        // Exact 7.0 second splash screen timer matching your howl.mp3 audio length
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -793,6 +801,7 @@
         }
         if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
+        adsbitvexInFlight = let;
         adsbitvexInFlight = true;
         let userSwitchedContext = false;
         const focusLossHandler = () => { userSwitchedContext = true; };
