@@ -88,6 +88,32 @@
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
+    /* Channel Gate Overlay */
+    #channel-gate {
+      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990; /* Sits below splash but above app */
+      display: flex; flex-direction: column; padding: 24px;
+      transition: opacity 0.4s;
+    }
+    #channel-gate.hidden { opacity: 0; pointer-events: none; }
+    .gate-header { text-align: center; margin: 40px 0 30px 0; }
+    .gate-header h2 { font-size: 24px; font-weight: 900; margin: 0 0 8px 0; }
+    .gate-header p { color: var(--text-muted); font-size: 14px; margin: 0; }
+    .channel-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--card-bg-light); padding: 12px 16px;
+      border-radius: var(--radius-lg); margin-bottom: 12px;
+      border: 1px solid var(--border-soft); cursor: pointer; text-decoration: none;
+    }
+    .channel-item:active { transform: scale(0.98); }
+    .channel-left { display: flex; align-items: center; gap: 14px; }
+    .channel-logo { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--card-bg); border: 2px solid #080c14; }
+    .channel-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .channel-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
+    .channel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .status-badge { font-size: 12px; font-weight: 800; padding: 8px 14px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.05); color: var(--text-muted); transition: 0.3s; }
+    .status-badge.joined { background: var(--accent-green-dim); color: var(--accent-green); }
+    .auto-check-notice { text-align: center; margin-top: 24px; font-size: 13px; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 8px; }
+
     /* Top Bar */
     .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
     .user-badge { display: flex; align-items: center; background: var(--card-bg-light); border-radius: var(--radius-pill); padding: 4px 16px 4px 4px; border: 1px solid var(--border-soft); }
@@ -171,12 +197,61 @@
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <!-- Replaced Lightning Bolt with Splash Wolf Emoji (Hardware Accelerated) -->
         <div id="splash-wolf-emoji" style="width: 60px; height: 60px; transform: translateZ(0);"></div>
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
     <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px;">ELITE EARNING</p>
+  </div>
+
+  <!-- Mandatory Channel Gate -->
+  <div id="channel-gate">
+    <div class="gate-header">
+      <div style="width: 60px; height: 60px; background: var(--accent-blue); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color:#fff;">
+        <i class="fa-solid fa-lock"></i>
+      </div>
+      <h2>Unlock App</h2>
+      <p>Join our official channels to continue.</p>
+    </div>
+
+    <div class="channel-list">
+      <a href="https://t.me/howlnotification" target="_blank" class="channel-item">
+        <div class="channel-left">
+          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HN&background=1c7bf2&color=fff" alt="Logo"></div>
+          <div>
+            <div class="channel-name">HOWL Notifications</div>
+            <div class="channel-sub">Official Updates</div>
+          </div>
+        </div>
+        <div id="status-howlnotification" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+      </a>
+
+      <a href="https://t.me/howlnews" target="_blank" class="channel-item">
+        <div class="channel-left">
+          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HN&background=f59e0b&color=fff" alt="Logo"></div>
+          <div>
+            <div class="channel-name">HOWL News</div>
+            <div class="channel-sub">Latest Ecosystem News</div>
+          </div>
+        </div>
+        <div id="status-howlnews" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+      </a>
+
+      <a href="https://t.me/howl_community" target="_blank" class="channel-item">
+        <div class="channel-left">
+          <div class="channel-logo"><img src="https://ui-avatars.com/api/?name=HC&background=b2ff25&color=000" alt="Logo"></div>
+          <div>
+            <div class="channel-name">HOWL Community</div>
+            <div class="channel-sub">Global Chat</div>
+          </div>
+        </div>
+        <div id="status-howl_community" class="status-badge">Join <i class="fa-solid fa-arrow-right"></i></div>
+      </a>
+    </div>
+
+    <div class="auto-check-notice">
+      <i class="fa-solid fa-circle-notch fa-spin"></i> Auto-checking membership...
+    </div>
   </div>
 
   <!-- TOS Modal -->
@@ -201,9 +276,7 @@
         </div>
 
         <div class="balance-section">
-          <!-- Wolf Premium Emoji Container (Dashboard) -->
           <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4)); transform: translateZ(0);"></div>
-
           <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
           <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
           <div class="balance-actions">
@@ -380,6 +453,8 @@
     let currentUserId = 'guest_user';
     let adsbitvexInFlight = false;
     let adsbitvexLastRun = 0;
+    let gateCheckInterval = null;
+
     const urlParams = new URLSearchParams(window.location.search);
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
@@ -394,7 +469,6 @@
         initApp();
         
         if (typeof lottie !== 'undefined') {
-            // 1. Splash Screen Wolf - Set to CANVAS to bypass scaling glitches
             lottie.loadAnimation({
                 container: document.getElementById('splash-wolf-emoji'), 
                 renderer: 'canvas',
@@ -403,7 +477,6 @@
                 path: '/assets/wolf-emoji.json' 
             });
 
-            // 2. Dashboard Wolf - Keeps SVG for highest quality
             lottie.loadAnimation({
                 container: document.getElementById('wolf-emoji'), 
                 renderer: 'svg',
@@ -414,6 +487,8 @@
         }
 
         setInterval(updateCooldownTimers, 1000);
+        
+        // Hide splash screen after 1.8 seconds, revealing the Channel Gate below it
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -444,13 +519,53 @@
 
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
-        setupOfferwallIframes();
-        generateRefLink();
         
-        document.getElementById('panel-offerwall').style.display = 'block';
-        showView('home-view');
-        checkStoredCooldowns();
-        updateDisplayCounters();
+        // Start membership verification gate checking
+        verifyChannelMembership();
+        gateCheckInterval = setInterval(verifyChannelMembership, 4000); 
+    }
+
+    async function verifyChannelMembership() {
+        if (currentUserId === 'guest_user') return; 
+
+        try {
+            const response = await fetch(`/api/check-channels?userId=${currentUserId}`);
+            const data = await response.json();
+
+            if (data.results) {
+                data.results.forEach(channel => {
+                    const statusBadge = document.getElementById(`status-${channel.key}`);
+                    if (statusBadge) {
+                        if (channel.joined) {
+                            statusBadge.className = 'status-badge joined';
+                            statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> Joined';
+                        } else {
+                            statusBadge.className = 'status-badge';
+                            statusBadge.innerHTML = 'Join <i class="fa-solid fa-arrow-right"></i>';
+                        }
+                    }
+                });
+            }
+
+            // If user has joined all channels, unlock app
+            if (data.allJoined) {
+                clearInterval(gateCheckInterval);
+                const gate = document.getElementById('channel-gate');
+                gate.classList.add('hidden');
+                
+                setTimeout(() => { gate.style.display = 'none'; }, 400);
+                
+                // Initialize the rest of the application
+                setupOfferwallIframes();
+                generateRefLink();
+                document.getElementById('panel-offerwall').style.display = 'block';
+                showView('home-view');
+                checkStoredCooldowns();
+                updateDisplayCounters();
+            }
+        } catch (error) {
+            console.error("Failed to check channel membership", error);
+        }
     }
 
     function setupOfferwallIframes() {
