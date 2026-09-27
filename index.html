@@ -9,6 +9,9 @@
   
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  
+  <!-- Added Lottie Web Player for the premium animated emoji -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
   <style>
     :root {
@@ -187,6 +190,10 @@
         </div>
 
         <div class="balance-section">
+          
+          <!-- ADDED: Wolf Premium Emoji Container -->
+          <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4));"></div>
+
           <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
           <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
           <div class="balance-actions">
@@ -377,6 +384,19 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
+        
+        // ADDED: Initialize the Lottie Wolf Emoji
+        if (typeof lottie !== 'undefined') {
+            lottie.loadAnimation({
+                container: document.getElementById('wolf-emoji'), 
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                // Ensure this path matches exactly where you saved the wolf-emoji.json
+                path: '/assets/wolf-emoji.json' 
+            });
+        }
+
         setInterval(updateCooldownTimers, 1000);
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
@@ -396,7 +416,6 @@
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
                 
-                // RESTORED: Your Profile Sync Logic
                 if (Telegram.WebApp.initData) {
                     fetch('/api/sync-profile', {
                         method: 'POST',
@@ -448,14 +467,12 @@
         
         document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
         
-        // Navigation mappings
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(viewId === 'team-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[2].classList.add('active');
         if(viewId === 'leaderboard-view') document.querySelectorAll('.nav-item')[3].classList.add('active');
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
         
-        // RESTORED: Trigger fetch logic on view changes
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
         
@@ -519,7 +536,6 @@
         }
     }
 
-    // RESTORED: Exact history fetch API
     async function renderHistory() {
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
@@ -541,7 +557,6 @@
                 return;
             }
 
-            // Outputing matching PaidZ CSS formatting
             historyList.innerHTML = data.map(item => {
                 const dateObj = new Date(item.created_at);
                 const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
@@ -562,7 +577,6 @@
         }
     }
 
-    // RESTORED: Exact leaderboard fetch API
     async function fetchLeaderboard() {
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
@@ -584,7 +598,6 @@
                 return;
             }
 
-            // Outputing matching PaidZ CSS formatting
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
                 
@@ -614,7 +627,6 @@
         }
     }
 
-    // RESTORED: Anti-cheat adsbitvex logic
     function startAdsBitvexTask() {
         if (adsbitvexInFlight) return;
         const now = Date.now();
@@ -661,7 +673,6 @@
         });
     }
 
-    // RESTORED: Security Header X-Telegram-Init-Data
     async function sendRewardWebhook() {
         const bonusEndpoint = webhookUrl || '/api/claim-bonus';
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
