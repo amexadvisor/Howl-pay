@@ -4,9 +4,10 @@ const { createClient } = require('@supabase/supabase-js');
 const OFFERWALL_SECRET_KEY = process.env.OFFERWALL_SECRET_KEY;
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+// Replaced SUPABASE_KEY with SUPABASE_SERVICE_ROLE_KEY to bypass RLS
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
 module.exports = async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -56,7 +57,7 @@ module.exports = async function handler(req, res) {
   // --- EXTREME DEBUGGING BLOCK ---
   let supabaseDebugInfo = {
     url_exists: !!SUPABASE_URL,
-    key_exists: !!SUPABASE_KEY,
+    key_exists: !!SUPABASE_SERVICE_KEY,
     payload_attempted: null,
     insert_response_status: null,
     insert_response_statustext: null,
