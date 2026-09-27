@@ -66,35 +66,29 @@
       to { opacity: 1; transform: translateY(0) scale(1); } 
     }
 
-    /* RESTORED WORKING SPLASH ANIMATION CSS EXACTLY AS REQUESTED */
+    /* PERFECTED SPLASH ANIMATION: Removed geometry scaling to kill the GPU gray box */
     .splash-ring {
       position: absolute; width: 140px; height: 140px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
       animation: rippleOut 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translateZ(0);
     }
     .splash-ring:nth-child(2) { animation-delay: 0.6s; }
     
     .splash-logo-box {
       width: 90px; height: 90px; 
-      background: #1c2638; /* SOLID HEX COLOR FIXED THE GLITCH */
+      background: var(--card-bg-solid); 
       border-radius: 24px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
-      border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
-      animation: pulseLogo 2s ease-in-out infinite;
-      
-      /* The ultimate WebView anti-glitch stack */
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden;
-      transform: translate3d(0, 0, 0);
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
-      overflow: hidden;
+      border: 1px solid var(--border-highlight); 
+      /* Replaced scaling pulse with a pure shadow pulse */
+      animation: pulseGlow 2s ease-in-out infinite;
     }
     
-    @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2) translateZ(0); opacity: 0; } }
-    @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } }
+    @keyframes rippleOut { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+    @keyframes pulseGlow { 
+      0%, 100% { box-shadow: 0 0 20px rgba(37, 99, 235, 0.4); } 
+      50% { box-shadow: 0 0 60px rgba(37, 99, 235, 0.9); } 
+    }
     
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -319,7 +313,7 @@
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <div id="splash-wolf-emoji" style="width: 60px; height: 60px; transform: translateZ(0);"></div>
+        <div id="splash-wolf-emoji" style="width: 60px; height: 60px;"></div>
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 6px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
@@ -418,7 +412,13 @@
 
         <div class="balance-section">
           <div class="balance-card">
-            <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 20px var(--accent-blue-glow)); transform: translateZ(0);"></div>
+            
+            <!-- PERFECTED DASHBOARD WOLF: Used a static DIV background glow instead of CSS filter drop-shadow to kill gray box -->
+            <div style="position:relative; width: 72px; height: 72px; margin: 0 auto 12px auto;">
+              <div style="position:absolute; inset:10px; background:var(--accent-blue); filter:blur(20px); opacity:0.6; border-radius:50%;"></div>
+              <div id="wolf-emoji" style="position:relative; z-index:2; width: 100%; height: 100%;"></div>
+            </div>
+
             <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
             <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:22px; color:rgba(255,255,255,0.25);"></i> Synced to Bot</div>
             <div class="balance-actions">
@@ -611,13 +611,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
+        // Reverted Both renderers strictly to SVG since CSS conflicts are removed
         if (typeof lottie !== 'undefined') {
             lottie.loadAnimation({
                 container: document.getElementById('splash-wolf-emoji'), 
-                renderer: 'canvas',
+                renderer: 'svg',
                 loop: true,
                 autoplay: true,
-                path: '/assets/wolf-emoji.json' 
+                path: '/assets/wolf-emoji.json'
             });
 
             lottie.loadAnimation({
