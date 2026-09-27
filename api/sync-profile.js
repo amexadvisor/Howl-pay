@@ -50,6 +50,42 @@ export default async function handler(req, res) {
       .eq('user_id', userIdStr)
       .maybeSingle();
 
+    // Multi-Account Device Verification (Ban 2nd+ accounts on same device)
+    if (clientFingerprint) {
+      const { data: primaryAccount } = await supabase
+        .from('users')
+        .select('user_id, created_at')
+        .eq('fingerprint', clientFingerprint)
+        .neq('user_id', userIdStr)
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (primaryAccount) {
+        const isCurrentOlder = existingUser && existingUser.created_at && (new Date(existingUser.created_at) < new Date(primaryAccount.created_at));
+        if (!isCurrentOlder) {
+          console.log(`[Anti-Fraud] Multi-account ban triggered: Device owned by ${primaryAccount.user_id}, blocked ${userIdStr}`);
+          
+          try {
+            await supabase.from('users').upsert({
+              user_id: userIdStr,
+              name: fullName,
+              photo_url: photoUrl,
+              fingerprint: clientFingerprint,
+              last_ip: clientIp || null,
+              last_seen: new Date().toISOString()
+            }, { onConflict: 'user_id' });
+          } catch (e) {}
+
+          return res.status(200).json({
+            success: false,
+            banned: true,
+            ban_reason: 'Multiple accounts detected on this device. Only your original account is permitted.'
+          });
+        }
+      }
+    }
+
     let finalReferrer = null;
 
     if (!existingUser) {

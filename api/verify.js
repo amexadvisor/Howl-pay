@@ -104,14 +104,24 @@ export default async function handler(req, res) {
     // 4. Anti-Cheat Device Fingerprint Verification
     let isMultiAccount = Boolean(isLocalMulti);
     if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch') && !fingerprint.startsWith('hw_timeout')) {
-        const { data: fpMatch } = await supabase
+        const { data: primaryAccount } = await supabase
             .from('users')
-            .select('user_id')
+            .select('user_id, created_at')
             .eq('fingerprint', fingerprint)
             .neq('user_id', targetUserId)
-            .limit(1);
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
             
-        if (fpMatch && fpMatch.length > 0) {
+        if (primaryAccount) {
+            const isCurrentOlder = existingUser && existingUser.created_at && (new Date(existingUser.created_at) < new Date(primaryAccount.created_at));
+            if (!isCurrentOlder) {
+                return res.status(200).json({ 
+                    success: false, 
+                    banned: true,
+                    message: "Multiple accounts detected on this device. Only your original account is permitted." 
+                });
+            }
             isMultiAccount = true;
         }
     }

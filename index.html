@@ -280,6 +280,31 @@
     </div>
   </div>
 
+  <!-- Multi-Account Ban Screen -->
+  <div id="ban-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
+    <div style="width: 72px; height: 72px; border-radius: 22px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); display: flex; align-items: center; justify-content: center; font-size: 32px; color: #ef4444; margin-bottom: 20px;">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
+    <div style="display:inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+      Multi-Account Prohibited
+    </div>
+    <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff;">Access Suspended</h2>
+    <p id="ban-reason-text" style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; max-width: 340px;">
+      Multiple accounts have been detected on this physical device. Only one account per device is permitted.
+    </p>
+    <div style="background: var(--card-bg-light); border: 1px solid var(--border-soft); border-radius: 16px; padding: 16px; text-align: left; margin-bottom: 24px; max-width: 340px; width: 100%;">
+      <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 6px;">
+        <i class="fa-solid fa-circle-info" style="color: var(--accent-blue);"></i> How to resolve:
+      </div>
+      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+        Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.
+      </div>
+    </div>
+    <button onclick="if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.close){Telegram.WebApp.close();}else{window.close();}" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 14px; cursor: pointer; max-width: 340px; width: 100%;">
+      Close App
+    </button>
+  </div>
+
   <div class="container">
     <main id="main-content">
       
@@ -562,9 +587,19 @@
         try {
             let deviceId = localStorage.getItem('howl_device_uuid');
             if (!deviceId) {
-                deviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-                localStorage.setItem('howl_device_uuid', deviceId);
+                const match = document.cookie.match(/(?:^|; )howl_device_uuid=([^;]*)/);
+                if (match && match[1]) {
+                    deviceId = decodeURIComponent(match[1]);
+                }
             }
+            if (!deviceId) {
+                deviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+            }
+            try { localStorage.setItem('howl_device_uuid', deviceId); } catch(e) {}
+            try {
+                const exp = new Date(Date.now() + 365*24*60*60*1000).toUTCString();
+                document.cookie = `howl_device_uuid=${encodeURIComponent(deviceId)}; expires=${exp}; path=/; SameSite=Lax`;
+            } catch(e) {}
 
             const canvas = document.createElement('canvas');
             canvas.width = 160;
@@ -597,9 +632,43 @@
             }
             return `hw_${Math.abs(hash).toString(36)}_${deviceId}`;
         } catch (err) {
-            let fallback = localStorage.getItem('howl_device_uuid') || ('dev_' + Math.random().toString(36).substring(2, 12));
-            localStorage.setItem('howl_device_uuid', fallback);
+            let fallback = localStorage.getItem('howl_device_uuid');
+            if (!fallback) {
+                const match = document.cookie.match(/(?:^|; )howl_device_uuid=([^;]*)/);
+                if (match && match[1]) fallback = decodeURIComponent(match[1]);
+            }
+            if (!fallback) {
+                fallback = 'dev_' + Math.random().toString(36).substring(2, 12);
+                try { localStorage.setItem('howl_device_uuid', fallback); } catch(e) {}
+            }
             return fallback;
+        }
+    }
+
+    function triggerBanScreen(reason) {
+        if (gateCheckInterval) {
+            clearInterval(gateCheckInterval);
+            gateCheckInterval = null;
+        }
+        try { howlAudio.pause(); } catch(e) {}
+
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
+
+        const gate = document.getElementById('channel-gate');
+        if (gate) gate.style.display = 'none';
+
+        const main = document.getElementById('main-content');
+        if (main) main.style.display = 'none';
+
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'none';
+
+        const banScreen = document.getElementById('ban-screen');
+        if (banScreen) {
+            banScreen.style.display = 'flex';
+            const reasonEl = document.getElementById('ban-reason-text');
+            if (reasonEl && reason) reasonEl.textContent = reason;
         }
     }
 
@@ -620,6 +689,10 @@
         })
         .then(r => r.json())
         .then(data => {
+            if (data.banned) {
+                triggerBanScreen(data.ban_reason);
+                return;
+            }
             if (data.success && data.referral_stats) {
                 updateReferralStatsUI(data.referral_stats);
             }
@@ -956,7 +1029,12 @@
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
-                alert(`⚠️ Claim failed: Unauthorized signature.`);
+                const errData = await response.json().catch(() => ({}));
+                if (response.status === 403 && (errData.error || '').toLowerCase().includes('account')) {
+                    triggerBanScreen(errData.error);
+                } else {
+                    alert(`⚠️ Claim failed: ${errData.error || 'Unauthorized signature.'}`);
+                }
             }
         } catch (err) {
             alert(`❌ Network Error. Claim failed.`);

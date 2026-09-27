@@ -78,6 +78,28 @@ export default async function handler(req, res) {
   // Securely log the verified ad transaction to Supabase using the service role key
   if (supabase) {
     try {
+      // Guard: Check if user is a secondary account on the same device
+      const { data: currentAccount } = await supabase
+        .from('users')
+        .select('user_id, fingerprint, created_at')
+        .eq('user_id', String(targetUserId))
+        .maybeSingle();
+
+      if (currentAccount && currentAccount.fingerprint) {
+        const { data: primaryAccount } = await supabase
+          .from('users')
+          .select('user_id, created_at')
+          .eq('fingerprint', currentAccount.fingerprint)
+          .neq('user_id', String(targetUserId))
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (primaryAccount && (!currentAccount.created_at || new Date(currentAccount.created_at) > new Date(primaryAccount.created_at))) {
+          return res.status(403).json({ error: "Access denied: Account suspended due to multi-account policy." });
+        }
+      }
+
       const { error } = await supabase.from('transactions').insert([{
         user_id: String(targetUserId),
         reward_amount: 0.0005,
