@@ -3,10 +3,11 @@ import { createClient } from '@supabase/supabase-js';
 
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+// Replaced SUPABASE_KEY with SUPABASE_SERVICE_ROLE_KEY to bypass RLS
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 const TIMEWALL_SECRET_KEY = process.env.TIMEWALL_SECRET_KEY; 
 
-const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
