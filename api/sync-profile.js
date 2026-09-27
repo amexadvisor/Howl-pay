@@ -1,8 +1,8 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export default async function handler(req, res) {
@@ -14,10 +14,11 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   
   const { initData, fingerprint, startParam } = req.body || {};
-  const BOT_TOKEN = process.env.BOT_TOKEN;
+  const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
 
-  if (!initData || !BOT_TOKEN) return res.status(400).json({ error: 'Missing data' });
-  if (!supabase) return res.status(500).json({ error: 'Database connection missing or misconfigured.' });
+  if (!initData) return res.status(200).json({ success: false, error: 'Missing Telegram initData' });
+  if (!BOT_TOKEN) return res.status(200).json({ success: false, error: 'Server misconfigured: BOT_TOKEN is missing.' });
+  if (!supabase) return res.status(200).json({ success: false, error: 'Server misconfigured: Supabase connection missing.' });
 
   try {
     const params = new URLSearchParams(initData);
@@ -29,7 +30,9 @@ export default async function handler(req, res) {
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
     const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
 
-    if (calculatedHash !== hash) return res.status(403).json({ error: 'Invalid signature' });
+    if (calculatedHash !== hash) {
+      return res.status(200).json({ success: false, error: 'Invalid Telegram security signature.' });
+    }
 
     const userParam = params.get('user');
     if (!userParam) return res.status(400).json({ error: 'Missing user payload' });

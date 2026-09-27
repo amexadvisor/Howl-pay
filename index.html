@@ -687,17 +687,22 @@
                 startParam: startParam
             })
         })
-        .then(r => r.json())
-        .then(data => {
+        .then(async r => {
+            const data = await r.json().catch(() => null);
+            console.log("[HOWL Sync Response]", data);
+            if (!data) return;
             if (data.banned) {
                 triggerBanScreen(data.ban_reason);
                 return;
+            }
+            if (data.error) {
+                console.warn("[HOWL Sync Server Error]", data.error);
             }
             if (data.success && data.referral_stats) {
                 updateReferralStatsUI(data.referral_stats);
             }
         })
-        .catch(e => console.log("Profile sync ignored"));
+        .catch(e => console.error("[HOWL Sync Fetch Error]", e));
     }
 
     function updateReferralStatsUI(stats) {
