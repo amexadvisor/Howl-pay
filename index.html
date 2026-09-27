@@ -84,19 +84,16 @@
     }
     
     @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2) translateZ(0); opacity: 0; } }
-    
-    /* GLITCH FIX: Replaced transform: scale with box-shadow pulse to stop GPU tearing */
     @keyframes pulseLogo { 
       0%, 100% { box-shadow: 0 0 40px rgba(28, 123, 242, 0.3); transform: translateZ(0); } 
       50% { box-shadow: 0 0 70px rgba(28, 123, 242, 0.8); transform: translateZ(0); } 
     }
-    
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Channel Gate Overlay */
     #channel-gate {
-      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990; /* Sits below splash but above app */
+      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990;
       display: flex; flex-direction: column; padding: 24px;
       transition: opacity 0.4s;
     }
@@ -196,7 +193,10 @@
 </head>
 <body>
 
-  <!-- Splash Screen -->
+  <!-- Howling Voice Audio Element (7 Seconds) -->
+  <audio id="howl-audio" src="assets/howl.mp3" preload="auto"></audio>
+
+  <!-- Splash Screen (7-Second Duration) -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
@@ -487,6 +487,13 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
+        // Play howling sound right when app opens
+        const howlAudio = document.getElementById('howl-audio');
+        if (howlAudio) {
+            howlAudio.volume = 1.0;
+            howlAudio.play().catch(e => console.log("Audio autoplay restricted by browser"));
+        }
+
         if (typeof lottie !== 'undefined') {
             lottie.loadAnimation({
                 container: document.getElementById('splash-wolf-emoji'), 
@@ -507,12 +514,12 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Hide splash screen after 1.8 seconds, revealing the Channel Gate below it
+        // Extended 7-second opening animation timer
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
             setTimeout(() => splash.style.display = 'none', 500);
-        }, 1800);
+        }, 7000);
     });
 
     function initApp() {
@@ -539,6 +546,7 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         
+        // Verification check interval set to 2 seconds
         verifyChannelMembership();
         gateCheckInterval = setInterval(verifyChannelMembership, 2000); 
     }
