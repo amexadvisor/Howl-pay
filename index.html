@@ -368,28 +368,55 @@
       <!-- FRIENDS VIEW -->
       <div id="team-view" class="view">
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Friends</h2>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Invite your network to grow your USDT earnings.</p>
+        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Invite friends to earn 750 HOWL + 10% USDT lifetime commission.</p>
 
-        <div class="promo-card" style="margin-bottom: 24px;">
-          <h3 style="display:flex; align-items:center; gap:8px;"><i class="fa-solid fa-users" style="color:var(--accent-green)"></i> Referral Program</h3>
-          
-          <div style="display: flex; gap: 10px; margin: 16px 0;">
-            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:12px; text-align:center;">
-              <div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">BONUS PER FRIEND</div>
-              <div style="color:var(--accent-green); font-weight:800; font-size:14px;">Active</div>
+        <!-- Referral Tier Cards -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
+          <div style="background:var(--card-bg); border:1px solid var(--border-soft); border-radius:14px; padding:12px 6px; text-align:center;">
+            <div style="color:var(--accent-green); font-weight:900; font-size:15px; margin-bottom:2px;">+250</div>
+            <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">On Join & Verify</div>
+          </div>
+          <div style="background:var(--card-bg); border:1px solid var(--border-soft); border-radius:14px; padding:12px 6px; text-align:center;">
+            <div style="color:var(--accent-orange); font-weight:900; font-size:15px; margin-bottom:2px;">+500</div>
+            <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">On 10 Ads Watched</div>
+          </div>
+          <div style="background:var(--card-bg); border:1px solid var(--border-soft); border-radius:14px; padding:12px 6px; text-align:center;">
+            <div style="color:var(--accent-blue); font-weight:900; font-size:15px; margin-bottom:2px;">10%</div>
+            <div style="font-size:10px; color:#fff; font-weight:700;">USDT Split</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">Lifetime Commission</div>
+          </div>
+        </div>
+
+        <!-- Referral Stats Card -->
+        <div class="promo-card" style="margin-bottom: 16px;">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 12px 0;"><i class="fa-solid fa-chart-pie" style="color:var(--accent-green)"></i> Your Referral Stats</h3>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">FRIENDS</div>
+              <div id="ref-friends-count" style="color:var(--accent-green); font-weight:800; font-size:16px;">0</div>
             </div>
-            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:12px; text-align:center;">
-              <div style="font-size:10px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">LIFETIME REWARDS</div>
-              <div style="color:var(--accent-blue); font-weight:800; font-size:14px;">Enabled</div>
+            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">HOWL EARNED</div>
+              <div id="ref-howl-earned" style="color:var(--accent-orange); font-weight:800; font-size:14px;">0 HOWL</div>
+            </div>
+            <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">USDT EARNED</div>
+              <div id="ref-usdt-earned" style="color:var(--accent-blue); font-weight:800; font-size:14px;">$0.0000</div>
             </div>
           </div>
+        </div>
 
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Your Referral Link</div>
+        <!-- Invite Link Box -->
+        <div class="promo-card" style="margin-bottom: 24px;">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 10px 0;"><i class="fa-solid fa-link" style="color:var(--accent-blue)"></i> Your Referral Link</h3>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 10px;">Share with friends to automatically credit your rewards.</div>
           <div style="display:flex; gap:10px;">
             <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:var(--card-bg-light); border:1px solid var(--border-soft); color:var(--text-main); padding:12px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
             <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 16px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
           </div>
-          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:16px; display:flex; justify-content:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
+          <button onclick="shareApp()" style="width:100%; background:var(--accent-blue); color:#fff; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:700; font-size:14px; margin-top:14px; display:flex; justify-content:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
       </div>
 
@@ -531,6 +558,85 @@
         }, 7000);
     });
 
+    function getDeviceFingerprint() {
+        try {
+            let deviceId = localStorage.getItem('howl_device_uuid');
+            if (!deviceId) {
+                deviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+                localStorage.setItem('howl_device_uuid', deviceId);
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 160;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+            let canvasHash = '';
+            if (ctx) {
+                ctx.font = '12px Arial';
+                ctx.fillStyle = '#ff6600';
+                ctx.fillText('HOWL-AntiFraud', 10, 15);
+                canvasHash = canvas.toDataURL().slice(-40);
+            }
+
+            let glRenderer = '';
+            try {
+                const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+                if (gl) {
+                    const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+                    if (debugInfo) glRenderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) || '';
+                }
+            } catch(e) {}
+
+            const screenKey = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}_${window.devicePixelRatio || 1}`;
+            const raw = `${deviceId}|${canvasHash}|${glRenderer}|${screenKey}|${navigator.language || ''}|${navigator.hardwareConcurrency || ''}`;
+
+            let hash = 0;
+            for (let i = 0; i < raw.length; i++) {
+                hash = ((hash << 5) - hash) + raw.charCodeAt(i);
+                hash |= 0;
+            }
+            return `hw_${Math.abs(hash).toString(36)}_${deviceId}`;
+        } catch (err) {
+            let fallback = localStorage.getItem('howl_device_uuid') || ('dev_' + Math.random().toString(36).substring(2, 12));
+            localStorage.setItem('howl_device_uuid', fallback);
+            return fallback;
+        }
+    }
+
+    function syncUserProfile() {
+        if (!window.Telegram || !Telegram.WebApp || !Telegram.WebApp.initData) return;
+
+        const startParam = (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || urlParams.get('tgWebAppStartParam') || urlParams.get('startapp') || urlParams.get('start') || '';
+        const deviceFp = getDeviceFingerprint();
+
+        fetch('/api/sync-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                initData: Telegram.WebApp.initData,
+                fingerprint: deviceFp,
+                startParam: startParam
+            })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.referral_stats) {
+                updateReferralStatsUI(data.referral_stats);
+            }
+        })
+        .catch(e => console.log("Profile sync ignored"));
+    }
+
+    function updateReferralStatsUI(stats) {
+        if (!stats) return;
+        const countEl = document.getElementById('ref-friends-count');
+        if (countEl) countEl.textContent = stats.friends_count || 0;
+        const howlEl = document.getElementById('ref-howl-earned');
+        if (howlEl) howlEl.textContent = `${stats.total_howl || 0} HOWL`;
+        const usdtEl = document.getElementById('ref-usdt-earned');
+        if (usdtEl) usdtEl.textContent = `$${parseFloat(stats.total_usdt || 0).toFixed(4)}`;
+    }
+
     function initApp() {
         try {
             if (window.Telegram && Telegram.WebApp) {
@@ -542,13 +648,7 @@
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                 }
                 
-                if (Telegram.WebApp.initData) {
-                    fetch('/api/sync-profile', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ initData: Telegram.WebApp.initData })
-                    }).catch(e => console.log("Profile sync ignored"));
-                }
+                syncUserProfile();
             }
         } catch (e) {}
 
@@ -611,7 +711,7 @@
 
     function generateRefLink() {
         const refInput = document.getElementById('ref-link-input');
-        if (refInput) refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        if (refInput) refInput.value = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
     }
 
     function copyRefLink() {
@@ -633,7 +733,10 @@
         document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
         
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
-        if(viewId === 'team-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
+        if(viewId === 'team-view') {
+            document.querySelectorAll('.nav-item')[1].classList.add('active');
+            syncUserProfile();
+        }
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[2].classList.add('active');
         if(viewId === 'leaderboard-view') document.querySelectorAll('.nav-item')[3].classList.add('active');
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
@@ -801,7 +904,6 @@
         }
         if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
-        adsbitvexInFlight = let;
         adsbitvexInFlight = true;
         let userSwitchedContext = false;
         const focusLossHandler = () => { userSwitchedContext = true; };
@@ -863,8 +965,8 @@
 
     function shareApp() {
         triggerHaptic('medium');
-        const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
-        const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
+        const referralLink = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        const text = `Join HOWL, complete simple tasks & earn USDT directly to your bot!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
             Telegram.WebApp.openTelegramLink(shareUrl);

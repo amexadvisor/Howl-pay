@@ -4,8 +4,8 @@ const { createClient } = require('@supabase/supabase-js');
 const OFFERWALL_SECRET_KEY = process.env.OFFERWALL_SECRET_KEY;
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
 const SUPABASE_URL = process.env.SUPABASE_URL;
-// Replaced SUPABASE_KEY with SUPABASE_SERVICE_ROLE_KEY to bypass RLS
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+// Replaced SUPABASE_KEY with SUPABASE_SERVICE_ROLE_KEY to bypass RLS, with fallback
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
@@ -88,6 +88,34 @@ module.exports = async function handler(req, res) {
       
       if (response.error) {
         supabaseDebugInfo.insert_error = response.error;
+      } else if (rewardAmount > 0) {
+        try {
+          const { data: userRec } = await supabase.from('users').select('referred_by').eq('user_id', String(userId)).maybeSingle();
+          if (userRec && userRec.referred_by) {
+            const referrerId = String(userRec.referred_by);
+            const commission = +(rewardAmount * 0.10).toFixed(6);
+            if (commission > 0) {
+              const { data: refUser } = await supabase.from('users').select('balance, total_earned').eq('user_id', referrerId).maybeSingle();
+              if (refUser) {
+                await supabase.from('users').update({
+                  balance: (parseFloat(refUser.balance) || 0) + commission,
+                  total_earned: (parseFloat(refUser.total_earned) || 0) + commission
+                }).eq('user_id', referrerId);
+
+                await supabase.from('transactions').insert([{
+                  user_id: referrerId,
+                  reward_amount: commission,
+                  transaction_id: `ref_offer_${Date.now()}_${userId}`,
+                  task_type: 'Referral Offerwall Commission (10%)',
+                  status: '1',
+                  created_at: new Date().toISOString()
+                }]);
+              }
+            }
+          }
+        } catch (refErr) {
+          console.error("Referral commission error in postback:", refErr.message);
+        }
       }
     } catch (dbErr) {
       supabaseDebugInfo.catch_exception = { message: dbErr.message, stack: dbErr.stack };

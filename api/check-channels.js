@@ -6,6 +6,9 @@ export default async function handler(req, res) {
   }
 
   const BOT_TOKEN = process.env.BOT_TOKEN;
+  if (!BOT_TOKEN) {
+    return res.status(500).json({ error: 'Server misconfigured: Bot token missing.' });
+  }
   
   // The usernames of your channels
   const channels = [

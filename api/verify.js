@@ -2,7 +2,7 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY;
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 export default async function handler(req, res) {
@@ -119,7 +119,25 @@ export default async function handler(req, res) {
     let finalUserData = null;
 
     if (!existingUser) {
-        const finalReferrer = (isMultiAccount || startParam === targetUserId) ? null : startParam;
+        let cleanRef = startParam ? String(startParam).trim() : null;
+        if (cleanRef && cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
+        const finalReferrer = (isMultiAccount || cleanRef === targetUserId) ? null : cleanRef;
+
+        if (finalReferrer) {
+            const { data: refUser } = await supabase.from('users').select('coins').eq('user_id', finalReferrer).maybeSingle();
+            if (refUser) {
+                await supabase.from('users').update({ coins: (parseFloat(refUser.coins) || 0) + 250 }).eq('user_id', finalReferrer);
+                await supabase.from('transactions').insert([{
+                    user_id: String(finalReferrer),
+                    reward_amount: 250,
+                    transaction_id: `ref_join_${Date.now()}_${targetUserId}`,
+                    task_type: 'Referral Signup Bonus (250 HOWL)',
+                    status: '1',
+                    created_at: new Date().toISOString()
+                }]);
+            }
+        }
+
         await supabase.from('users').insert([{
             user_id: targetUserId,
             name: fullName,

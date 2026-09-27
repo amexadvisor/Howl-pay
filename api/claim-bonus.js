@@ -2,8 +2,8 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
-// Use the powerful service_role key to bypass RLS for writes
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY; 
+// Use the powerful service_role key to bypass RLS for writes, with fallback
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY; 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
 export default async function handler(req, res) {
@@ -88,6 +88,71 @@ export default async function handler(req, res) {
       }]);
 
       if (error) supabaseErrorDetails = error.message;
+
+      // Check if user was referred by someone
+      const { data: userRecord } = await supabase
+        .from('users')
+        .select('user_id, referred_by')
+        .eq('user_id', String(targetUserId))
+        .maybeSingle();
+
+      if (userRecord && userRecord.referred_by) {
+        const referrerId = String(userRecord.referred_by);
+
+        // 1. Credit 10% Lifetime Commission ($0.00005 USDT) to Referrer
+        const commissionAmount = 0.00005;
+        const { data: refUser } = await supabase
+          .from('users')
+          .select('user_id, balance, total_earned, coins')
+          .eq('user_id', referrerId)
+          .maybeSingle();
+
+        if (refUser) {
+          await supabase.from('users').update({
+            balance: (parseFloat(refUser.balance) || 0) + commissionAmount,
+            total_earned: (parseFloat(refUser.total_earned) || 0) + commissionAmount
+          }).eq('user_id', referrerId);
+
+          await supabase.from('transactions').insert([{
+            user_id: referrerId,
+            reward_amount: commissionAmount,
+            transaction_id: `ref_ad_comm_${Date.now()}_${targetUserId}`,
+            task_type: 'Referral Ad Commission (10%)',
+            status: '1',
+            created_at: new Date().toISOString()
+          }]);
+
+          // 2. Check 10-Ads Milestone (500 HOWL Coins to Referrer)
+          const { count: completedAdsCount } = await supabase
+            .from('transactions')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', String(targetUserId))
+            .eq('task_type', 'Ad View Cycle');
+
+          // Check if milestone was already granted
+          const { data: milestoneTx } = await supabase
+            .from('transactions')
+            .select('user_id')
+            .eq('user_id', referrerId)
+            .ilike('task_type', '%10 Ads Milestone%')
+            .ilike('transaction_id', `%${targetUserId}%`)
+            .maybeSingle();
+
+          if ((completedAdsCount || 0) >= 10 && !milestoneTx) {
+            const newCoins = (parseFloat(refUser.coins) || 0) + 500;
+            await supabase.from('users').update({ coins: newCoins }).eq('user_id', referrerId);
+
+            await supabase.from('transactions').insert([{
+              user_id: referrerId,
+              reward_amount: 500,
+              transaction_id: `ref_milestone_10ads_${Date.now()}_${targetUserId}`,
+              task_type: 'Referral 10 Ads Milestone (500 HOWL)',
+              status: '1',
+              created_at: new Date().toISOString()
+            }]);
+          }
+        }
+      }
     } catch (dbErr) {
       supabaseErrorDetails = dbErr.message;
     }

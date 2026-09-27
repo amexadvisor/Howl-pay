@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
-const TELEGRAM_BOT_TOKEN = "8880792386:AAETJqQCC-E3ZJGGny98RuE8bIHLonR-SPU";
-const POLLMATIC_API_KEY = "6cosfuqw2wk6m7d8zoqmow2tuampqt";
+const TELEGRAM_BOT_TOKEN = process.env.BOT_TOKEN;
+const POLLMATIC_API_KEY = process.env.POLLMATIC_API_KEY;
 
 function validateTelegramInitData(initDataString) {
   if (!initDataString) return null;
@@ -38,6 +38,10 @@ module.exports = async function handler(req, res) {
 
   if (req.method !== 'GET') {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  if (!TELEGRAM_BOT_TOKEN || !POLLMATIC_API_KEY) {
+    return res.status(500).json({ error: "Server configuration error: missing credentials" });
   }
 
   const initData = req.headers['x-telegram-init-data'];
