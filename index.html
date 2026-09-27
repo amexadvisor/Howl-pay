@@ -106,7 +106,7 @@
     .channel-item:active { transform: scale(0.98); }
     .channel-left { display: flex; align-items: center; gap: 14px; }
     .channel-logo { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; background: var(--card-bg); border: 2px solid #080c14; display: flex; align-items: center; justify-content: center; }
-    .channel-logo img { width: 100%; height: 100%; object-fit: cover; }
+    .channel- logo img { width: 100%; height: 100%; object-fit: cover; }
     .channel-name { font-weight: 700; font-size: 15px; color: var(--text-main); }
     .channel-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
     .status-badge { font-size: 12px; font-weight: 800; padding: 8px 14px; border-radius: var(--radius-pill); background: rgba(255,255,255,0.05); color: var(--text-muted); transition: 0.3s; }
@@ -188,9 +188,6 @@
   </style>
 </head>
 <body>
-
-  <!-- Howling Voice Audio Element (7 Seconds Synchronized) -->
-  <audio id="howl-audio" src="assets/howl.mp3" preload="auto"></audio>
 
   <!-- Splash Screen -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
@@ -483,24 +480,20 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
-        // Play the 7-second howling voice audio immediately on load
-        const howlAudio = document.getElementById('howl-audio');
-        if (howlAudio) {
-            howlAudio.volume = 1.0;
-            const playPromise = howlAudio.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    // Fallback: if browser blocks autoplay, play audio on first user touch/click
-                    const unlockAudio = () => {
-                        howlAudio.play();
-                        document.removeEventListener('click', unlockAudio);
-                        document.removeEventListener('touchstart', unlockAudio);
-                    };
-                    document.addEventListener('click', unlockAudio);
-                    document.addEventListener('touchstart', unlockAudio);
-                });
-            }
-        }
+        // Force audio playback using direct JS Audio constructor with touch fallback
+        const howlAudio = new Audio('assets/howl.mp3');
+        howlAudio.volume = 1.0;
+        howlAudio.play().catch(err => {
+            console.log("Autoplay restricted, enabling touch unlock", err);
+        });
+
+        const unlockAudio = () => {
+            howlAudio.play().catch(e => {});
+            document.removeEventListener('click', unlockAudio);
+            document.removeEventListener('touchstart', unlockAudio);
+        };
+        document.addEventListener('click', unlockAudio);
+        document.addEventListener('touchstart', unlockAudio);
 
         if (typeof lottie !== 'undefined') {
             lottie.loadAnimation({
@@ -522,7 +515,7 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Extended splash screen timer to exactly 7.0 seconds to match the howl audio
+        // Extended splash screen timer to exactly 7.0 seconds matching howl.mp3
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
