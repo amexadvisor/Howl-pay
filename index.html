@@ -68,15 +68,21 @@
       transform: translateZ(0);
     }
     .splash-ring:nth-child(2) { animation-delay: 0.6s; }
+    
     .splash-logo-box {
       width: 90px; height: 90px; background: var(--card-bg-light); border-radius: 24px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
       border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
       animation: pulseLogo 2s ease-in-out infinite;
+      
+      /* The ultimate WebView anti-glitch stack */
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
-      transform: translateZ(0);
+      transform: translate3d(0, 0, 0);
+      -webkit-mask-image: -webkit-radial-gradient(white, black);
+      overflow: hidden;
     }
+    
     @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2) translateZ(0); opacity: 0; } }
     @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } }
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
@@ -165,8 +171,8 @@
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <!-- Replaced Lightning Bolt with Splash Wolf Emoji -->
-        <div id="splash-wolf-emoji" style="width: 60px; height: 60px;"></div>
+        <!-- Replaced Lightning Bolt with Splash Wolf Emoji (Hardware Accelerated) -->
+        <div id="splash-wolf-emoji" style="width: 60px; height: 60px; transform: translateZ(0);"></div>
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
@@ -196,7 +202,7 @@
 
         <div class="balance-section">
           <!-- Wolf Premium Emoji Container (Dashboard) -->
-          <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4));"></div>
+          <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4)); transform: translateZ(0);"></div>
 
           <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
           <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
@@ -387,18 +393,17 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
-        // Initialize the Lottie Wolf Emojis immediately
         if (typeof lottie !== 'undefined') {
-            // 1. Splash Screen Wolf
+            // 1. Splash Screen Wolf - Set to CANVAS to bypass scaling glitches
             lottie.loadAnimation({
                 container: document.getElementById('splash-wolf-emoji'), 
-                renderer: 'svg',
+                renderer: 'canvas',
                 loop: true,
                 autoplay: true,
                 path: '/assets/wolf-emoji.json' 
             });
 
-            // 2. Dashboard Wolf
+            // 2. Dashboard Wolf - Keeps SVG for highest quality
             lottie.loadAnimation({
                 container: document.getElementById('wolf-emoji'), 
                 renderer: 'svg',
