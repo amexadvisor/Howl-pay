@@ -75,7 +75,6 @@
       border: 1px solid var(--border-highlight); box-shadow: 0 0 40px rgba(28, 123, 242, 0.3);
       animation: pulseLogo 2s ease-in-out infinite;
       
-      /* The ultimate WebView anti-glitch stack */
       -webkit-backface-visibility: hidden;
       backface-visibility: hidden;
       transform: translate3d(0, 0, 0);
@@ -93,7 +92,7 @@
 
     /* Channel Gate Overlay */
     #channel-gate {
-      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990;
+      position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990; 
       display: flex; flex-direction: column; padding: 24px;
       transition: opacity 0.4s;
     }
@@ -193,10 +192,10 @@
 </head>
 <body>
 
-  <!-- Howling Voice Audio Element (7 Seconds) -->
+  <!-- Howling Voice Audio Element (7 Seconds Synchronized) -->
   <audio id="howl-audio" src="assets/howl.mp3" preload="auto"></audio>
 
-  <!-- Splash Screen (7-Second Duration) -->
+  <!-- Splash Screen -->
   <div id="splash-screen" style="position: fixed; inset: 0; background: #080c14; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div class="splash-ring"></div>
@@ -487,11 +486,11 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
-        // Play howling sound right when app opens
+        // Play the 7-second howling audio instantly on load
         const howlAudio = document.getElementById('howl-audio');
         if (howlAudio) {
             howlAudio.volume = 1.0;
-            howlAudio.play().catch(e => console.log("Audio autoplay restricted by browser"));
+            howlAudio.play().catch(e => console.log("Audio autoplay prevented by browser policy", e));
         }
 
         if (typeof lottie !== 'undefined') {
@@ -514,7 +513,7 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Extended 7-second opening animation timer
+        // Extended splash screen timer to exactly 7.0 seconds (matching howl.mp3)
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -546,7 +545,6 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         loadTelegramUser();
         
-        // Verification check interval set to 2 seconds
         verifyChannelMembership();
         gateCheckInterval = setInterval(verifyChannelMembership, 2000); 
     }
