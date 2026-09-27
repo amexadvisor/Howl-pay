@@ -66,32 +66,27 @@
       to { opacity: 1; transform: translateY(0) scale(1); } 
     }
 
-    /* Splash Animation - Mobile Glitch Fixes Applied */
+    /* Splash Animation - Gray Box Glitch Permanently Fixed */
     .splash-ring {
       position: absolute; width: 150px; height: 150px; border-radius: 50%;
       border: 2px solid var(--accent-blue); opacity: 0;
       animation: rippleOut 2s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden; 
-      transform: translateZ(0);
+      will-change: transform, opacity;
     }
     .splash-ring:nth-child(2) { animation-delay: 0.6s; }
     
     .splash-logo-box {
-      width: 96px; height: 96px; background: var(--card-bg-light); border-radius: 28px;
+      width: 96px; height: 96px; 
+      background: #162032; /* CRITICAL FIX: Solid Hex color prevents WebView Alpha gray-box glitch */
+      border-radius: 28px;
       display: flex; align-items: center; justify-content: center; position: relative; z-index: 2;
       border: 1px solid var(--border-highlight); box-shadow: 0 0 50px var(--accent-blue-glow);
       animation: pulseLogo 2s ease-in-out infinite;
-      /* The ultimate WebView anti-glitch stack */
-      -webkit-backface-visibility: hidden;
-      backface-visibility: hidden; 
-      transform: translate3d(0, 0, 0);
-      -webkit-mask-image: -webkit-radial-gradient(white, black);
-      overflow: hidden;
+      will-change: transform;
     }
     
-    @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2.2) translateZ(0); opacity: 0; } }
-    @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.06) translateZ(0); } }
+    @keyframes rippleOut { 0% { transform: scale(0.6); opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+    @keyframes pulseLogo { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.06); } }
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -315,7 +310,8 @@
       <div class="splash-ring"></div>
       <div class="splash-ring"></div>
       <div class="splash-logo-box">
-        <div id="splash-wolf-emoji" style="width: 60px; height: 60px; transform: translateZ(0);"></div>
+        <!-- Wolf Emoji in Splash Box -->
+        <div id="splash-wolf-emoji" style="width: 64px; height: 64px;"></div>
       </div>
     </div>
     <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 6px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
