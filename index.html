@@ -83,10 +83,7 @@
     }
     
     @keyframes rippleOut { 0% { transform: scale(0.6) translateZ(0); opacity: 1; } 100% { transform: scale(2) translateZ(0); opacity: 0; } }
-    @keyframes pulseLogo { 
-      0%, 100% { box-shadow: 0 0 40px rgba(28, 123, 242, 0.3); transform: translateZ(0); } 
-      50% { box-shadow: 0 0 70px rgba(28, 123, 242, 0.8); transform: translateZ(0); } 
-    }
+    @keyframes pulseLogo { 0%, 100% { transform: scale(1) translateZ(0); } 50% { transform: scale(1.05) translateZ(0); } }
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -486,11 +483,23 @@
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
-        // Play the 7-second howling audio instantly on load
+        // Play the 7-second howling voice audio immediately on load
         const howlAudio = document.getElementById('howl-audio');
         if (howlAudio) {
             howlAudio.volume = 1.0;
-            howlAudio.play().catch(e => console.log("Audio autoplay prevented by browser policy", e));
+            const playPromise = howlAudio.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Fallback: if browser blocks autoplay, play audio on first user touch/click
+                    const unlockAudio = () => {
+                        howlAudio.play();
+                        document.removeEventListener('click', unlockAudio);
+                        document.removeEventListener('touchstart', unlockAudio);
+                    };
+                    document.addEventListener('click', unlockAudio);
+                    document.addEventListener('touchstart', unlockAudio);
+                });
+            }
         }
 
         if (typeof lottie !== 'undefined') {
@@ -513,7 +522,7 @@
 
         setInterval(updateCooldownTimers, 1000);
         
-        // Extended splash screen timer to exactly 7.0 seconds (matching howl.mp3)
+        // Extended splash screen timer to exactly 7.0 seconds to match the howl audio
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
