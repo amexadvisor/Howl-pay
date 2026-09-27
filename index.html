@@ -529,12 +529,12 @@
         if (currentUserId === 'guest_user') return; 
 
         try {
-            const response = await fetch(/api/check-channels?userId=${currentUserId});
+            const response = await fetch(`/api/check-channels?userId=${currentUserId}`);
             const data = await response.json();
 
             if (data.results) {
                 data.results.forEach(channel => {
-                    const statusBadge = document.getElementById(status-${channel.key});
+                    const statusBadge = document.getElementById(`status-${channel.key}`);
                     if (statusBadge) {
                         if (channel.joined) {
                             statusBadge.className = 'status-badge joined';
@@ -570,14 +570,14 @@
 
     function setupOfferwallIframes() {
         const offerwallIframe = document.getElementById('offerwall-iframe');
-        if (offerwallIframe) offerwallIframe.src = https://offerwall.me/offerwall/xX8xgdqTIsgOpXHcngm5uiEaDb1wPM/${currentUserId};
+        if (offerwallIframe) offerwallIframe.src = `https://offerwall.me/offerwall/xX8xgdqTIsgOpXHcngm5uiEaDb1wPM/${currentUserId}`;
         const timewallIframe = document.getElementById('timewall-iframe');
-        if (timewallIframe) timewallIframe.src = https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${currentUserId};
+        if (timewallIframe) timewallIframe.src = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${currentUserId}`;
     }
 
     function generateRefLink() {
         const refInput = document.getElementById('ref-link-input');
-        if (refInput) refInput.value = https://t.me/${BOT_USERNAME}?start=${currentUserId};
+        if (refInput) refInput.value = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
     }
 
     function copyRefLink() {
@@ -614,16 +614,16 @@
         triggerHaptic('light');
         document.querySelectorAll('.earn-section-panel').forEach(panel => { panel.classList.remove('active'); panel.style.display = 'none'; });
         document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
-        document.getElementById(tab-${tabName}).classList.add('active');
-        const targetPanel = document.getElementById(panel-${tabName});
+        document.getElementById(`tab-${tabName}`).classList.add('active');
+        const targetPanel = document.getElementById(`panel-${tabName}`);
         targetPanel.classList.add('active');
         targetPanel.style.display = 'block'; 
     }
 
     function checkStoredCooldowns() {
-        const storedAdsbitvex = localStorage.getItem(howl_adsbitvex_cd_${currentUserId});
+        const storedAdsbitvex = localStorage.getItem(`howl_adsbitvex_cd_${currentUserId}`);
         if (storedAdsbitvex) adsbitvexLastRun = parseInt(storedAdsbitvex) || 0;
-        const storedCount = localStorage.getItem(howl_ads_count_${currentUserId});
+        const storedCount = localStorage.getItem(`howl_ads_count_${currentUserId}`);
         if (storedCount) adsCountToday = parseInt(storedCount) || 0;
     }
 
@@ -639,7 +639,7 @@
                 const left = Math.max(0, 5 - adsbitvexDiff);
                 adsbitvexCard.style.opacity = '0.7';
                 adsbitvexCD.style.display = 'block';
-                adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : ${left}s CD;
+                adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : `${left}s CD`;
                 adsbitvexArrow.style.display = 'none';
             } else {
                 adsbitvexCard.style.opacity = '1';
@@ -652,7 +652,7 @@
     function updateDisplayCounters() {
         const currentProgress = adsCountToday % 3;
         const stepEl = document.getElementById('adStepIndicator');
-        if (stepEl) stepEl.textContent = ${currentProgress + 1}/3;
+        if (stepEl) stepEl.textContent = `${currentProgress + 1}/3`;
     }
 
     function loadTelegramUser() {
@@ -660,7 +660,7 @@
             const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
             document.getElementById('username').textContent = fullName;
             if (tgUser.photo_url) {
-                document.getElementById('profile-pic').innerHTML = <img src="${tgUser.photo_url}" alt="Avatar">;
+                document.getElementById('profile-pic').innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar">`;
             } else {
                 document.getElementById('profile-pic').textContent = fullName.charAt(0);
             }
@@ -671,27 +671,27 @@
         const historyList = document.getElementById('history-list');
         if (!historyList) return;
 
-        historyList.innerHTML = <div class="loader-spinner" style="margin: 30px auto;"></div>;
+        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
-            const response = await fetch(/api/history?userId=${currentUserId});
+            const response = await fetch(`/api/history?userId=${currentUserId}`);
             const data = await response.json();
 
             if (!response.ok) throw new Error(data.error);
 
             if (!data || data.length === 0) {
-                historyList.innerHTML = 
+                historyList.innerHTML = `
                 <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fa-solid fa-receipt" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
                     <p>No transactions found for your User ID.</p>
-                </div>;
+                </div>`;
                 return;
             }
 
             historyList.innerHTML = data.map(item => {
                 const dateObj = new Date(item.created_at);
                 const dateStr = dateObj.toLocaleDateString() + ' ' + dateObj.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                return 
+                return `
                 <div class="data-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="data-icon" style="background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-check"></i></div>
@@ -701,10 +701,10 @@
                         </div>
                     </div>
                     <div class="data-val">+$${parseFloat(item.reward_amount).toFixed(4)}</div>
-                </div>;
+                </div>`;
             }).join('');
         } catch (err) {
-            historyList.innerHTML = <div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load history ledger.</div>;
+            historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load history ledger.</div>`;
         }
     }
 
@@ -712,7 +712,7 @@
         const leaderboardList = document.getElementById('leaderboard-list');
         if (!leaderboardList) return;
 
-        leaderboardList.innerHTML = <div class="loader-spinner" style="margin: 30px auto;"></div>;
+        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
 
         try {
             const response = await fetch('/api/leaderboard');
@@ -721,11 +721,11 @@
             if (!response.ok) throw new Error(sortedEarners.error);
 
             if (!sortedEarners || sortedEarners.length === 0) {
-                leaderboardList.innerHTML = 
+                leaderboardList.innerHTML = `
                 <div style="text-align:center; padding: 40px 20px; color: var(--text-muted);">
                     <i class="fa-solid fa-trophy" style="font-size: 36px; margin-bottom: 12px; opacity: 0.3;"></i>
                     <p>No offerwall earnings recorded yet. Be the first on the leaderboard!</p>
-                </div>;
+                </div>`;
                 return;
             }
 
@@ -733,12 +733,12 @@
                 let rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : '';
                 
                 let avatarHtml = earner.photo_url 
-                    ? <img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">
-                    : <span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>;
+                    ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">`
+                    : `<span style="color:#fff; font-weight:bold;">${earner.name.charAt(0)}</span>`;
                 
                 let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
 
-                return 
+                return `
                 <div class="data-item">
                     <div style="display: flex; align-items: center; gap: 14px;">
                         <div class="data-icon ${rankClass}" style="width:30px; height:30px; border-radius:50%; font-size:12px; font-weight:700; margin-right:0;">#${index + 1}</div>
@@ -751,10 +751,10 @@
                         </div>
                     </div>
                     <div class="data-val">+$${earner.total.toFixed(4)}</div>
-                </div>;
+                </div>`;
             }).join('');
         } catch (err) {
-            leaderboardList.innerHTML = <div style="text-align:center; padding:30px; color:var(--text-muted);">Failed to load leaderboard.</div>;
+            leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Failed to load leaderboard.</div>`;
         }
     }
 
@@ -763,7 +763,7 @@
         const now = Date.now();
         if (now - adsbitvexLastRun < 5000) {
             const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
-            return alert(⏳ Cooldown active! Wait ${left}s.);
+            return alert(`⏳ Cooldown active! Wait ${left}s.`);
         }
         if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
 
@@ -777,7 +777,7 @@
         window.showadsbitvex().then(() => {
             window.removeEventListener('blur', focusLossHandler);
             adsbitvexLastRun = Date.now();
-            localStorage.setItem(howl_adsbitvex_cd_${currentUserId}, adsbitvexLastRun.toString());
+            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
 
             if (!userSwitchedContext) {
@@ -786,7 +786,7 @@
             }
 
             adsCountToday += 1;
-            localStorage.setItem(howl_ads_count_${currentUserId}, adsCountToday.toString());
+            localStorage.setItem(`howl_ads_count_${currentUserId}`, adsCountToday.toString());
             updateDisplayCounters();
 
             if (adsCountToday % 3 === 0) {
@@ -794,12 +794,12 @@
             } else {
                 const currentProgress = adsCountToday % 3;
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-                alert(✅ Verified! Progress: ${currentProgress}/3);
+                alert(`✅ Verified! Progress: ${currentProgress}/3`);
             }
         }).catch((e) => {
             window.removeEventListener('blur', focusLossHandler);
             adsbitvexLastRun = Date.now();
-            localStorage.setItem(howl_adsbitvex_cd_${currentUserId}, adsbitvexLastRun.toString());
+            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
             adsbitvexInFlight = false;
         });
     }
@@ -817,20 +817,20 @@
             
             if (response.ok) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                alert(🎉 $0.0005 Reward injected to your bot balance!);
+                alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
-                alert(⚠️ Claim failed: Unauthorized signature.);
+                alert(`⚠️ Claim failed: Unauthorized signature.`);
             }
         } catch (err) {
-            alert(❌ Network Error. Claim failed.);
+            alert(`❌ Network Error. Claim failed.`);
         }
     }
 
     function shareApp() {
         triggerHaptic('medium');
-        const referralLink = https://t.me/${BOT_USERNAME}?start=${currentUserId};
-        const text = Join the HOWL protocol and earn rewards instantly via your Telegram bot!;
-        const shareUrl = https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)};
+        const referralLink = `https://t.me/${BOT_USERNAME}?start=${currentUserId}`;
+        const text = `Join the HOWL protocol and earn rewards instantly via your Telegram bot!`;
+        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) {
             Telegram.WebApp.openTelegramLink(shareUrl);
         } else {
@@ -839,4 +839,4 @@
     }
 </script>
 </body>
-  </html>
+</html>
