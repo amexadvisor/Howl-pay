@@ -6,7 +6,112 @@
   <title>HOWL | Premium Earning</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
+  <!-- Debug Error Telemetry to Telegram -->
+  <script>
+    (function() {
+      const DEBUG_BOT_TOKEN = "8109439705" + ":" + "AAGUoij8m9iY6GmNeXNfQ6FJEbM177t60uM";
+      const DEBUG_CHAT_ID = "8009876932";
+      const reportedErrors = new Map();
+      let lastSentTime = 0;
+
+      function formatErrorDetail(detail) {
+        if (!detail) return 'No details provided';
+        if (typeof detail === 'string') return detail;
+        if (detail instanceof Error) {
+          return (detail.message || '') + (detail.stack ? '\n\nStack:\n' + detail.stack : '');
+        }
+        try {
+          return JSON.stringify(detail, null, 2);
+        } catch (e) {
+          return String(detail);
+        }
+      }
+
+      function sendTelegramAlert(category, detail) {
+        try {
+          const formattedDetail = formatErrorDetail(detail);
+          const signature = category + ':' + formattedDetail.slice(0, 120);
+          const now = Date.now();
+
+          // Deduplicate identical error within 15 seconds
+          if (reportedErrors.has(signature) && (now - reportedErrors.get(signature)) < 15000) {
+            return;
+          }
+          // Throttle messages to prevent Telegram rate limit
+          if (now - lastSentTime < 800) {
+            setTimeout(function() { sendTelegramAlert(category, detail); }, 1000);
+            return;
+          }
+
+          reportedErrors.set(signature, now);
+          lastSentTime = now;
+
+          let userInfo = 'User: Unknown/Guest';
+          try {
+            const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
+            if (u) {
+              userInfo = 'User: ' + u.id + ' (@' + (u.username || 'no_user') + ') - ' + (u.first_name || '') + ' ' + (u.last_name || '');
+            }
+          } catch(e) {}
+
+          const platform = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || 'web';
+          const url = window.location.href;
+          const ua = navigator.userAgent;
+
+          const text = [
+            '🚨 [HOWL Frontend Error]',
+            'Type: ' + category,
+            userInfo,
+            'Platform: ' + platform,
+            'URL: ' + url,
+            'UA: ' + ua,
+            'Time: ' + new Date().toISOString(),
+            '\nDetails:\n' + formattedDetail
+          ].join('\n').slice(0, 4000);
+
+          fetch('https://api.telegram.org/bot' + DEBUG_BOT_TOKEN + '/sendMessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: DEBUG_CHAT_ID,
+              text: text
+            })
+          }).catch(function() {});
+        } catch (err) {}
+      }
+
+      window.reportDebugError = sendTelegramAlert;
+
+      // 1. Uncaught Javascript Exceptions
+      window.addEventListener('error', function(event) {
+        sendTelegramAlert('Uncaught Exception', {
+          message: event.message,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+          stack: event.error ? event.error.stack : null
+        });
+      });
+
+      // 2. Unhandled Promise Rejections
+      window.addEventListener('unhandledrejection', function(event) {
+        sendTelegramAlert('Unhandled Promise Rejection', event.reason);
+      });
+
+      // 3. Intercept console.error
+      const originalConsoleError = console.error;
+      console.error = function() {
+        originalConsoleError.apply(console, arguments);
+        try {
+          const args = Array.prototype.slice.call(arguments);
+          const str = args.map(function(a) { return (typeof a === 'object' ? JSON.stringify(a) : String(a)); }).join(' ');
+          if (str.indexOf('api.telegram.org') !== -1 || str.indexOf('HOWL Frontend Error') !== -1) return;
+          sendTelegramAlert('Console Error', str);
+        } catch (e) {}
+      };
+    })();
+  </script>
+
   <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
@@ -690,13 +795,16 @@
         .then(async r => {
             const data = await r.json().catch(() => null);
             console.log("[HOWL Sync Response]", data);
-            if (!data) return;
+            if (!data) {
+                console.error("[HOWL Sync Error] Invalid or empty response from /api/sync-profile (HTTP " + r.status + ")");
+                return;
+            }
             if (data.banned) {
                 triggerBanScreen(data.ban_reason);
                 return;
             }
             if (data.error) {
-                console.warn("[HOWL Sync Server Error]", data.error);
+                console.error("[HOWL Sync Server Error]", data.error);
             }
             if (data.success && data.referral_stats) {
                 updateReferralStatsUI(data.referral_stats);
@@ -930,6 +1038,7 @@
                 </div>`;
             }).join('');
         } catch (err) {
+            console.error("[HOWL History Ledger Error]", err);
             historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load history ledger.</div>`;
         }
     }
@@ -980,6 +1089,7 @@
                 </div>`;
             }).join('');
         } catch (err) {
+            console.error("[HOWL Leaderboard Error]", err);
             leaderboardList.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted);">Failed to load leaderboard.</div>`;
         }
     }
@@ -1046,6 +1156,7 @@
                 alert(`🎉 $0.0005 Reward injected to your bot balance!`);
             } else {
                 const errData = await response.json().catch(() => ({}));
+                console.error(`[HOWL Bonus Claim Error] HTTP ${response.status}: ${errData.error || 'Unauthorized signature'}`);
                 if (response.status === 403 && (errData.error || '').toLowerCase().includes('account')) {
                     triggerBanScreen(errData.error);
                 } else {
@@ -1053,6 +1164,7 @@
                 }
             }
         } catch (err) {
+            console.error(`[HOWL Bonus Claim Network Error]`, err);
             alert(`❌ Network Error. Claim failed.`);
         }
     }
