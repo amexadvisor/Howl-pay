@@ -2,9 +2,9 @@ import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
 const SURVEY_WEBHOOK_URL = process.env.SURVEY_WEBHOOK_URL;
-const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 // Replaced SUPABASE_KEY with SUPABASE_SERVICE_ROLE_KEY to bypass RLS, with fallback
-const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY; 
+const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const TIMEWALL_SECRET_KEY = process.env.TIMEWALL_SECRET_KEY; 
 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;

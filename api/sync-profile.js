@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
@@ -42,8 +42,6 @@ export default async function handler(req, res) {
     const fullName = (userObj.first_name + ' ' + (userObj.last_name || '')).trim() || 'Telegram User';
     const photoUrl = userObj.photo_url || null;
 
-    // Extract client IP (Vercel provides client IP in x-forwarded-for)
-    const clientIp = (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || '').split(',')[0].trim();
     const clientFingerprint = typeof fingerprint === 'string' ? fingerprint.trim() : null;
 
     // Check if user already exists in DB
@@ -93,7 +91,6 @@ export default async function handler(req, res) {
               name: fullName,
               photo_url: photoUrl,
               fingerprint: clientFingerprint,
-              last_ip: clientIp || null,
               last_seen: new Date().toISOString()
             }, { onConflict: 'user_id' });
           } catch (e) {}
@@ -119,24 +116,15 @@ export default async function handler(req, res) {
         // Fetch Referrer details for anti-cheat verification
         const { data: referrer } = await supabase
           .from('users')
-          .select('user_id, last_ip, last_seen, fingerprint, coins')
+          .select('user_id, last_seen, fingerprint, coins')
           .eq('user_id', cleanRef)
           .maybeSingle();
 
         if (referrer) {
-          const now = Date.now();
-          const referrerLastSeen = referrer.last_seen ? new Date(referrer.last_seen).getTime() : 0;
-          const minutesDiff = (now - referrerLastSeen) / (1000 * 60);
-
           const isSameDevice = Boolean(clientFingerprint && referrer.fingerprint && clientFingerprint === referrer.fingerprint);
-          const isSameIp = Boolean(clientIp && referrer.last_ip && clientIp === referrer.last_ip);
-          const isWithin15Mins = minutesDiff < 15;
 
           if (isSameDevice) {
             console.log(`[Anti-Fraud] Self-referral blocked: same device (${cleanRef} -> ${userIdStr})`);
-            finalReferrer = null; // Deny referral reward, but allow user to use app
-          } else if (isSameIp && isWithin15Mins) {
-            console.log(`[Anti-Fraud] Referral blocked: same IP within 15 min (${clientIp})`);
             finalReferrer = null; // Deny referral reward, but allow user to use app
           } else {
             // Valid new referral!
@@ -167,7 +155,6 @@ export default async function handler(req, res) {
         photo_url: photoUrl,
         referred_by: finalReferrer,
         fingerprint: clientFingerprint,
-        last_ip: clientIp || null,
         balance: 0.0000,
         coins: 0.00,
         total_earned: 0.0000,
@@ -182,7 +169,6 @@ export default async function handler(req, res) {
         photo_url: photoUrl || existingUser.photo_url,
         last_seen: new Date().toISOString()
       };
-      if (clientIp) updatePayload.last_ip = clientIp;
       if (clientFingerprint) updatePayload.fingerprint = clientFingerprint;
 
       await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
