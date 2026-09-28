@@ -109,6 +109,32 @@ export default async function handler(req, res) {
         effectiveStatus = 'banned_multiaccount';
       }
 
+      const HOWL_USD_RATE = 0.00002;
+      const { data: allUserTxs } = await supabase
+        .from('transactions')
+        .select('reward_amount, task_type')
+        .eq('user_id', targetStr)
+        .not('task_type', 'eq', 'ADMIN_BAN');
+
+      let ledgerHowlCoins = 0;
+      let ledgerUsdt = 0;
+      if (allUserTxs && allUserTxs.length > 0) {
+        allUserTxs.forEach(tx => {
+          const amt = parseFloat(tx.reward_amount) || 0;
+          if (tx.task_type.includes('HOWL')) {
+            ledgerHowlCoins += amt;
+          } else {
+            ledgerUsdt += amt;
+          }
+        });
+      }
+
+      const effectiveCoins = Math.max(parseFloat(user.coins) || 0, ledgerHowlCoins);
+      const effectiveUsdt = Math.max(parseFloat(user.balance) || 0, ledgerUsdt);
+      const convertedFromUsdt = effectiveUsdt > 0 ? (effectiveUsdt / HOWL_USD_RATE) : 0;
+      const totalHowlBalance = Math.round(effectiveCoins + convertedFromUsdt);
+      const totalUsdValue = +( (totalHowlBalance * HOWL_USD_RATE).toFixed(4) );
+
       return res.status(200).json({
         success: true,
         found: true,
@@ -116,8 +142,10 @@ export default async function handler(req, res) {
           user_id: user.user_id,
           name: user.name,
           photo_url: user.photo_url,
-          balance: user.balance,
-          coins: user.coins,
+          balance: effectiveUsdt,
+          coins: effectiveCoins,
+          total_howl: totalHowlBalance,
+          total_usd: totalUsdValue,
           total_earned: user.total_earned,
           created_at: user.created_at,
           last_seen: user.last_seen,

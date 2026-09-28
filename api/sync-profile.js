@@ -225,9 +225,54 @@ export default async function handler(req, res) {
       });
     }
 
+    const HOWL_USD_RATE = 0.00002;
+
+    // 4. FETCH USER BALANCE & COINS (CALCULATE HOWL & USD CONVERSION)
+    const { data: currentUserData } = await supabase
+      .from('users')
+      .select('balance, coins, total_earned')
+      .eq('user_id', userIdStr)
+      .maybeSingle();
+
+    const storedCoins = parseFloat(currentUserData?.coins) || 0;
+    const storedBalance = parseFloat(currentUserData?.balance) || 0;
+
+    const { data: allUserTxs } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', userIdStr)
+      .not('task_type', 'eq', 'ADMIN_BAN');
+
+    let ledgerHowlCoins = 0;
+    let ledgerUsdt = 0;
+
+    if (allUserTxs && allUserTxs.length > 0) {
+      allUserTxs.forEach(tx => {
+        const amt = parseFloat(tx.reward_amount) || 0;
+        if (tx.task_type.includes('HOWL')) {
+          ledgerHowlCoins += amt;
+        } else {
+          ledgerUsdt += amt;
+        }
+      });
+    }
+
+    const effectiveCoins = Math.max(storedCoins, ledgerHowlCoins);
+    const effectiveUsdt = Math.max(storedBalance, ledgerUsdt);
+    const convertedFromUsdt = effectiveUsdt > 0 ? (effectiveUsdt / HOWL_USD_RATE) : 0;
+    const totalHowlBalance = Math.round(effectiveCoins + convertedFromUsdt);
+    const totalUsdValue = +( (totalHowlBalance * HOWL_USD_RATE).toFixed(4) );
+
     return res.status(200).json({
       success: true,
       is_admin: isAdmin,
+      user_balance: {
+        total_howl: totalHowlBalance,
+        total_usd: totalUsdValue,
+        coins: effectiveCoins,
+        usdt_earnings: +(effectiveUsdt.toFixed(4)),
+        rate: HOWL_USD_RATE
+      },
       referral_stats: {
         friends_count: friendsCount || 0,
         total_howl: totalHowlEarned,

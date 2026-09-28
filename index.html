@@ -451,8 +451,28 @@
 
         <div class="balance-section">
           <div id="wolf-emoji" style="width: 72px; height: 72px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 15px rgba(28, 123, 242, 0.4)); transform: translateZ(0);"></div>
-          <div class="balance-label"><i class="fa-solid fa-shield-halved"></i> Wallet Balance</div>
-          <div class="balance-amount"><i class="fa-solid fa-lock" style="font-size:24px; color:rgba(255,255,255,0.2);"></i> Synced to Bot</div>
+          
+          <div class="balance-label">
+            <i class="fa-solid fa-wallet" style="color: var(--accent-blue);"></i> Total HOWL Balance
+          </div>
+          
+          <div class="balance-amount" id="dash-howl-balance">
+            <span id="user-howl-val">0</span>
+            <span style="font-size: 18px; color: var(--accent-blue); font-weight: 800; margin-left: 6px;">HOWL</span>
+          </div>
+
+          <!-- Real-Time USD Conversion Section ($0.00002 / HOWL) -->
+          <div class="balance-conversion-wrap" style="display: inline-flex; align-items: center; justify-content: center; gap: 8px; background: rgba(28, 123, 242, 0.08); border: 1px solid rgba(28, 123, 242, 0.25); padding: 6px 16px; border-radius: 50px; margin-bottom: 22px;">
+            <span style="font-size: 13px; font-weight: 700; color: var(--accent-green); display: flex; align-items: center; gap: 4px;">
+              <i class="fa-solid fa-dollar-sign" style="font-size: 11px;"></i>
+              <span id="user-usd-val">0.0000</span> USDT
+            </span>
+            <span style="color: rgba(255,255,255,0.2);">|</span>
+            <span style="font-size: 11px; font-weight: 600; color: var(--text-muted);">
+              1 HOWL = $0.00002
+            </span>
+          </div>
+
           <div class="balance-actions">
             <button class="btn-claim" onclick="showView('tasks-view')"><i class="fa-solid fa-bolt"></i> Start Tasks</button>
             <button class="btn-earn" onclick="showView('leaderboard-view')"><i class="fa-solid fa-trophy"></i> Top Earners</button>
@@ -461,16 +481,16 @@
 
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="icon-tr" style="background: rgba(245, 158, 11, 0.15); color: var(--accent-orange);"><i class="fa-solid fa-gift"></i></div>
+            <div class="icon-tr" style="background: rgba(28, 123, 242, 0.15); color: var(--accent-blue);"><i class="fa-solid fa-coins"></i></div>
             <h4>HOWL Coins</h4>
-            <div class="val">***</div>
-            <div class="sub">Tracked via backend</div>
+            <div class="val" id="stat-howl-coins" style="color: #fff; font-size: 22px;">0</div>
+            <div class="sub" style="color: var(--accent-blue);"><i class="fa-solid fa-shield-halved"></i> Direct Earnings</div>
           </div>
           <div class="stat-card">
             <div class="icon-tr" style="background: var(--accent-green-dim); color: var(--accent-green);"><i class="fa-solid fa-dollar-sign"></i></div>
-            <h4>USDT Balance</h4>
-            <div class="val">***</div>
-            <div class="sub">Syncs to Bot</div>
+            <h4>USDT Value</h4>
+            <div class="val" id="stat-usd-balance" style="color: var(--accent-green); font-size: 22px;">$0.0000</div>
+            <div class="sub"><i class="fa-solid fa-circle-check" style="color: var(--accent-green);"></i> @ $0.00002/HOWL</div>
           </div>
         </div>
 
@@ -971,12 +991,12 @@
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; font-size: 12px;">
                     <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">USDT Balance</div>
-                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-green);">$${parseFloat(u.balance || 0).toFixed(4)}</div>
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">Total HOWL Balance</div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-blue);">${Math.round(u.total_howl || u.coins || 0).toLocaleString()} HOWL</div>
                     </div>
                     <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">HOWL Coins</div>
-                        <div style="font-weight: 800; font-size: 14px; color: #fff;">${parseFloat(u.coins || 0).toLocaleString()}</div>
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">USD Value (@ $0.00002)</div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-green);">$${parseFloat(u.total_usd || u.balance || 0).toFixed(4)}</div>
                     </div>
                     <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
                         <div style="color: var(--text-muted); margin-bottom: 2px;">Joined</div>
@@ -1098,6 +1118,9 @@
             if (data.error) {
                 console.error("[HOWL Sync Server Error]", data.error);
             }
+            if (data.user_balance) {
+                updateBalanceUI(data.user_balance);
+            }
             if (data.success && data.referral_stats) {
                 updateReferralStatsUI(data.referral_stats);
             }
@@ -1106,6 +1129,36 @@
             }
         })
         .catch(e => console.error("[HOWL Sync Fetch Error]", e));
+    }
+
+    let currentHowlBalance = 0;
+    let currentUsdBalance = 0;
+
+    function updateBalanceUI(b) {
+        if (!b) return;
+        currentHowlBalance = Math.round(b.total_howl || 0);
+        currentUsdBalance = parseFloat(b.total_usd || 0);
+
+        const howlVal = document.getElementById('user-howl-val');
+        if (howlVal) howlVal.textContent = currentHowlBalance.toLocaleString();
+
+        const usdVal = document.getElementById('user-usd-val');
+        if (usdVal) usdVal.textContent = currentUsdBalance.toFixed(4);
+
+        const statCoins = document.getElementById('stat-howl-coins');
+        if (statCoins) statCoins.textContent = currentHowlBalance.toLocaleString();
+
+        const statUsd = document.getElementById('stat-usd-balance');
+        if (statUsd) statUsd.textContent = `$${currentUsdBalance.toFixed(4)}`;
+    }
+
+    function incrementLocalBalance(howlAdd, usdAdd) {
+        currentHowlBalance += (howlAdd || 0);
+        currentUsdBalance += (usdAdd || 0);
+        updateBalanceUI({
+            total_howl: currentHowlBalance,
+            total_usd: currentUsdBalance
+        });
     }
 
     function updateReferralStatsUI(stats) {
@@ -1233,7 +1286,10 @@
             if (nav) nav.style.display = 'flex';
         }
 
-        if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
+        if(viewId === 'home-view') {
+            document.querySelectorAll('.nav-item')[0].classList.add('active');
+            syncUserProfile();
+        }
         if(viewId === 'team-view') {
             document.querySelectorAll('.nav-item')[1].classList.add('active');
             generateRefLink();
@@ -1458,7 +1514,9 @@
             
             if (response.ok) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                alert(`🎉 $0.0005 Reward injected to your bot balance!`);
+                incrementLocalBalance(25, 0.0005);
+                syncUserProfile();
+                alert(`🎉 +25 HOWL ($0.0005) added to your balance!`);
             } else {
                 const errData = await response.json().catch(() => ({}));
                 console.error(`[HOWL Bonus Claim Error] HTTP ${response.status}: ${errData.error || 'Unauthorized signature'}`);
