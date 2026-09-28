@@ -410,6 +410,33 @@
     </button>
   </div>
 
+  <!-- Admin Entry Mode Selection Modal -->
+  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(8, 12, 20, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--card-bg); border: 1px solid var(--border-highlight); border-radius: var(--radius-xl); padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.7);">
+      <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(28, 123, 242, 0.15); border: 1px solid rgba(28, 123, 242, 0.4); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-blue); margin: 0 auto 16px;">
+        <i class="fa-solid fa-shield-halved"></i>
+      </div>
+      <div style="display: inline-block; background: rgba(28, 123, 242, 0.12); color: var(--accent-blue); border: 1px solid rgba(28, 123, 242, 0.3); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px;">
+        Admin Session Verified
+      </div>
+      <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 8px 0; color: #fff;">Choose Session Mode</h3>
+      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 24px 0;">
+        Welcome back, Administrator. Please choose how you want to enter HOWL:
+      </p>
+      
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <button onclick="enterAsUser()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; font-size: 14px; cursor: pointer;">
+          <i class="fa-regular fa-user" style="color: var(--accent-green); font-size: 16px;"></i>
+          <span>Enter as User</span>
+        </button>
+        <button onclick="enterAsAdmin()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent-blue); border: none; color: #fff; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; font-size: 14px; cursor: pointer; box-shadow: 0 4px 15px rgba(28,123,242,0.4);">
+          <i class="fa-solid fa-shield-halved" style="font-size: 16px;"></i>
+          <span>Enter Admin Panel</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div class="container">
     <main id="main-content">
       
@@ -555,6 +582,17 @@
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Profile</h2>
         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 24px;">Manage settings and view transaction history.</p>
 
+        <div id="admin-profile-item" class="ad-task-item" style="display: none; border-color: rgba(28, 123, 242, 0.35); background: rgba(28, 123, 242, 0.08);" onclick="enterAsAdmin()">
+          <div class="ad-task-left">
+            <div class="ad-task-icon" style="background: rgba(28, 123, 242, 0.2); color: var(--accent-blue);"><i class="fa-solid fa-shield-halved"></i></div>
+            <div class="ad-task-info">
+              <h4 style="color: var(--accent-blue);">Admin Control Panel</h4>
+              <p>Manage user bans, search IDs & security</p>
+            </div>
+          </div>
+          <i class="fa-solid fa-chevron-right" style="color:var(--accent-blue)"></i>
+        </div>
+
         <div class="ad-task-item" onclick="showView('history-view')">
           <div class="ad-task-left">
             <div class="ad-task-icon" style="background: rgba(168, 85, 247, 0.1); color: #a855f7;"><i class="fa-solid fa-arrow-right-arrow-left"></i></div>
@@ -596,10 +634,54 @@
         <div id="leaderboard-list"></div>
       </div>
 
+      <!-- ADMIN CONTROL PANEL VIEW -->
+      <div id="admin-view" class="view">
+        <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:20px;">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(28,123,242,0.15); color: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <div>
+              <h2 style="font-size: 18px; font-weight: 800; margin:0;">Admin Panel</h2>
+              <p style="font-size: 11px; color: var(--text-muted); margin:0;">User Moderation & Security</p>
+            </div>
+          </div>
+          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); color: #fff; padding: 8px 14px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> User Mode
+          </button>
+        </div>
+
+        <!-- SEARCH INPUT CARD -->
+        <div style="background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 18px; margin-bottom: 20px;">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
+            Lookup User by Telegram ID
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: var(--bg-dark); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none;">
+            <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-blue); border: none; color: #fff; padding: 0 18px; border-radius: 12px; font-weight: 700; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-magnifying-glass"></i> Search
+            </button>
+          </div>
+          <div id="admin-lookup-loader" style="display: none; text-align: center; padding: 16px 0;">
+            <div class="loader-spinner" style="margin: 0 auto;"></div>
+          </div>
+        </div>
+
+        <!-- USER DETAILS CARD (DYNAMIC) -->
+        <div id="admin-user-result" style="display: none;"></div>
+
+        <!-- RECENT LOOKUP / HELP NOTE -->
+        <div style="background: rgba(28,123,242,0.05); border: 1px dashed rgba(28,123,242,0.25); border-radius: 14px; padding: 14px; font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+          <strong style="color: var(--text-main);"><i class="fa-solid fa-circle-info" style="color: var(--accent-blue);"></i> How Ban/Unban works:</strong><br>
+          • <strong>Ban:</strong> Suspends user from claiming bonuses & denies mini app access.<br>
+          • <strong>Unban:</strong> Lifts all bans & resets device collision lock so user can access the app.
+        </div>
+      </div>
+
     </main>
 
     <!-- Bottom Navigation -->
-    <nav class="bottom-nav">
+    <nav class="bottom-nav" id="bottom-nav">
       <button class="nav-item active" onclick="showView('home-view')">
         <i class="fa-solid fa-house"></i> Home
       </button>
@@ -750,7 +832,217 @@
         }
     }
 
+    let isAdminUser = false;
+
+    function checkAdminStatus(data) {
+        if (!data) return;
+        if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) {
+            isAdminUser = true;
+            const adminItem = document.getElementById('admin-profile-item');
+            if (adminItem) adminItem.style.display = 'flex';
+
+            // Show mode selection modal once per session
+            if (!sessionStorage.getItem('howl_admin_mode_chosen')) {
+                const modal = document.getElementById('admin-entry-modal');
+                if (modal) modal.style.display = 'flex';
+            }
+        }
+    }
+
+    function enterAsUser() {
+        triggerHaptic('light');
+        sessionStorage.setItem('howl_admin_mode_chosen', 'user');
+        const modal = document.getElementById('admin-entry-modal');
+        if (modal) modal.style.display = 'none';
+
+        // Restore normal app navigation
+        const main = document.getElementById('main-content');
+        if (main) main.style.display = 'block';
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'flex';
+
+        showView('home-view');
+    }
+
+    function enterAsAdmin() {
+        triggerHaptic('medium');
+        sessionStorage.setItem('howl_admin_mode_chosen', 'admin');
+        const modal = document.getElementById('admin-entry-modal');
+        if (modal) modal.style.display = 'none';
+
+        // Hide splash and gate if visible
+        const splash = document.getElementById('splash-screen');
+        if (splash) splash.style.display = 'none';
+        const gate = document.getElementById('channel-gate');
+        if (gate) gate.style.display = 'none';
+        if (gateCheckInterval) {
+            clearInterval(gateCheckInterval);
+            gateCheckInterval = null;
+        }
+
+        const main = document.getElementById('main-content');
+        if (main) main.style.display = 'block';
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'none';
+
+        showView('admin-view');
+    }
+
+    async function adminLookupUser() {
+        const input = document.getElementById('admin-user-input');
+        const targetId = input ? input.value.trim() : '';
+        if (!targetId) return alert('Please enter a Telegram User ID');
+
+        triggerHaptic('light');
+        const loader = document.getElementById('admin-lookup-loader');
+        const resultCard = document.getElementById('admin-user-result');
+        if (loader) loader.style.display = 'block';
+        if (resultCard) resultCard.style.display = 'none';
+
+        try {
+            const initData = window.Telegram?.WebApp?.initData || '';
+            const res = await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    initData: initData,
+                    action: 'lookup',
+                    targetUserId: targetId
+                })
+            });
+
+            const data = await res.json();
+            if (loader) loader.style.display = 'none';
+
+            if (!data.success) {
+                alert(`Error: ${data.error || 'Failed to lookup user'}`);
+                return;
+            }
+
+            if (!data.found) {
+                if (resultCard) {
+                    resultCard.style.display = 'block';
+                    resultCard.innerHTML = `
+                    <div style="background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 24px; text-align: center; margin-bottom: 20px;">
+                        <i class="fa-solid fa-user-xmark" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px; opacity: 0.5;"></i>
+                        <h4 style="margin: 0 0 6px 0;">User Not Found</h4>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">No account registered with ID <code>${targetId}</code></p>
+                    </div>`;
+                }
+                return;
+            }
+
+            const u = data.user;
+            let statusBadge = '<span style="background: rgba(178,255,37,0.15); color: var(--accent-green); border: 1px solid rgba(178,255,37,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">ACTIVE</span>';
+            if (data.status === 'banned_manual' || data.is_manually_banned) {
+                statusBadge = '<span style="background: rgba(239,68,68,0.15); color: #ef4444; border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">BANNED (MANUAL)</span>';
+            } else if (data.status === 'banned_multiaccount') {
+                statusBadge = '<span style="background: rgba(245,158,11,0.15); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">DEVICE COLLISION</span>';
+            } else if (data.status === 'unbanned_override') {
+                statusBadge = '<span style="background: rgba(28,123,242,0.15); color: var(--accent-blue); border: 1px solid rgba(28,123,242,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">UNBANNED OVERRIDE</span>';
+            } else if (data.status === 'admin_protected') {
+                statusBadge = '<span style="background: rgba(168,85,247,0.15); color: #a855f7; border: 1px solid rgba(168,85,247,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">ADMIN</span>';
+            }
+
+            let collisionHtml = '';
+            if (data.device_collisions && data.device_collisions.length > 0) {
+                collisionHtml = `
+                <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 10px; margin-top: 12px; font-size: 12px;">
+                    <div style="font-weight: 700; color: var(--accent-orange); margin-bottom: 4px;">Colliding Accounts (Same Device):</div>
+                    ${data.device_collisions.map(c => `<div>• ID: <code>${c.user_id}</code> (${c.name || 'No name'})</div>`).join('')}
+                </div>`;
+            }
+
+            resultCard.style.display = 'block';
+            resultCard.innerHTML = `
+            <div style="background: var(--card-bg); border: 1px solid var(--border-soft); border-radius: var(--radius-lg); padding: 20px; margin-bottom: 20px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-blue); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden;">
+                            ${u.photo_url ? `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : (u.name ? u.name.charAt(0) : '?')}
+                        </div>
+                        <div>
+                            <h3 style="font-size: 16px; font-weight: 800; margin: 0;">${u.name || 'Telegram User'}</h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">ID: <code>${u.user_id}</code></p>
+                        </div>
+                    </div>
+                    <div>${statusBadge}</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; font-size: 12px;">
+                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">USDT Balance</div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-green);">$${parseFloat(u.balance || 0).toFixed(4)}</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">HOWL Coins</div>
+                        <div style="font-weight: 800; font-size: 14px; color: #fff;">${parseFloat(u.coins || 0).toLocaleString()}</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">Joined</div>
+                        <div style="color: #fff;">${u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                        <div style="color: var(--text-muted); margin-bottom: 2px;">Referred By</div>
+                        <div style="color: #fff;">${u.referred_by || 'None'}</div>
+                    </div>
+                </div>
+
+                ${collisionHtml}
+
+                <div style="display: flex; gap: 10px; margin-top: 16px;">
+                    <button onclick="adminExecuteAction('ban', '${u.user_id}')" style="flex: 1; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: #ef4444; padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fa-solid fa-ban"></i> Ban User
+                    </button>
+                    <button onclick="adminExecuteAction('unban', '${u.user_id}')" style="flex: 1; background: rgba(178,255,37,0.15); border: 1px solid rgba(178,255,37,0.4); color: var(--accent-green); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                        <i class="fa-solid fa-unlock"></i> Unban User
+                    </button>
+                </div>
+            </div>`;
+
+        } catch (err) {
+            if (loader) loader.style.display = 'none';
+            console.error('Admin Lookup Error', err);
+            alert('Failed to connect to admin API.');
+        }
+    }
+
+    async function adminExecuteAction(action, targetId) {
+        const verb = action === 'ban' ? 'BAN' : 'UNBAN';
+        if (!confirm(`Are you sure you want to ${verb} user ${targetId}?`)) return;
+
+        triggerHaptic('medium');
+        try {
+            const initData = window.Telegram?.WebApp?.initData || '';
+            const res = await fetch('/api/admin', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    initData: initData,
+                    action: action,
+                    targetUserId: targetId
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                alert(`✅ ${data.message}`);
+                adminLookupUser(); // Refresh card
+            } else {
+                alert(`❌ Action failed: ${data.error || 'Unknown error'}`);
+            }
+        } catch (err) {
+            console.error('Admin action execution failed', err);
+            alert('Network error while processing admin action.');
+        }
+    }
+
     function triggerBanScreen(reason) {
+        if (isAdminUser || (tgUser && String(tgUser.id) === '8026237972')) {
+            console.log("Admin user exempt from ban screen");
+            return;
+        }
+
         if (gateCheckInterval) {
             clearInterval(gateCheckInterval);
             gateCheckInterval = null;
@@ -809,6 +1101,9 @@
             if (data.success && data.referral_stats) {
                 updateReferralStatsUI(data.referral_stats);
             }
+            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) {
+                checkAdminStatus(data);
+            }
         })
         .catch(e => console.error("[HOWL Sync Fetch Error]", e));
     }
@@ -832,6 +1127,9 @@
                 
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
+                    if (String(tgUser.id) === '8026237972') {
+                        checkAdminStatus({ is_admin: true });
+                    }
                 }
                 
                 syncUserProfile();
@@ -928,6 +1226,13 @@
         
         document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
         
+        const nav = document.getElementById('bottom-nav');
+        if (viewId === 'admin-view') {
+            if (nav) nav.style.display = 'none';
+        } else {
+            if (nav) nav.style.display = 'flex';
+        }
+
         if(viewId === 'home-view') document.querySelectorAll('.nav-item')[0].classList.add('active');
         if(viewId === 'team-view') {
             document.querySelectorAll('.nav-item')[1].classList.add('active');

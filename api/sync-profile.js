@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
+const ADMIN_IDS = ['8026237972'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -69,37 +70,61 @@ export default async function handler(req, res) {
       return false;
     }
 
-    // Multi-Account Device Verification (Ban 2nd+ accounts on same device)
-    if (clientFingerprint) {
-      const { data: primaryAccount } = await supabase
-        .from('users')
-        .select('user_id, created_at')
-        .eq('fingerprint', clientFingerprint)
-        .neq('user_id', userIdStr)
-        .order('created_at', { ascending: true })
-        .limit(1)
-        .maybeSingle();
+    const isAdmin = ADMIN_IDS.includes(userIdStr);
 
-      if (primaryAccount) {
-        const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
-        if (!isCurrentOlder) {
-          console.log(`[Anti-Fraud] Multi-account ban triggered: Device owned by ${primaryAccount.user_id}, blocked ${userIdStr}`);
-          
-          try {
-            await supabase.from('users').upsert({
-              user_id: userIdStr,
-              name: fullName,
-              photo_url: photoUrl,
-              fingerprint: clientFingerprint,
-              last_seen: new Date().toISOString()
-            }, { onConflict: 'user_id' });
-          } catch (e) {}
+    // Multi-Account & Ban Verification (Admins are 100% exempt)
+    if (!isAdmin) {
+      // 1. Manual Admin Ban Check from transactions table
+      const { data: adminBanRows } = await supabase
+        .from('transactions')
+        .select('status')
+        .eq('user_id', userIdStr)
+        .eq('task_type', 'ADMIN_BAN')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-          return res.status(200).json({
-            success: false,
-            banned: true,
-            ban_reason: 'Multiple accounts detected on this device. Only your original account is permitted.'
-          });
+      const latestBanStatus = adminBanRows && adminBanRows[0] ? adminBanRows[0].status : null;
+      if (latestBanStatus === 'BANNED') {
+        return res.status(200).json({
+          success: false,
+          banned: true,
+          ban_reason: 'Your account has been suspended by an administrator.'
+        });
+      }
+
+      // 2. Multi-Account Device Verification (Skipped if admin explicitly unbanned this user)
+      if (latestBanStatus !== 'UNBANNED' && clientFingerprint) {
+        const { data: primaryAccount } = await supabase
+          .from('users')
+          .select('user_id, created_at')
+          .eq('fingerprint', clientFingerprint)
+          .neq('user_id', userIdStr)
+          .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+          .order('created_at', { ascending: true })
+          .limit(1)
+          .maybeSingle();
+
+        if (primaryAccount) {
+          const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
+          if (!isCurrentOlder) {
+            console.log(`[Anti-Fraud] Multi-account ban triggered: Device owned by ${primaryAccount.user_id}, blocked ${userIdStr}`);
+            
+            try {
+              await supabase.from('users').upsert({
+                user_id: userIdStr,
+                name: fullName,
+                photo_url: photoUrl,
+                fingerprint: clientFingerprint,
+                last_seen: new Date().toISOString()
+              }, { onConflict: 'user_id' });
+            } catch (e) {}
+
+            return res.status(200).json({
+              success: false,
+              banned: true,
+              ban_reason: 'Multiple accounts detected on this device. Only your original account is permitted.'
+            });
+          }
         }
       }
     }
@@ -202,6 +227,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       success: true,
+      is_admin: isAdmin,
       referral_stats: {
         friends_count: friendsCount || 0,
         total_howl: totalHowlEarned,

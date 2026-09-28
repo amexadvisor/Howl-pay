@@ -96,25 +96,48 @@ export default async function handler(req, res) {
         return false;
       }
 
-      // Guard: Check if user is a secondary account on the same device
-      const { data: currentAccount } = await supabase
-        .from('users')
-        .select('user_id, fingerprint, created_at')
-        .eq('user_id', String(targetUserId))
-        .maybeSingle();
+      const ADMIN_IDS = ['8026237972'];
+      const targetUserIdStr = String(targetUserId);
 
-      if (currentAccount && currentAccount.fingerprint) {
-        const { data: primaryAccount } = await supabase
-          .from('users')
-          .select('user_id, created_at')
-          .eq('fingerprint', currentAccount.fingerprint)
-          .neq('user_id', String(targetUserId))
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+      // Multi-Account & Ban Checks (Admins are 100% exempt)
+      if (!ADMIN_IDS.includes(targetUserIdStr)) {
+        // 1. Check if manually banned by admin
+        const { data: adminBanRows } = await supabase
+          .from('transactions')
+          .select('status')
+          .eq('user_id', targetUserIdStr)
+          .eq('task_type', 'ADMIN_BAN')
+          .order('created_at', { ascending: false })
+          .limit(1);
 
-        if (primaryAccount && !isOlderAccount(currentAccount, primaryAccount)) {
-          return res.status(403).json({ error: "Access denied: Account suspended due to multi-account policy." });
+        const latestBanStatus = adminBanRows && adminBanRows[0] ? adminBanRows[0].status : null;
+        if (latestBanStatus === 'BANNED') {
+          return res.status(403).json({ error: "Access denied: Account suspended by administrator." });
+        }
+
+        // 2. Guard: Check if user is a secondary account on the same device (unless explicitly unbanned)
+        if (latestBanStatus !== 'UNBANNED') {
+          const { data: currentAccount } = await supabase
+            .from('users')
+            .select('user_id, fingerprint, created_at')
+            .eq('user_id', targetUserIdStr)
+            .maybeSingle();
+
+          if (currentAccount && currentAccount.fingerprint) {
+            const { data: primaryAccount } = await supabase
+              .from('users')
+              .select('user_id, created_at')
+              .eq('fingerprint', currentAccount.fingerprint)
+              .neq('user_id', targetUserIdStr)
+              .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+              .order('created_at', { ascending: true })
+              .limit(1)
+              .maybeSingle();
+
+            if (primaryAccount && !isOlderAccount(currentAccount, primaryAccount)) {
+              return res.status(403).json({ error: "Access denied: Account suspended due to multi-account policy." });
+            }
+          }
         }
       }
 
