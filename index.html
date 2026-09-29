@@ -816,11 +816,17 @@
     function updateReferralStatsUI(stats) {
         if (!stats) return;
         const countEl = document.getElementById('ref-friends-count');
-        if (countEl) countEl.textContent = stats.friends_count || 0;
+        if (countEl) countEl.textContent = (stats.friends_count || 0).toLocaleString();
         const howlEl = document.getElementById('ref-howl-earned');
-        if (howlEl) howlEl.textContent = `${stats.total_howl || 0} HOWL`;
+        const howlAmt = parseFloat(stats.total_howl || 0);
+        if (howlEl) howlEl.textContent = `${howlAmt.toLocaleString()} HOWL`;
         const usdtEl = document.getElementById('ref-usdt-earned');
-        if (usdtEl) usdtEl.textContent = `$${parseFloat(stats.total_usdt || 0).toFixed(4)}`;
+        if (usdtEl) {
+            const usdtVal = (stats.total_usdt !== undefined && parseFloat(stats.total_usdt) > 0)
+                ? parseFloat(stats.total_usdt)
+                : (howlAmt * 0.00002);
+            usdtEl.textContent = `$${usdtVal.toFixed(4)}`;
+        }
     }
 
     let currentHowlBalance = 0;

@@ -226,6 +226,7 @@ export default async function handler(req, res) {
     }
 
     const HOWL_USD_RATE = 0.00002;
+    const totalReferralUsdtEquivalent = (totalHowlEarned * HOWL_USD_RATE) + totalUsdtEarned;
 
     // 4. FETCH USER BALANCE & COINS (CALCULATE HOWL & USD CONVERSION)
     const { data: currentUserData } = await supabase
@@ -276,7 +277,8 @@ export default async function handler(req, res) {
       referral_stats: {
         friends_count: friendsCount || 0,
         total_howl: totalHowlEarned,
-        total_usdt: +(totalUsdtEarned.toFixed(4))
+        total_usdt: +(totalReferralUsdtEquivalent.toFixed(4)),
+        direct_usdt: +(totalUsdtEarned.toFixed(4))
       }
     });
 
