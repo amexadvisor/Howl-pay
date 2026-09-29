@@ -7,11 +7,9 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
-  <!-- Debug Error Telemetry to Telegram -->
+  <!-- Safe Error Telemetry via Backend -->
   <script>
     (function() {
-      const DEBUG_BOT_TOKEN = "8109439705:AAGUoij8m9iY6GmNeXNfQ6FJEbM177t60uM";
-      const DEBUG_CHAT_ID = "8009876932";
       const reportedErrors = new Map();
       let lastSentTime = 0;
 
@@ -24,15 +22,18 @@
         try { return JSON.stringify(detail, null, 2); } catch (e) { return String(detail); }
       }
 
-      function sendTelegramAlert(category, detail) {
+      function sendErrorToBackend(category, detail) {
         try {
           const formattedDetail = formatErrorDetail(detail);
           const signature = category + ':' + formattedDetail.slice(0, 120);
           const now = Date.now();
 
+          // Deduplicate identical errors within 15 seconds
           if (reportedErrors.has(signature) && (now - reportedErrors.get(signature)) < 15000) return;
+          
+          // Throttle requests
           if (now - lastSentTime < 800) {
-            setTimeout(function() { sendTelegramAlert(category, detail); }, 1000);
+            setTimeout(function() { sendErrorToBackend(category, detail); }, 1000);
             return;
           }
 
@@ -42,31 +43,35 @@
           let userInfo = 'User: Unknown/Guest';
           try {
             const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
-            if (u) userInfo = 'User: ' + u.id + ' (@' + (u.username || 'no_user') + ') - ' + (u.first_name || '') + ' ' + (u.last_name || '');
+            if (u) userInfo = 'User: ' + u.id + ' (@' + (u.username || 'no_user') + ')';
           } catch(e) {}
 
-          const platform = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || 'web';
-          const url = window.location.href;
-          const ua = navigator.userAgent;
+          const payload = {
+            category: category,
+            userInfo: userInfo,
+            platform: (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || 'web',
+            url: window.location.href,
+            ua: navigator.userAgent,
+            details: formattedDetail
+          };
 
-          const text = [
-            '🚨 [HOWL Frontend Error]', 'Type: ' + category, userInfo, 'Platform: ' + platform,
-            'URL: ' + url, 'UA: ' + ua, 'Time: ' + new Date().toISOString(),
-            '\nDetails:\n' + formattedDetail
-          ].join('\n').slice(0, 4000);
-
-          fetch('https://api.telegram.org/bot' + DEBUG_BOT_TOKEN + '/sendMessage', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ chat_id: DEBUG_CHAT_ID, text: text })
+          // Send to your backend securely (NO TOKENS EXPOSED)
+          fetch('/api/log-error', {
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
           }).catch(function() {});
         } catch (err) {}
       }
 
-      window.reportDebugError = sendTelegramAlert;
+      window.reportDebugError = sendErrorToBackend;
+      
       window.addEventListener('error', function(event) {
-        sendTelegramAlert('Uncaught Exception', { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno, stack: event.error ? event.error.stack : null });
+        sendErrorToBackend('Uncaught Exception', { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno, stack: event.error ? event.error.stack : null });
       });
-      window.addEventListener('unhandledrejection', function(event) { sendTelegramAlert('Unhandled Promise Rejection', event.reason); });
+      window.addEventListener('unhandledrejection', function(event) { 
+        sendErrorToBackend('Unhandled Promise Rejection', event.reason); 
+      });
       
       const originalConsoleError = console.error;
       console.error = function() {
@@ -75,7 +80,7 @@
           const args = Array.prototype.slice.call(arguments);
           const str = args.map(function(a) { return (typeof a === 'object' ? JSON.stringify(a) : String(a)); }).join(' ');
           if (str.indexOf('api.telegram.org') !== -1 || str.indexOf('HOWL Frontend Error') !== -1) return;
-          sendTelegramAlert('Console Error', str);
+          sendErrorToBackend('Console Error', str);
         } catch (e) {}
       };
     })();
