@@ -11,14 +11,21 @@ export default async function handler(req, res) {
   if (!supabase) return res.status(500).json({ error: 'Database connection missing or misconfigured.' });
 
   try {
+    const HOWL_USD_RATE = 0.00002;
+
     // 1. Calculate totals from transactions
-    const { data: txData, error: txError } = await supabase.from('transactions').select('user_id, reward_amount');
+    const { data: txData, error: txError } = await supabase
+      .from('transactions')
+      .select('user_id, reward_amount, task_type')
+      .not('task_type', 'eq', 'ADMIN_BAN');
     if (txError) throw txError;
 
     let userTotals = {};
     txData.forEach(tx => {
         let uid = String(tx.user_id);
-        userTotals[uid] = (userTotals[uid] || 0) + (parseFloat(tx.reward_amount) || 0);
+        let amt = parseFloat(tx.reward_amount) || 0;
+        let usdAmt = (tx.task_type && tx.task_type.includes('HOWL')) ? (amt * HOWL_USD_RATE) : amt;
+        userTotals[uid] = (userTotals[uid] || 0) + usdAmt;
     });
 
     let topEarners = Object.keys(userTotals).map(uid => ({ userId: uid, total: userTotals[uid] }))
@@ -40,7 +47,8 @@ export default async function handler(req, res) {
             userId: earner.userId,
             name: profile.name || `User ${earner.userId.substring(0,4)}***`,
             photo_url: profile.photo_url || null,
-            total: earner.total
+            total: +(earner.total.toFixed(4)),
+            total_howl: Math.round(earner.total / HOWL_USD_RATE)
         };
     });
 

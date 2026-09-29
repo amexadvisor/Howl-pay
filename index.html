@@ -390,6 +390,18 @@
           </div>
         </div>
 
+        <!-- Leaderboard Row (Home) -->
+        <div class="neo-wrap clickable" onclick="openLeaderboard('home-view')">
+          <div class="neo-card task-row" style="padding-top: 14px; padding-bottom: 14px;">
+            <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
+            <div class="task-text">
+              <h4>Top Earners Leaderboard</h4>
+              <p>See global rankings & community earners</p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
+          </div>
+        </div>
+
         <div class="neo-wrap clickable" onclick="showView('tasks-view'); switchEarnTab('offerwall');">
           <div class="neo-card task-row">
             <div class="task-icon"><i class="fa-solid fa-star" style="color: #f59e0b;"></i></div>
@@ -532,6 +544,18 @@
           </div>
         </div>
 
+        <!-- Leaderboard Row (Profile) -->
+        <div class="neo-wrap clickable" onclick="openLeaderboard('profile-view')">
+          <div class="neo-card task-row">
+            <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
+            <div class="task-text">
+              <h4>Leaderboard</h4>
+              <p>Top earners & community rankings</p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
+          </div>
+        </div>
+
         <div class="neo-wrap clickable" onclick="showView('history-view')">
           <div class="neo-card task-row">
             <div class="task-icon"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#a855f7;"></i></div>
@@ -567,7 +591,7 @@
       <!-- LEADERBOARD SUB-VIEW -->
       <div id="leaderboard-view" class="view">
         <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-          <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
+          <button onclick="goBackFromLeaderboard()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
           <h2 style="font-size: 20px; font-weight: 800; margin:0;">Top Earners</h2>
         </div>
         <div id="leaderboard-list"></div>
@@ -935,6 +959,15 @@
         else window.open(shareUrl, '_blank');
     }
 
+    let lastViewBeforeLeaderboard = 'home-view';
+    function openLeaderboard(sourceView) {
+        lastViewBeforeLeaderboard = sourceView || 'home-view';
+        showView('leaderboard-view');
+    }
+    function goBackFromLeaderboard() {
+        showView(lastViewBeforeLeaderboard || 'home-view');
+    }
+
     function showView(viewId) {
         triggerHaptic('light');
         document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
@@ -949,6 +982,13 @@
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
         if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); syncUserProfile(); }
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
+        if(viewId === 'leaderboard-view') {
+            if (lastViewBeforeLeaderboard === 'profile-view') {
+                document.querySelectorAll('.nav-item')[4].classList.add('active');
+            } else {
+                document.querySelectorAll('.nav-item')[0].classList.add('active');
+            }
+        }
         
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
@@ -1039,9 +1079,32 @@
                 return;
             }
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
-                let avatarHtml = earner.photo_url ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#000; font-weight:bold;">${earner.name.charAt(0)}</span>`;
+                let avatarHtml = earner.photo_url ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#000; font-weight:bold;">${(earner.name || 'U').charAt(0)}</span>`;
                 let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="background:transparent; color:var(--text-muted)">#${index + 1}</div><div style="width:40px; height:40px; border-radius:12px; background:var(--accent-green); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div><div><h4>${earner.name}</h4><p>ID: ${maskedId}</p></div></div><div class="data-val">+$${earner.total.toFixed(4)}</div></div>`;
+                
+                let rankBadge = `#${index + 1}`;
+                let rankColor = 'var(--text-muted)';
+                if (index === 0) { rankBadge = '<i class="fa-solid fa-crown" style="color:#eab308; font-size:16px;"></i>'; rankColor = '#eab308'; }
+                else if (index === 1) { rankBadge = '<i class="fa-solid fa-medal" style="color:#94a3b8; font-size:15px;"></i>'; rankColor = '#94a3b8'; }
+                else if (index === 2) { rankBadge = '<i class="fa-solid fa-medal" style="color:#d97706; font-size:15px;"></i>'; rankColor = '#d97706'; }
+
+                const totalUsd = (typeof earner.total === 'number') ? earner.total : parseFloat(earner.total || 0);
+
+                return `
+                <div class="data-item" style="border: 1px solid ${index === 0 ? 'rgba(234,179,8,0.3)' : 'var(--border-soft)'};">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div class="data-icon" style="background:transparent; width:28px; height:28px; margin-right:0; color:${rankColor}; font-weight:800; font-size:14px;">${rankBadge}</div>
+                        <div style="width:40px; height:40px; border-radius:12px; background:var(--accent-green); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div>
+                        <div>
+                            <h4 style="margin:0; font-size:14px; font-weight:700;">${earner.name}</h4>
+                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">ID: ${maskedId}</p>
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div class="data-val" style="font-size:14px;">+$${totalUsd.toFixed(4)}</div>
+                        ${earner.total_howl ? `<div style="font-size:10px; color:var(--accent-orange); font-weight:700;">${Number(earner.total_howl).toLocaleString()} HOWL</div>` : ''}
+                    </div>
+                </div>`;
             }).join('');
         } catch (err) { leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load leaderboard.</div>`; }
     }
