@@ -119,10 +119,33 @@ export default async function handler(req, res) {
         return false;
     }
 
-    // 4. Anti-Cheat Device Fingerprint Verification
+    function getClientIp(req) {
+      let ip = null;
+      const forwarded = req.headers['x-forwarded-for'];
+      if (forwarded) {
+        ip = forwarded.split(',')[0].trim();
+      } else if (req.headers['x-real-ip']) {
+        ip = req.headers['x-real-ip'].trim();
+      } else if (req.socket?.remoteAddress) {
+        ip = req.socket.remoteAddress.trim();
+      }
+      if (ip && ip.startsWith('::ffff:')) {
+        ip = ip.substring(7);
+      }
+      return ip || null;
+    }
+
+    const clientIp = getClientIp(req);
+    const IP_WINDOW_MINUTES = 20;
+    const ipWindowThreshold = new Date(Date.now() - IP_WINDOW_MINUTES * 60 * 1000).toISOString();
+
+    // 4. Anti-Cheat Device Fingerprint & 20-min IP Verification
     let isMultiAccount = Boolean(isLocalMulti);
+    let primaryAccount = null;
+    let isIpMatch = false;
+
     if (fingerprint && !fingerprint.startsWith('hw_err_') && !fingerprint.startsWith('hw_catch') && !fingerprint.startsWith('hw_timeout')) {
-        const { data: primaryAccount } = await supabase
+        const { data: deviceMatch } = await supabase
             .from('users')
             .select('user_id, created_at')
             .eq('fingerprint', fingerprint)
@@ -131,17 +154,39 @@ export default async function handler(req, res) {
             .limit(1)
             .maybeSingle();
             
-        if (primaryAccount) {
-            const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
-            if (!isCurrentOlder) {
-                return res.status(200).json({ 
-                    success: false, 
-                    banned: true,
-                    message: "Multiple accounts detected on this device. Only your original account is permitted." 
-                });
-            }
-            isMultiAccount = true;
+        if (deviceMatch) primaryAccount = deviceMatch;
+    }
+
+    if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+        const { data: recentIpTxs } = await supabase
+            .from('transactions')
+            .select('user_id, created_at')
+            .eq('task_type', 'SYSTEM_IP_LOG')
+            .eq('status', clientIp)
+            .neq('user_id', targetUserId)
+            .gt('created_at', ipWindowThreshold)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+        if (recentIpTxs && recentIpTxs.length > 0) {
+            primaryAccount = recentIpTxs[0];
+            isIpMatch = true;
         }
+    }
+
+    if (primaryAccount) {
+        const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
+        if (!isCurrentOlder) {
+            const reason = isIpMatch
+                ? "Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted."
+                : "Multiple accounts detected on this device. Only your original account is permitted.";
+            return res.status(200).json({ 
+                success: false, 
+                banned: true,
+                message: reason
+            });
+        }
+        isMultiAccount = true;
     }
 
     let finalUserData = null;
@@ -149,7 +194,21 @@ export default async function handler(req, res) {
     if (!existingUser) {
         let cleanRef = startParam ? String(startParam).trim() : null;
         if (cleanRef && cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
-        const finalReferrer = (isMultiAccount || cleanRef === targetUserId) ? null : cleanRef;
+
+        let isSameIpRecent = false;
+        if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost' && cleanRef) {
+            const { data: refIpTxs } = await supabase
+                .from('transactions')
+                .select('id')
+                .eq('task_type', 'SYSTEM_IP_LOG')
+                .eq('status', clientIp)
+                .eq('user_id', cleanRef)
+                .gt('created_at', ipWindowThreshold)
+                .limit(1);
+            if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
+        }
+
+        const finalReferrer = (isMultiAccount || isSameIpRecent || cleanRef === targetUserId) ? null : cleanRef;
 
         if (finalReferrer) {
             const { data: refUser } = await supabase.from('users').select('coins').eq('user_id', finalReferrer).maybeSingle();

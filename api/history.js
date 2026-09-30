@@ -18,6 +18,8 @@ export default async function handler(req, res) {
       .from('transactions')
       .select('*')
       .eq('user_id', userId)
+      .not('task_type', 'like', 'SYSTEM_%')
+      .not('task_type', 'eq', 'ADMIN_BAN')
       .order('created_at', { ascending: false })
       .limit(20);
 

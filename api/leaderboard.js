@@ -17,7 +17,8 @@ export default async function handler(req, res) {
     const { data: txData, error: txError } = await supabase
       .from('transactions')
       .select('user_id, reward_amount, task_type')
-      .not('task_type', 'eq', 'ADMIN_BAN');
+      .not('task_type', 'eq', 'ADMIN_BAN')
+      .not('task_type', 'like', 'SYSTEM_%');
     if (txError) throw txError;
 
     let userTotals = {};

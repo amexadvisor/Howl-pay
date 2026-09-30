@@ -43,6 +43,26 @@ export default async function handler(req, res) {
     const fullName = (userObj.first_name + ' ' + (userObj.last_name || '')).trim() || 'Telegram User';
     const photoUrl = userObj.photo_url || null;
 
+    function getClientIp(req) {
+      let ip = null;
+      const forwarded = req.headers['x-forwarded-for'];
+      if (forwarded) {
+        ip = forwarded.split(',')[0].trim();
+      } else if (req.headers['x-real-ip']) {
+        ip = req.headers['x-real-ip'].trim();
+      } else if (req.socket?.remoteAddress) {
+        ip = req.socket.remoteAddress.trim();
+      }
+      if (ip && ip.startsWith('::ffff:')) {
+        ip = ip.substring(7);
+      }
+      return ip || null;
+    }
+
+    const clientIp = getClientIp(req);
+    const IP_WINDOW_MINUTES = 20;
+    const ipWindowThreshold = new Date(Date.now() - IP_WINDOW_MINUTES * 60 * 1000).toISOString();
+
     const clientFingerprint = typeof fingerprint === 'string' ? fingerprint.trim() : null;
 
     // Check if user already exists in DB
@@ -92,22 +112,52 @@ export default async function handler(req, res) {
         });
       }
 
-      // 2. Multi-Account Device Verification (Skipped if admin explicitly unbanned this user)
-      if (latestBanStatus !== 'UNBANNED' && clientFingerprint) {
-        const { data: primaryAccount } = await supabase
-          .from('users')
-          .select('user_id, created_at')
-          .eq('fingerprint', clientFingerprint)
-          .neq('user_id', userIdStr)
-          .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
-          .order('created_at', { ascending: true })
-          .limit(1)
-          .maybeSingle();
+      // 2. Multi-Account Device & 20-min IP Verification (Skipped if admin explicitly unbanned this user)
+      if (latestBanStatus !== 'UNBANNED') {
+        let primaryAccount = null;
+        let isIpMatch = false;
+
+        // 2A. Check by localStorage device fingerprint
+        if (clientFingerprint) {
+          const { data: deviceMatch } = await supabase
+            .from('users')
+            .select('user_id, created_at')
+            .eq('fingerprint', clientFingerprint)
+            .neq('user_id', userIdStr)
+            .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (deviceMatch) primaryAccount = deviceMatch;
+        }
+
+        // 2B. Check by 20-minute IP window (catches cloned apps / dual-apps on the same network)
+        if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+          const { data: recentIpTxs } = await supabase
+            .from('transactions')
+            .select('user_id, created_at')
+            .eq('task_type', 'SYSTEM_IP_LOG')
+            .eq('status', clientIp)
+            .neq('user_id', userIdStr)
+            .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+            .gt('created_at', ipWindowThreshold)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (recentIpTxs && recentIpTxs.length > 0) {
+            primaryAccount = recentIpTxs[0];
+            isIpMatch = true;
+          }
+        }
 
         if (primaryAccount) {
           const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
           if (!isCurrentOlder) {
-            console.log(`[Anti-Fraud] Multi-account ban triggered: Device owned by ${primaryAccount.user_id}, blocked ${userIdStr}`);
+            const reason = isIpMatch
+              ? 'Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted.'
+              : 'Multiple accounts detected on this device. Only your original account is permitted.';
+            console.log(`[Anti-Fraud] Ban triggered: Device/IP owned by ${primaryAccount.user_id}, blocked ${userIdStr} (IP match: ${isIpMatch})`);
             
             try {
               await supabase.from('users').upsert({
@@ -122,7 +172,7 @@ export default async function handler(req, res) {
             return res.status(200).json({
               success: false,
               banned: true,
-              ban_reason: 'Multiple accounts detected on this device. Only your original account is permitted.'
+              ban_reason: reason
             });
           }
         }
@@ -148,8 +198,22 @@ export default async function handler(req, res) {
         if (referrer) {
           const isSameDevice = Boolean(clientFingerprint && referrer.fingerprint && clientFingerprint === referrer.fingerprint);
 
-          if (isSameDevice) {
-            console.log(`[Anti-Fraud] Self-referral blocked: same device (${cleanRef} -> ${userIdStr})`);
+          // Check if referrer was active on this exact IP within the 20-minute window
+          let isSameIpRecent = false;
+          if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+            const { data: refIpTxs } = await supabase
+              .from('transactions')
+              .select('id')
+              .eq('task_type', 'SYSTEM_IP_LOG')
+              .eq('status', clientIp)
+              .eq('user_id', cleanRef)
+              .gt('created_at', ipWindowThreshold)
+              .limit(1);
+            if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
+          }
+
+          if (isSameDevice || isSameIpRecent) {
+            console.log(`[Anti-Fraud] Self-referral blocked: same device/IP (${cleanRef} -> ${userIdStr})`);
             finalReferrer = null; // Deny referral reward, but allow user to use app
           } else {
             // Valid new referral!
@@ -199,6 +263,33 @@ export default async function handler(req, res) {
       await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
     }
 
+    // Record/refresh IP session for this user (at most once every 10 minutes to save DB writes)
+    if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+      try {
+        const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+        const { data: selfIpLog } = await supabase
+          .from('transactions')
+          .select('id')
+          .eq('user_id', userIdStr)
+          .eq('task_type', 'SYSTEM_IP_LOG')
+          .gt('created_at', tenMinsAgo)
+          .limit(1);
+
+        if (!selfIpLog || selfIpLog.length === 0) {
+          await supabase.from('transactions').insert([{
+            user_id: userIdStr,
+            reward_amount: 0,
+            transaction_id: `ip_${userIdStr}_${Date.now()}`,
+            task_type: 'SYSTEM_IP_LOG',
+            status: clientIp,
+            created_at: new Date().toISOString()
+          }]);
+        }
+      } catch (ipLogErr) {
+        console.error('[IP Log Error]', ipLogErr.message);
+      }
+    }
+
     // 3. FETCH REFERRAL STATS FOR THIS USER
     const { count: friendsCount } = await supabase
       .from('users')
@@ -242,7 +333,8 @@ export default async function handler(req, res) {
       .from('transactions')
       .select('reward_amount, task_type')
       .eq('user_id', userIdStr)
-      .not('task_type', 'eq', 'ADMIN_BAN');
+      .not('task_type', 'eq', 'ADMIN_BAN')
+      .not('task_type', 'like', 'SYSTEM_%');
 
     let ledgerHowlCoins = 0;
     let ledgerUsdt = 0;
