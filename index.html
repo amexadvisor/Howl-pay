@@ -187,9 +187,9 @@
     
     .watch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
     .watch-card { display: flex; flex-direction: column; align-items: center; padding: 16px; text-align: center; }
-    .watch-top { width: 100%; display: flex; justify-content: space-between; font-size: 10px; font-weight: 800; color: var(--text-muted); margin-bottom: 16px; }
+    .watch-top { width: 100%; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
     .eye-container { width: 60px; height: 60px; margin: 0 auto 12px auto; }
-    .watch-reward { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 18px; font-weight: 800; color: #fff; margin-bottom: 16px; }
+    .watch-reward { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 24px; font-weight: 800; color: var(--accent-green); margin-bottom: 12px; text-shadow: 0 0 10px rgba(59, 217, 98, 0.3); }
     .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; }
     .watch-btn:active { background: var(--accent-green); color: #000; }
 
@@ -423,9 +423,18 @@
           <!-- Monetag Rewarded Ad -->
           <div class="neo-wrap">
             <div class="neo-card watch-card" id="monetagCard">
-              <div class="watch-top"><span>WATCH ADS</span></div>
+              <div class="watch-top">
+                <span id="monetagAdLabel" style="color: #fff;">AD #1</span> 
+                <span id="monetagLimit" style="color: var(--accent-green); font-size: 13px;">0/10</span>
+              </div>
               <div id="eye-anim-1" class="eye-container"></div>
-              <div class="watch-reward"><i class="fa-solid fa-paw" style="color: var(--accent-green); font-size:14px;"></i> 25</div>
+              <div class="watch-reward">
+                <i class="fa-solid fa-paw" style="color: var(--accent-green);"></i> 
+                <span id="monetagRewardVal">100</span>
+              </div>
+              <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 16px; overflow: hidden;">
+                <div id="monetagProgressBar" style="width: 0%; height: 100%; background: var(--accent-green); transition: width 0.3s ease;"></div>
+              </div>
               <span id="monetagCD" style="font-size:10px; color:var(--accent-orange); display:none; margin-bottom:4px; font-weight:700;"></span>
               <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
             </div>
@@ -694,6 +703,7 @@
     // Monetag variables
     let monetagInFlight = false;
     let monetagLastRun = 0;
+    let monetagAdsWatched = 0;
     
     let gateCheckInterval = null;
     let isAdminUser = false;
@@ -1019,6 +1029,52 @@
     function checkStoredCooldowns() {
         const storedMonetag = localStorage.getItem(`howl_monetag_cd_${currentUserId}`);
         if (storedMonetag) monetagLastRun = parseInt(storedMonetag) || 0;
+
+        const todayStr = new Date().toDateString();
+        const storedDate = localStorage.getItem(`howl_monetag_date_${currentUserId}`);
+        if (storedDate !== todayStr) {
+            monetagAdsWatched = 0;
+            localStorage.setItem(`howl_monetag_date_${currentUserId}`, todayStr);
+            localStorage.setItem(`howl_monetag_count_${currentUserId}`, 0);
+        } else {
+            monetagAdsWatched = parseInt(localStorage.getItem(`howl_monetag_count_${currentUserId}`)) || 0;
+        }
+        updateMonetagUI();
+    }
+
+    function updateMonetagUI() {
+        const limitEl = document.getElementById('monetagLimit');
+        const rewardEl = document.getElementById('monetagRewardVal');
+        const progressEl = document.getElementById('monetagProgressBar');
+        const btnEl = document.getElementById('monetagArrow');
+        const adLabelEl = document.getElementById('monetagAdLabel');
+
+        if (limitEl) limitEl.textContent = `${monetagAdsWatched}/10`;
+        
+        if (adLabelEl) {
+            let nextAdNum = monetagAdsWatched + 1;
+            if (nextAdNum > 10) nextAdNum = 10;
+            adLabelEl.textContent = `AD #${nextAdNum}`;
+        }
+        
+        if (monetagAdsWatched >= 10) {
+            if (rewardEl) rewardEl.textContent = "0";
+            if (progressEl) progressEl.style.width = "100%";
+            if (btnEl) {
+                btnEl.textContent = "COME BACK TOMORROW";
+                btnEl.style.opacity = "0.5";
+                btnEl.disabled = true;
+            }
+        } else {
+            let currentReward = 100 - (monetagAdsWatched * 10);
+            if (rewardEl) rewardEl.textContent = currentReward;
+            if (progressEl) progressEl.style.width = `${(monetagAdsWatched / 10) * 100}%`;
+            if (btnEl) {
+                btnEl.textContent = "WATCH";
+                btnEl.style.opacity = "1";
+                btnEl.disabled = false;
+            }
+        }
     }
 
     function updateCooldownTimers() {
@@ -1028,7 +1084,7 @@
         const monetagCD = document.getElementById('monetagCD');
         const monetagArrow = document.getElementById('monetagArrow');
 
-        if (monetagCard && monetagCD && monetagArrow) {
+        if (monetagCard && monetagCD && monetagArrow && monetagAdsWatched < 10) {
             if (monetagInFlight || monetagDiff < 5) {
                 const left = Math.max(0, 5 - monetagDiff);
                 monetagCard.style.opacity = '0.7';
@@ -1157,6 +1213,10 @@
     }
 
     function startMonetagTask() {
+        if (monetagAdsWatched >= 10) {
+            return alert('✅ Daily limit of 10 ads reached! Come back tomorrow.');
+        }
+
         if (monetagInFlight) return;
         const now = Date.now();
         if (now - monetagLastRun < 5000) {
@@ -1196,13 +1256,24 @@
                 body: JSON.stringify({ completed: true, initData: initDataPayload })
             });
             
-            if (response.ok) {
+            const data = await response.json();
+
+            if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                incrementLocalBalance(25, 0.0005);
+                incrementLocalBalance(data.reward_howl, data.reward_usd);
                 syncUserProfile();
-                alert(`🎉 +25 HOWL ($0.0005) added to your balance!`);
+                alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
+                
+                monetagAdsWatched++;
+                localStorage.setItem(`howl_monetag_count_${currentUserId}`, monetagAdsWatched.toString());
+                updateMonetagUI();
             } else {
-                alert(`⚠️ Claim failed.`);
+                alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
+                if (data.error && data.error.includes("Daily limit reached")) {
+                    monetagAdsWatched = 10;
+                    localStorage.setItem(`howl_monetag_count_${currentUserId}`, '10');
+                    updateMonetagUI();
+                }
             }
         } catch (err) { alert(`❌ Network Error. Claim failed.`); }
     }
