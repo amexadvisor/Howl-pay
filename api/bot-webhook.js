@@ -47,6 +47,13 @@ export default async function handler(req, res) {
       const usdtDeducted = Math.abs(parseFloat(txRow.reward_amount));
       const payoutUsdt = usdtDeducted - 0.01;
 
+      // Fetch User's First Name for the public notification
+      let firstName = "User";
+      const { data: userRecord } = await supabase.from('users').select('name').eq('user_id', userId).maybeSingle();
+      if (userRecord && userRecord.name) {
+          firstName = userRecord.name.split(' ')[0]; // Extract just the first name
+      }
+
       if (action === 'R') {
           await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
 
@@ -105,14 +112,26 @@ export default async function handler(req, res) {
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               
-              // SUCCESS NOTIFICATION WITH PROPER HTML TG-EMOJI TAGS
+              // 1. SUCCESS NOTIFICATION HTML
               const successHtml = 
                 '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '<tg-emoji emoji-id="5316989025037334866">👤</tg-emoji> User: <b>' + firstName + '</b>\n' +
                 '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
                 '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
                 '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
                 '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
 
+              const replyMarkup = {
+                  inline_keyboard: [
+                      [{ 
+                          text: "View on BscScan", 
+                          url: "https://bscscan.com/tx/" + tx.hash,
+                          icon_custom_emoji_id: "5280944517027998187"
+                      }]
+                  ]
+              };
+
+              // 2. SEND TO PRIVATE CHAT (USER)
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -121,15 +140,20 @@ export default async function handler(req, res) {
                       text: successHtml,
                       parse_mode: 'HTML',
                       disable_web_page_preview: true,
-                      reply_markup: {
-                          inline_keyboard: [
-                              [{ 
-                                  text: "View on BscScan", 
-                                  url: "https://bscscan.com/tx/" + tx.hash,
-                                  icon_custom_emoji_id: "5280944517027998187"
-                              }]
-                          ]
-                      }
+                      reply_markup: replyMarkup
+                  })
+              });
+
+              // 3. SEND TO PUBLIC PAYOUT CHANNEL (@howlpayout)
+              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      chat_id: '@howlpayout',
+                      text: successHtml,
+                      parse_mode: 'HTML',
+                      disable_web_page_preview: true,
+                      reply_markup: replyMarkup
                   })
               });
           
