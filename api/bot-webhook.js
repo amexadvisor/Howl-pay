@@ -16,7 +16,7 @@ export default async function handler(req, res) {
       const data = body.callback_query.data;
       const messageId = body.callback_query.message.message_id;
 
-      // SECURITY: Only process your specific button clicks
+      // SECURITY: Only  process your specific button clicks
       if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_'))) {
         return res.status(200).json({ success: true }); 
       }
