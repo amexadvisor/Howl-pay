@@ -105,13 +105,13 @@ export default async function handler(req, res) {
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               
-              // SUCCESS NOTIFICATION WITH CUSTOM PREMIUM EMOJIS
+              // SUCCESS NOTIFICATION WITH PROPER TELEGRAM CUSTOM EMOJI ENTITIES
               const successText = 
-                '[⚡](https://t.me/i/emoji/6267107057304868214) *Withdrawal Successful\\!*\\n\\n' +
-                '💵 Amount: *$' + payoutUsdt.toFixed(4) + ' USDT* \\(after $0.01 fee\\)\\n' +
-                '[🪙](https://t.me/i/emoji/5280944517027998187) Gateway: *USDT BEP20*\\n' +
-                '[📦](https://t.me/i/emoji/5445221832074483553) Address: `' + address + '`\\n\\n' +
-                '[🚀](https://t.me/i/emoji/5188481279963715781) Your funds have been sent successfully\\!';
+                "⚡ Withdrawal Successful!\n\n" +
+                "🪙 Amount: $" + payoutUsdt.toFixed(4) + " USDT (after $0.01 fee)\n" +
+                "🪙 Gateway: USDT BEP20\n" +
+                "📦 Address: " + address + "\n\n" +
+                "🚀 Your funds have been sent successfully!";
 
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
@@ -119,7 +119,12 @@ export default async function handler(req, res) {
                   body: JSON.stringify({
                       chat_id: userId,
                       text: successText,
-                      parse_mode: 'MarkdownV2',
+                      entities: [
+                          { type: "custom_emoji", offset: 0, length: 1, custom_emoji_id: "6267107057304868214" }, // ⚡
+                          { type: "custom_emoji", offset: 26, length: 1, custom_emoji_id: "5280944517027998187" }, // 🪙 (Gateway)
+                          { type: "custom_emoji", offset: 69, length: 1, custom_emoji_id: "5280944517027998187" }, // 🪙 (Amount)
+                          { type: "custom_emoji", offset: 95, length: 1, custom_emoji_id: "5445221832074483553" }  // 📦
+                      ],
                       reply_markup: {
                           inline_keyboard: [
                               [{ text: "🪙 View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
