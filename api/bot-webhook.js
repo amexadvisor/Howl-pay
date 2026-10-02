@@ -105,24 +105,25 @@ export default async function handler(req, res) {
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               
-              // SUCCESS NOTIFICATION WITH ASSETS MENTIONED
-              const successText = 
-                "⚡ *Withdrawal Successful!*\n\n" +
-                "💵 Amount: *" + payoutUsdt.toFixed(4) + " USDT* (after $0.01 fee)\n" +
-                "🪙 Gateway: *USDT BEP20*\n" +
-                "📦 Address: `" + address + "`\n\n" +
-                "🚀 Your funds have been sent successfully!";
+              // SUCCESS NOTIFICATION WITH PROPER HTML TG-EMOJI TAGS
+              const successHtml = 
+                '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '💵 Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
+                '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
 
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                       chat_id: userId,
-                      text: successText,
-                      parse_mode: 'Markdown',
+                      text: successHtml,
+                      parse_mode: 'HTML',
+                      disable_web_page_preview: true,
                       reply_markup: {
                           inline_keyboard: [
-                              [{ text: "🪙 View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
+                              [{ text: "View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
                           ]
                       }
                   })
