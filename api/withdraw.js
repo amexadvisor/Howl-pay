@@ -47,7 +47,7 @@ export default async function handler(req, res) {
 
     const dataCheckArr = [];
     for (const [key, value] of params.entries()) {
-      dataCheckArr.push(`${key}=${value}`);
+      dataCheckArr.push(key + '=' + value);
     }
     const dataCheckString = dataCheckArr.join('\n');
 
@@ -63,7 +63,8 @@ export default async function handler(req, res) {
       const parsed = JSON.parse(userStr);
       if (parsed && parsed.id) {
         targetUserId = String(parsed.id);
-        userName = `${parsed.first_name \vert{}\vert{} ''}${parsed.last_name || ''}`.trim() || 'User';
+        userName = (parsed.first_name || '') + ' ' + (parsed.last_name || '');
+        userName = userName.trim() || 'User';
         userPhoto = parsed.photo_url || null;
       }
     }
@@ -81,7 +82,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch user data, auto-creating the record if it doesn't exist yet
     let { data: user, error: userError } = await supabase
       .from('users')
       .select('balance, coins, total_howl')
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     const availableHowl = parseFloat(user.coins || user.total_howl || 0);
 
     if (availableHowl < reqAmount) {
-      return res.status(400).json({ success: false, message: `Insufficient HOWL balance. You have ${availableHowl} HOWL.` });
+      return res.status(400).json({ success: false, message: "Insufficient HOWL balance. You have " + availableHowl + " HOWL." });
     }
 
     const usdtValue = reqAmount * 0.00002;
@@ -113,7 +113,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount too low to cover $0.01 network fee." });
     }
 
-    // 2. Deduct safely from both user balances
     const newCoins = Math.max(0, availableHowl - reqAmount);
     const newBalance = Math.max(0, parseFloat(user.balance || 0) - usdtValue);
 
@@ -128,12 +127,11 @@ export default async function handler(req, res) {
 
     const timestampId = Date.now();
 
-    // 3. Insert withdrawal record into the transactions table
     const { error: txError } = await supabase.from('transactions').insert([{
       user_id: targetUserId,
       reward_amount: -usdtValue, 
-      transaction_id: `W_${timestampId}_${targetUserId}`,
-      task_type: `BEP20: ${address}`, 
+      transaction_id: 'W_' + timestampId + '_' + targetUserId,
+      task_type: 'BEP20: ' + address, 
       status: 'pending',
       created_at: new Date().toISOString()
     }]);
@@ -142,10 +140,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, message: "Transaction logging error: " + txError.message });
     }
 
-    // 4. Message Admin (ID: 8026237972)
-    const adminMsg = `🚨 *New Withdrawal Request*\n\nUser ID: \`${targetUserId}\`\nAmount: *${reqAmount} HOWL* ($${usdtValue.toFixed(4)})\nFee: $0.0100\nPayout: *$${payoutUsdt.toFixed(4)} USDT*\n\nAddress: \`${address}\``;
+    const adminMsg = "🚨 *New Withdrawal Request*\n\nUser ID: `" + targetUserId + "`\nAmount: *" + reqAmount + " HOWL* ($" + usdtValue.toFixed(4) + ")\nFee: $0.0100\nPayout: *$" + payoutUsdt.toFixed(4) + " USDT*\n\nAddress: `" + address + "`";
 
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -154,8 +151,8 @@ export default async function handler(req, res) {
         parse_mode: 'Markdown',
         reply_markup: {
           inline_keyboard: [
-            [{ text: "✅ Approve & Pay", callback_data: `A_${timestampId}` }],
-            [{ text: "❌ Reject & Refund", callback_data: `R_${timestampId}` }]
+            [{ text: "✅ Approve & Pay", callback_data: "A_" + timestampId }],
+            [{ text: "❌ Reject & Refund", callback_data: "R_" + timestampId }]
           ]
         }
       })
