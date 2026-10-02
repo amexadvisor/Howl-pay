@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>HOWL | Premium Earning</title>
+  <title>HOWL | Elite Earning</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
@@ -91,26 +91,22 @@
 
   <style>
     :root {
-      --bg-dark: #06110a;
-      --bg-gradient: linear-gradient(180deg, #091a10 0%, #040906 100%);
-      --card-bg: linear-gradient(135deg, rgba(20,55,30,0.85) 0%, rgba(10,32,16,0.95) 100%);
-      --card-bg-solid: #0d2614;
-      --card-bg-light: rgba(28, 77, 43, 0.9);
-      
+      /* Deep Midnight Wolf Theme */
+      --bg-dark: #030614;
+      --card-bg-light: rgba(30, 45, 85, 0.6);
       --text-main: #ffffff;
-      --text-muted: #8ba795;
+      --text-muted: #8aa4c4;
       
-      --accent-green: #3bd962;
-      --accent-green-dim: rgba(59, 217, 98, 0.15);
-      --accent-blue: #3bd962;
+      --accent-main: #5eb3ff; /* Electric Moonlight Blue */
+      --accent-dim: rgba(94, 179, 255, 0.15);
       --accent-orange: #f59e0b;
       --accent-red: #ef4444;
       
-      --border-soft: rgba(59, 217, 98, 0.2);
+      --border-soft: rgba(94, 179, 255, 0.2);
       --border-highlight: rgba(255, 255, 255, 0.15);
       
-      --radius-xl: 24px;
-      --radius-lg: 16px;
+      --radius-xl: 20px;
+      --radius-lg: 14px;
       --radius-pill: 50px;
     }
 
@@ -119,156 +115,191 @@
     html, body {
       margin: 0; padding: 0; height: 100vh; width: 100vw;
       background-color: var(--bg-dark);
-      background-image: radial-gradient(circle at 50% 0%, rgba(59, 217, 98, 0.08) 0%, transparent 60%), var(--bg-gradient);
       color: var(--text-main); font-family: 'Inter', sans-serif; 
       overflow: hidden; overscroll-behavior-y: none;
       -webkit-font-smoothing: antialiased;
     }
 
-    body::before {
-      content: ''; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    /* Live Animated Night Background */
+    .night-sky-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: linear-gradient(180deg, #02040f 0%, #0a1128 40%, #02040f 100%);
+    }
+    .stars {
+      position: absolute; inset: 0; opacity: 0.5;
       background-image: 
-        linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
-      background-size: 30px 30px; opacity: 0.5;
+        radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 40px 70px, #a6c8ff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50px 160px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 90px 40px, #e0e7ff, rgba(0,0,0,0));
+      background-repeat: repeat; background-size: 200px 200px;
+      animation: twinkle 4s infinite alternate;
+    }
+    @keyframes twinkle { 0% { opacity: 0.3; } 100% { opacity: 0.7; } }
+    
+    .moon-glow {
+      position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
+      width: 140px; height: 140px; background: #e0e7ff; border-radius: 50%;
+      box-shadow: 0 0 60px #a6c8ff, 0 0 120px #5eb3ff, inset -15px -15px 30px rgba(0,0,0,0.15);
+      animation: pulseMoon 5s infinite alternate;
+    }
+    @keyframes pulseMoon { 
+      0% { box-shadow: 0 0 60px #a6c8ff, 0 0 120px rgba(94,179,255,0.6), inset -15px -15px 30px rgba(0,0,0,0.15); } 
+      100% { box-shadow: 0 0 80px #a6c8ff, 0 0 160px rgba(94,179,255,0.9), inset -15px -15px 30px rgba(0,0,0,0.15); } 
     }
 
-    .container { width: 100%; height: 100%; max-width: 480px; margin: 0 auto; position: relative; display: flex; flex-direction: column; z-index: 1; }
+    .wolf-art {
+      position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
+      width: 100%; max-width: 480px; height: 35vh;
+    }
+    
+    /* Main Content Wrapper - Glassmorphism */
+    .container { 
+      position: relative; width: 100%; height: 100%; max-width: 480px; margin: 0 auto; 
+      display: flex; flex-direction: column; z-index: 1; 
+      backdrop-filter: blur(2px); background: rgba(2, 4, 15, 0.4);
+    }
     main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 110px 16px; position: relative; scroll-behavior: smooth; }
     main::-webkit-scrollbar { display: none; } 
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.3s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .view.active { display: block; animation: fadeIn 0.4s ease forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
 
-    .neo-wrap {
-      background: var(--border-highlight);
-      padding: 1px;
-      clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px);
-      margin-bottom: 12px;
-      transition: transform 0.2s;
+    /* New Glass Cards */
+    .glass-card {
+      background: rgba(15, 22, 45, 0.65);
+      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-soft);
+      border-radius: var(--radius-xl);
+      padding: 18px; margin-bottom: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      position: relative; overflow: hidden;
+      transition: transform 0.2s, box-shadow 0.2s;
     }
-    .neo-card {
-      background: var(--card-bg);
-      clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
-      padding: 16px;
-      height: 100%;
-      position: relative;
-    }
-    .neo-wrap.clickable:active { transform: scale(0.98); }
+    .clickable:active .glass-card { transform: scale(0.98); background: rgba(20, 30, 60, 0.8); }
 
     .top-bar-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px; }
     .user-greeting { display: flex; align-items: center; gap: 12px; }
-    .user-avatar-new { width: 42px; height: 42px; background: rgba(59, 217, 98, 0.15); border: 1px solid var(--accent-green); display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--accent-green); clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); overflow: hidden; }
+    .user-avatar-new { width: 44px; height: 44px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--accent-main); overflow: hidden; box-shadow: 0 0 15px rgba(94, 179, 255, 0.3); }
     .user-avatar-new img { width: 100%; height: 100%; object-fit: cover; }
-    .greeting-text .welcome-text { font-size: 10px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
-    .greeting-text .user-name-new { font-size: 16px; font-weight: 700; color: #fff; margin-top: 2px; }
+    .greeting-text .welcome-text { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; }
+    .greeting-text .user-name-new { font-size: 16px; font-weight: 800; color: #fff; margin-top: 2px; }
 
-    .balance-card-new { display: flex; justify-content: space-between; align-items: center; padding: 20px; }
+    .balance-card-new { display: flex; justify-content: space-between; align-items: center; padding: 22px; }
     .balance-label { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
-    .balance-amount-new { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin: 0 0 12px 0; color: var(--accent-green); text-shadow: 0 0 20px rgba(59, 217, 98, 0.4); }
+    .balance-amount-new { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin: 0 0 12px 0; color: var(--accent-main); text-shadow: 0 0 25px rgba(94, 179, 255, 0.5); }
     .balance-pills { display: flex; gap: 8px; }
     .pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 800; border-radius: 50px; }
-    .pill-leaf { background: rgba(59, 217, 98, 0.15); color: var(--accent-green); border: 1px solid rgba(59, 217, 98, 0.3); }
-    .pill-usd { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-soft); }
+    .pill-leaf { background: var(--accent-dim); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); }
+    .pill-usd { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft); }
 
     .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .action-btn { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: #fff; padding: 18px; background: var(--card-bg-light); cursor: pointer; border: none;}
-    .action-btn i { color: var(--accent-green); font-size: 16px; }
+    .action-btn { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: #fff; padding: 18px; border-radius: var(--radius-xl); background: var(--card-bg-light); border: 1px solid var(--border-soft); cursor: pointer; transition: 0.2s;}
+    .action-btn:active { background: var(--accent-main); color: #000; }
+    .action-btn i { color: var(--accent-main); font-size: 16px; }
+    .action-btn:active i { color: #000; }
 
-    .task-row { display: flex; align-items: center; padding: 18px; cursor: pointer; }
-    .task-icon { font-size: 20px; margin-right: 16px; width: 32px; text-align: center; }
+    .task-row { display: flex; align-items: center; cursor: pointer; }
+    .task-icon { font-size: 20px; margin-right: 16px; width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; text-align: center; }
     .task-text { flex-grow: 1; }
     .task-text h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; color: #fff; }
     .task-text p { margin: 0; font-size: 12px; color: var(--text-muted); }
 
-    .section-header-row { display: flex; justify-content: space-between; align-items: center; padding: 16px 4px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; }
-    .section-header-row .left { display: flex; align-items: center; gap: 8px; color: var(--accent-green); }
-    .section-header-row .dot { width: 6px; height: 6px; background: var(--accent-green); border-radius: 50%; box-shadow: 0 0 8px var(--accent-green); }
+    .section-header-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 4px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; }
+    .section-header-row .left { display: flex; align-items: center; gap: 8px; color: var(--accent-main); }
+    .section-header-row .dot { width: 6px; height: 6px; background: var(--accent-main); border-radius: 50%; box-shadow: 0 0 10px var(--accent-main); }
     
-    .watch-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-    .watch-card { display: flex; flex-direction: column; align-items: center; padding: 16px; text-align: center; }
+    .watch-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; }
     .watch-top { width: 100%; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
-    .eye-container { width: 60px; height: 60px; margin: 0 auto 12px auto; }
-    .watch-reward { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 24px; font-weight: 800; color: var(--accent-green); margin-bottom: 12px; text-shadow: 0 0 10px rgba(59, 217, 98, 0.3); }
-    .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; }
-    .watch-btn:active { background: var(--accent-green); color: #000; }
+    .eye-container { width: 70px; height: 70px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
+    .watch-reward { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 28px; font-weight: 900; color: var(--accent-main); margin-bottom: 12px; text-shadow: 0 0 15px rgba(94, 179, 255, 0.4); }
+    .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
+    .watch-btn:active { background: var(--accent-main); color: #000; box-shadow: 0 0 20px rgba(94, 179, 255, 0.4); }
+    .watch-btn:disabled { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent; box-shadow: none; cursor: not-allowed; }
 
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(6, 17, 10, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
     .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
-    .nav-item.active { color: var(--accent-green); }
+    .nav-item.active { color: var(--accent-main); }
     .nav-item.center-btn { position: relative; }
-    .center-icon-wrap { width: 60px; height: 60px; background: var(--bg-dark); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid var(--bg-dark); }
-    .center-inner { width: 100%; height: 100%; background: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 24px; box-shadow: 0 0 25px rgba(59, 217, 98, 0.4); }
+    .center-icon-wrap { width: 64px; height: 64px; background: #050714; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid rgba(255,255,255,0.05); }
+    .center-inner { width: 100%; height: 100%; background: var(--accent-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 24px; box-shadow: 0 0 25px rgba(94, 179, 255, 0.5); }
 
-    .earn-category-tabs { display: flex; background: var(--card-bg-light); padding: 4px; border-radius: var(--radius-lg); border: 1px solid var(--border-soft); margin-bottom: 20px; }
-    .category-tab { flex: 1; padding: 12px 0; text-align: center; font-size: 13px; font-weight: 700; color: var(--text-muted); background: transparent; border: none; border-radius: 12px; transition: all 0.3s; cursor:pointer;}
-    .category-tab.active { background: var(--accent-green); color: #000; }
-    .earn-section-panel { display: none !important; }
-    .earn-section-panel.active { display: block !important; animation: fadeIn 0.3s forwards; }
-    .offerwall-iframe-container { width: 100%; height: 65vh; background: #000; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; }
+    .offerwall-iframe-container { width: 100%; height: 70vh; background: rgba(0,0,0,0.5); border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; margin-top: 10px; }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; }
     
-    .data-item { background: var(--card-bg-solid); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
-    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; background: var(--card-bg-light); color:var(--accent-green);}
+    .data-item { background: rgba(15, 22, 45, 0.6); backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
+    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; background: var(--card-bg-light); color:var(--accent-main);}
     .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
     .data-info p { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .data-val { font-size: 15px; font-weight: 700; color: var(--accent-green); }
+    .data-val { font-size: 15px; font-weight: 700; color: var(--accent-main); }
 
     .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
     .full-screen-modal.active { opacity: 1; visibility: visible; }
-    .modal-content { background: var(--card-bg-solid); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; }
+    .modal-content { background: rgba(15, 22, 45, 0.95); backdrop-filter: blur(20px); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
     .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; color: #fff;}
     .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
-    .modal-btn { background: var(--accent-green); color: #000; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; border: none; font-size: 15px; cursor: pointer; }
+    .modal-btn { background: var(--accent-main); color: #000; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; border: none; font-size: 15px; cursor: pointer; }
 
-    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-main); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   </style>
 </head>
 <body>
 
-  <!-- Splash Screen -->
-  <div id="splash-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
-    <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
-      <div id="splash-wolf-emoji" style="width: 100px; height: 100px; transform: translateZ(0); filter: drop-shadow(0 0 20px rgba(59,217,98,0.4));"></div>
+  <!-- Live Animated Background -->
+  <div class="night-sky-bg">
+    <div class="stars"></div>
+    <div class="moon-glow"></div>
+    <div class="wolf-art">
+      <!-- High Quality SVG Silhouette of Wolf Howling on a Mountain -->
+      <svg viewBox="0 0 800 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0,400 L0,350 Q100,320 200,340 T400,280 Q450,260 480,210 Q485,190 495,195 Q500,185 510,180 C515,160 530,130 550,110 L545,100 C540,95 535,90 535,85 C550,80 560,85 570,95 C580,85 585,75 590,65 L595,70 C600,60 610,65 615,75 C625,90 620,110 615,130 Q630,150 640,180 Q660,240 700,280 T800,350 L800,400 Z" fill="#02040f" />
+      </svg>
     </div>
-    <h1 style="font-size: 32px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 1px;">HOWL</h1>
-    <p style="color: var(--accent-green); font-weight: 600; letter-spacing: 2px; font-size: 13px; margin-bottom: 24px;">ELITE EARNING</p>
-    <button id="audio-trigger-btn" onclick="playHowlAudio()" style="background: rgba(59, 217, 98, 0.15); border: 1px solid var(--accent-green); color: #fff; padding: 10px 20px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-volume-high" style="color: var(--accent-green);"></i> Tap to Enable Sound
+  </div>
+
+  <!-- Splash Screen -->
+  <div id="splash-screen" style="position: fixed; inset: 0; background: #030614; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+    <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
+      <div id="splash-wolf-emoji" style="width: 110px; height: 110px; filter: drop-shadow(0 0 25px rgba(94,179,255,0.5));"></div>
+    </div>
+    <h1 style="font-size: 34px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 2px;">HOWL</h1>
+    <p style="color: var(--accent-main); font-weight: 700; letter-spacing: 3px; font-size: 13px; margin-bottom: 24px;">ELITE EARNING</p>
+    <button id="audio-trigger-btn" onclick="playHowlAudio()" style="background: rgba(94, 179, 255, 0.15); border: 1px solid var(--accent-main); color: #fff; padding: 12px 24px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+      <i class="fa-solid fa-volume-high" style="color: var(--accent-main);"></i> TAP TO ENTER
     </button>
   </div>
 
   <!-- Mandatory Channel Gate -->
-  <div id="channel-gate" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
+  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
     <div style="text-align: center; margin: 40px 0 30px 0;">
-      <div style="width: 60px; height: 60px; background: var(--accent-green); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color:#000;">
+      <div style="width: 64px; height: 64px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color: var(--accent-main); box-shadow: 0 0 20px rgba(94,179,255,0.3);">
         <i class="fa-solid fa-lock"></i>
       </div>
       <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 8px 0;">Unlock App</h2>
       <p style="color: var(--text-muted); font-size: 14px;">Join our official channels to continue.</p>
     </div>
     <div class="channel-list">
-      <a href="https://t.me/howlnotification" target="_blank" class="data-item clickable" style="text-decoration: none; color: white;">
+      <a href="https://t.me/howlnotification" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
         <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background:#080c14;"><i class="fa-solid fa-bell" style="color:var(--accent-green)"></i></div>
-          <div><h4 style="margin:0;">HOWL Notifications</h4><p style="margin:0; font-size:12px; color:var(--text-muted)">Official Updates</p></div>
+          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-bell" style="color:var(--accent-main)"></i></div>
+          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL Notifications</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Official Updates</p></div>
         </div>
         <div id="status-howlnotification" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
       </a>
-      <a href="https://t.me/howlnews" target="_blank" class="data-item clickable" style="text-decoration: none; color: white;">
+      <a href="https://t.me/howlnews" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
         <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background:#080c14;"><i class="fa-solid fa-newspaper" style="color:var(--accent-green)"></i></div>
-          <div><h4 style="margin:0;">HOWL News</h4><p style="margin:0; font-size:12px; color:var(--text-muted)">Ecosystem News</p></div>
+          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-newspaper" style="color:var(--accent-main)"></i></div>
+          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL News</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Ecosystem News</p></div>
         </div>
         <div id="status-howlnews" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
       </a>
-      <a href="https://t.me/howl_community" target="_blank" class="data-item clickable" style="text-decoration: none; color: white;">
+      <a href="https://t.me/howl_community" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
         <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background:#080c14;"><i class="fa-solid fa-users" style="color:var(--accent-green)"></i></div>
-          <div><h4 style="margin:0;">HOWL Community</h4><p style="margin:0; font-size:12px; color:var(--text-muted)">Global Chat</p></div>
+          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-users" style="color:var(--accent-main)"></i></div>
+          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL Community</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Global Chat</p></div>
         </div>
         <div id="status-howl_community" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
       </a>
@@ -296,9 +327,9 @@
     <p id="ban-reason-text" style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; max-width: 340px;">
       Multiple accounts have been detected on this physical device. Only one account per device is permitted.
     </p>
-    <div style="background: var(--card-bg-light); border: 1px solid var(--border-soft); border-radius: 16px; padding: 16px; text-align: left; margin-bottom: 24px; max-width: 340px; width: 100%;">
+    <div class="glass-card" style="text-align: left; margin-bottom: 24px; max-width: 340px; width: 100%;">
       <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 6px;">
-        <i class="fa-solid fa-circle-info" style="color: var(--accent-green);"></i> How to resolve:
+        <i class="fa-solid fa-circle-info" style="color: var(--accent-main);"></i> How to resolve:
       </div>
       <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
         Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.
@@ -310,12 +341,12 @@
   </div>
 
   <!-- Admin Entry Mode Selection Modal -->
-  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(6, 17, 10, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
-    <div style="background: var(--card-bg-solid); border: 1px solid var(--border-highlight); border-radius: var(--radius-xl); padding: 28px 24px; max-width: 360px; width: 100%; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.7);">
-      <div style="width: 64px; height: 64px; border-radius: 20px; background: rgba(59, 217, 98, 0.15); border: 1px solid rgba(59, 217, 98, 0.4); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-green); margin: 0 auto 16px;">
+  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
+    <div class="glass-card" style="max-width: 360px; width: 100%; text-align: center;">
+      <div style="width: 64px; height: 64px; border-radius: 20px; background: var(--accent-dim); border: 1px solid rgba(94, 179, 255, 0.4); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-main); margin: 0 auto 16px;">
         <i class="fa-solid fa-shield-halved"></i>
       </div>
-      <div style="display: inline-block; background: rgba(59, 217, 98, 0.12); color: var(--accent-green); border: 1px solid rgba(59, 217, 98, 0.3); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px;">
+      <div style="display: inline-block; background: var(--accent-dim); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px;">
         Admin Session Verified
       </div>
       <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 8px 0; color: #fff;">Choose Session Mode</h3>
@@ -324,9 +355,9 @@
       </p>
       <div style="display: flex; flex-direction: column; gap: 12px;">
         <button onclick="enterAsUser()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; font-size: 14px; cursor: pointer;">
-          <i class="fa-regular fa-user" style="color: var(--accent-green); font-size: 16px;"></i> <span>Enter as User</span>
+          <i class="fa-regular fa-user" style="color: var(--accent-main); font-size: 16px;"></i> <span>Enter as User</span>
         </button>
-        <button onclick="enterAsAdmin()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent-green); border: none; color: #000; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; font-size: 14px; cursor: pointer;">
+        <button onclick="enterAsAdmin()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent-main); border: none; color: #000; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; font-size: 14px; cursor: pointer;">
           <i class="fa-solid fa-shield-halved" style="font-size: 16px;"></i> <span>Enter Admin Panel</span>
         </button>
       </div>
@@ -348,8 +379,8 @@
           </div>
         </div>
 
-        <div class="neo-wrap">
-          <div class="neo-card balance-card-new">
+        <div class="clickable">
+          <div class="glass-card balance-card-new">
             <div class="balance-left">
               <div class="balance-label">TOTAL BALANCE</div>
               <div class="balance-amount-new" id="dash-howl-balance">
@@ -361,27 +392,26 @@
               </div>
             </div>
             <div class="balance-right">
-              <div id="wolf-emoji" style="width: 70px; height: 70px; filter: drop-shadow(0 0 10px rgba(59, 217, 98, 0.5)); transform: translateZ(0);"></div>
+              <div id="wolf-emoji" style="width: 75px; height: 75px; filter: drop-shadow(0 0 15px rgba(94, 179, 255, 0.4));"></div>
             </div>
           </div>
         </div>
 
         <div class="action-grid">
-          <div class="neo-wrap clickable" onclick="showView('tasks-view')">
-            <div class="neo-card action-btn">
+          <div class="clickable" onclick="showView('tasks-view')">
+            <div class="glass-card action-btn" style="margin-bottom:0; padding: 16px;">
               <i class="fa-solid fa-bolt"></i> EARN
             </div>
           </div>
-          <div class="neo-wrap clickable" onclick="showView('withdraw-view')">
-            <div class="neo-card action-btn">
+          <div class="clickable" onclick="showView('withdraw-view')">
+            <div class="glass-card action-btn" style="margin-bottom:0; padding: 16px;">
               <i class="fa-solid fa-download"></i> WITHDRAW
             </div>
           </div>
         </div>
 
-        <!-- Leaderboard Row (Home) -->
-        <div class="neo-wrap clickable" onclick="openLeaderboard('home-view')">
-          <div class="neo-card task-row" style="padding-top: 14px; padding-bottom: 14px;">
+        <div class="clickable" onclick="openLeaderboard('home-view')">
+          <div class="glass-card task-row">
             <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
             <div class="task-text">
               <h4>Top Earners Leaderboard</h4>
@@ -391,20 +421,9 @@
           </div>
         </div>
 
-        <div class="neo-wrap clickable" onclick="showView('tasks-view'); switchEarnTab('offerwall');">
-          <div class="neo-card task-row">
+        <div class="clickable" onclick="showView('tasks-view')">
+          <div class="glass-card task-row">
             <div class="task-icon"><i class="fa-solid fa-star" style="color: #f59e0b;"></i></div>
-            <div class="task-text">
-              <h4>Premium Offers</h4>
-              <p>Pick a network, complete it → claim rewards</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-
-        <div class="neo-wrap clickable" onclick="showView('tasks-view'); switchEarnTab('timewall');">
-          <div class="neo-card task-row" style="padding-top: 14px; padding-bottom: 14px;">
-            <div class="task-icon"><i class="fa-solid fa-bolt" style="color: #3b82f6;"></i></div>
             <div class="task-text">
               <h4>Quick Tasks</h4>
               <p>One task at a time — links, sites, surveys</p>
@@ -416,39 +435,25 @@
         <!-- Watch & Earn Section -->
         <div class="section-header-row">
           <div class="left"><span class="dot"></span> WATCH & EARN</div>
-          <div class="right">3 available</div>
         </div>
         
-        <div class="watch-grid">
-          <!-- Monetag Rewarded Ad -->
-          <div class="neo-wrap">
-            <div class="neo-card watch-card" id="monetagCard">
-              <div class="watch-top">
-                <span id="monetagAdLabel" style="color: #fff;">AD #1</span> 
-                <span id="monetagLimit" style="color: var(--accent-green); font-size: 13px;">0/10</span>
-              </div>
-              <div id="eye-anim-1" class="eye-container"></div>
-              <div class="watch-reward">
-                <i class="fa-solid fa-paw" style="color: var(--accent-green);"></i> 
-                <span id="monetagRewardVal">100</span>
-              </div>
-              <div style="width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px; margin-bottom: 16px; overflow: hidden;">
-                <div id="monetagProgressBar" style="width: 0%; height: 100%; background: var(--accent-green); transition: width 0.3s ease;"></div>
-              </div>
-              <span id="monetagCD" style="font-size:10px; color:var(--accent-orange); display:none; margin-bottom:4px; font-weight:700;"></span>
-              <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
-            </div>
+        <!-- Standardized Monetag Rewarded Ad -->
+        <div class="glass-card watch-card" id="monetagCard">
+          <div class="watch-top">
+            <span style="color: #fff; font-weight: 800; letter-spacing: 1px;">AD #1</span> 
+            <span id="monetagLimit" style="color: var(--accent-main); font-size: 13px;">0/10</span>
           </div>
-          
-          <!-- Ad 2 (Placeholder) -->
-          <div class="neo-wrap" style="opacity: 0.6;">
-            <div class="neo-card watch-card">
-              <div class="watch-top"><span>AD #2</span></div>
-              <div id="eye-anim-2" class="eye-container"></div>
-              <div class="watch-reward"><i class="fa-solid fa-paw" style="color: var(--accent-green); font-size:14px;"></i> 100</div>
-              <button class="watch-btn" onclick="alert('Ad network 2 coming soon!')">WATCH</button>
-            </div>
+          <div id="eye-anim-1" class="eye-container"></div>
+          <div class="watch-reward">
+            <i class="fa-solid fa-paw" style="color: var(--accent-main);"></i> 
+            <span id="monetagRewardVal">100</span>
           </div>
+          <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 16px; overflow: hidden;">
+            <div id="monetagProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
+          </div>
+          <div id="monetagNextDayTimer" style="display: none; font-size: 13px; font-weight: 800; color: var(--accent-orange); margin-bottom: 14px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
+          <span id="monetagCD" style="font-size:11px; color:var(--accent-orange); display:none; margin-bottom:10px; font-weight:800; letter-spacing: 1px;"></span>
+          <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
         </div>
       </div>
 
@@ -459,52 +464,46 @@
           <h2 style="font-size: 20px; font-weight: 800; margin:0;">Withdraw USDT (BEP-20)</h2>
         </div>
 
-        <div class="neo-wrap" style="margin-bottom: 20px;">
-          <div class="neo-card">
-            <div style="margin-bottom: 14px;">
-              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">BEP-20 Wallet Address</label>
-              <input type="text" id="wd-address" placeholder="0x..." style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-family: monospace; font-size: 12px; margin-top: 6px; outline: none;">
-            </div>
-            <div style="margin-bottom: 16px;">
-              <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Amount (HOWL)</label>
-                <span style="font-size: 10px; font-weight: 700; color: var(--accent-orange);">Min: 1,500</span>
-              </div>
-              <input type="number" id="wd-amount" placeholder="0" oninput="calcWithdrawal()" style="width: 100%; background: var(--bg-dark); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 700; margin-top: 6px; outline: none;">
-            </div>
-            <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; margin-bottom: 16px; font-size: 12px; font-weight: 600; color: var(--text-muted);">
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Exchange Value</span>
-                <span id="wd-usd-val" style="color: #fff;">$0.0000</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>Network Fee</span>
-                <span style="color: var(--accent-red);">-$0.0100</span>
-              </div>
-              <div style="display: flex; justify-content: space-between; border-top: 1px solid var(--border-soft); padding-top: 8px; font-size: 14px; font-weight: 800; color: #fff;">
-                <span>You Receive</span>
-                <span id="wd-receive-val" style="color: var(--accent-green);">$0.0000</span>
-              </div>
-            </div>
-            <button id="wd-btn" onclick="requestWithdrawal()" style="width: 100%; background: var(--accent-green); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer;">
-              Submit Withdrawal Request
-            </button>
+        <div class="glass-card">
+          <div style="margin-bottom: 14px;">
+            <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">BEP-20 Wallet Address</label>
+            <input type="text" id="wd-address" placeholder="0x..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; font-family: monospace; font-size: 12px; margin-top: 6px; outline: none;">
           </div>
+          <div style="margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Amount (HOWL)</label>
+              <span style="font-size: 10px; font-weight: 700; color: var(--accent-orange);">Min: 1,500</span>
+            </div>
+            <input type="number" id="wd-amount" placeholder="0" oninput="calcWithdrawal()" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; margin-top: 6px; outline: none;">
+          </div>
+          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span>Exchange Value</span>
+              <span id="wd-usd-val" style="color: #fff;">$0.0000</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+              <span>Network Fee</span>
+              <span style="color: var(--accent-red);">-$0.0100</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 15px; font-weight: 800; color: #fff;">
+              <span>You Receive</span>
+              <span id="wd-receive-val" style="color: var(--accent-main);">$0.0000</span>
+            </div>
+          </div>
+          <button id="wd-btn" onclick="requestWithdrawal()" style="width: 100%; background: var(--accent-main); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s;">
+            Submit Withdrawal Request
+          </button>
         </div>
       </div>
 
-      <!-- TASKS VIEW -->
+      <!-- TASKS VIEW (TimeWall Only) -->
       <div id="tasks-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 16px 0;">Offer Networks</h2>
-        <div class="earn-category-tabs" id="earn-tabs">
-          <button class="category-tab active" id="tab-offerwall" onclick="switchEarnTab('offerwall')">Offerwall</button>
-          <button class="category-tab" id="tab-timewall" onclick="switchEarnTab('timewall')">TimeWall</button>
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+          <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
+          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Quick Tasks</h2>
         </div>
-        <div id="panel-offerwall" class="earn-section-panel active">
-          <div class="offerwall-iframe-container"><iframe id="offerwall-iframe" src=""></iframe></div>
-        </div>
-        <div id="panel-timewall" class="earn-section-panel">
-          <div class="offerwall-iframe-container"><iframe id="timewall-iframe" src=""></iframe></div>
+        <div class="offerwall-iframe-container">
+          <iframe id="timewall-iframe" src=""></iframe>
         </div>
       </div>
       
@@ -514,53 +513,49 @@
         <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Invite friends to earn 750 HOWL + 10% USDT lifetime commission.</p>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-          <div class="neo-wrap"><div class="neo-card" style="padding:12px 6px; text-align:center;">
-            <div style="color:var(--accent-green); font-weight:900; font-size:15px; margin-bottom:2px;">+250</div>
+          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
+            <div style="color:var(--accent-main); font-weight:900; font-size:16px; margin-bottom:4px;">+250</div>
             <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">On Join & Verify</div>
-          </div></div>
-          <div class="neo-wrap"><div class="neo-card" style="padding:12px 6px; text-align:center;">
-            <div style="color:var(--accent-orange); font-weight:900; font-size:15px; margin-bottom:2px;">+500</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">On Join</div>
+          </div>
+          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
+            <div style="color:var(--accent-orange); font-weight:900; font-size:16px; margin-bottom:4px;">+500</div>
             <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">On 10 Ads Watched</div>
-          </div></div>
-          <div class="neo-wrap"><div class="neo-card" style="padding:12px 6px; text-align:center;">
-            <div style="color:#3b82f6; font-weight:900; font-size:15px; margin-bottom:2px;">10%</div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">On 10 Ads</div>
+          </div>
+          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
+            <div style="color:#a855f7; font-weight:900; font-size:16px; margin-bottom:4px;">10%</div>
             <div style="font-size:10px; color:#fff; font-weight:700;">USDT Split</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:3px;">Lifetime Commission</div>
-          </div></div>
+            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">Lifetime</div>
+          </div>
         </div>
 
-        <div class="neo-wrap" style="margin-bottom: 16px;">
-          <div class="neo-card">
-            <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 12px 0;"><i class="fa-solid fa-chart-pie" style="color:var(--accent-green)"></i> Your Referral Stats</h3>
-            <div style="display: flex; gap: 8px;">
-              <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
-                <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">FRIENDS</div>
-                <div id="ref-friends-count" style="color:var(--accent-green); font-weight:800; font-size:16px;">0</div>
-              </div>
-              <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
-                <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">HOWL EARNED</div>
-                <div id="ref-howl-earned" style="color:var(--accent-orange); font-weight:800; font-size:14px;">0 HOWL</div>
-              </div>
-              <div style="flex:1; background:var(--card-bg-light); border-radius:12px; padding:10px 6px; text-align:center;">
-                <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:4px;">USDT EARNED</div>
-                <div id="ref-usdt-earned" style="color:#3b82f6; font-weight:800; font-size:14px;">$0.0000</div>
-              </div>
+        <div class="glass-card" style="margin-bottom: 16px;">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 16px 0;"><i class="fa-solid fa-chart-pie" style="color:var(--accent-main)"></i> Your Referral Stats</h3>
+          <div style="display: flex; gap: 8px;">
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">FRIENDS</div>
+              <div id="ref-friends-count" style="color:var(--accent-main); font-weight:800; font-size:16px;">0</div>
+            </div>
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">HOWL</div>
+              <div id="ref-howl-earned" style="color:var(--accent-orange); font-weight:800; font-size:14px;">0 HOWL</div>
+            </div>
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">USDT</div>
+              <div id="ref-usdt-earned" style="color:#a855f7; font-weight:800; font-size:14px;">$0.0000</div>
             </div>
           </div>
         </div>
 
-        <div class="neo-wrap" style="margin-bottom: 24px;">
-          <div class="neo-card">
-            <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 10px 0;"><i class="fa-solid fa-link" style="color:var(--accent-green)"></i> Your Referral Link</h3>
-            <div style="font-size:12px; color:var(--text-muted); margin-bottom: 10px;">Share with friends to automatically credit your rewards.</div>
-            <div style="display:flex; gap:10px;">
-              <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:var(--card-bg-solid); border:1px solid var(--border-soft); color:var(--text-main); padding:12px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
-              <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 16px; cursor:pointer;"><i class="fa-regular fa-copy"></i></button>
-            </div>
-            <button onclick="shareApp()" style="width:100%; background:var(--accent-green); color:#000; border:none; padding:14px; border-radius:var(--radius-lg); font-weight:800; font-size:14px; margin-top:14px; display:flex; justify-content:center; align-items:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
+        <div class="glass-card">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 10px 0;"><i class="fa-solid fa-link" style="color:var(--accent-main)"></i> Your Referral Link</h3>
+          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Share with friends to automatically credit your rewards.</div>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:var(--text-main); padding:14px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
+            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 18px; cursor:pointer; transition: 0.2s;"><i class="fa-regular fa-copy"></i></button>
           </div>
+          <button onclick="shareApp()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:16px; border-radius:var(--radius-lg); font-weight:800; font-size:14px; margin-top:16px; display:flex; justify-content:center; align-items:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
       </div>
 
@@ -568,19 +563,19 @@
       <div id="profile-view" class="view">
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 16px 0;">Profile</h2>
         
-        <div id="admin-profile-item" class="neo-wrap clickable" style="display: none;" onclick="enterAsAdmin()">
-          <div class="neo-card task-row" style="background: rgba(59, 217, 98, 0.1);">
-            <div class="task-icon"><i class="fa-solid fa-shield-halved" style="color:var(--accent-green)"></i></div>
+        <div id="admin-profile-item" class="clickable" style="display: none;" onclick="enterAsAdmin()">
+          <div class="glass-card task-row" style="background: rgba(94, 179, 255, 0.15); border-color: rgba(94, 179, 255, 0.4);">
+            <div class="task-icon" style="background: transparent;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-main); font-size: 24px;"></i></div>
             <div class="task-text">
-              <h4 style="color:var(--accent-green);">Admin Control Panel</h4>
-              <p>Manage user bans, search IDs & security</p>
+              <h4 style="color:var(--accent-main);">Admin Control Panel</h4>
+              <p style="color: rgba(255,255,255,0.7);">Manage user bans & security</p>
             </div>
-            <i class="fa-solid fa-chevron-right" style="color:var(--accent-green)"></i>
+            <i class="fa-solid fa-chevron-right" style="color:var(--accent-main)"></i>
           </div>
         </div>
 
-        <div class="neo-wrap clickable" onclick="openLeaderboard('profile-view')">
-          <div class="neo-card task-row">
+        <div class="clickable" onclick="openLeaderboard('profile-view')">
+          <div class="glass-card task-row">
             <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
             <div class="task-text">
               <h4>Leaderboard</h4>
@@ -590,8 +585,8 @@
           </div>
         </div>
 
-        <div class="neo-wrap clickable" onclick="showView('history-view')">
-          <div class="neo-card task-row">
+        <div class="clickable" onclick="showView('history-view')">
+          <div class="glass-card task-row">
             <div class="task-icon"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#a855f7;"></i></div>
             <div class="task-text">
               <h4>Transaction History</h4>
@@ -601,8 +596,8 @@
           </div>
         </div>
 
-        <div class="neo-wrap clickable" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
-          <div class="neo-card task-row">
+        <div class="clickable" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
+          <div class="glass-card task-row">
             <div class="task-icon"><i class="fa-solid fa-shield-halved" style="color:var(--accent-orange)"></i></div>
             <div class="task-text">
               <h4>Platform Rules</h4>
@@ -633,39 +628,37 @@
 
       <!-- ADMIN CONTROL PANEL VIEW -->
       <div id="admin-view" class="view">
-        <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:20px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 38px; height: 38px; border-radius: 12px; background: rgba(59,217,98,0.15); color: var(--accent-green); display: flex; align-items: center; justify-content: center; font-size: 18px;">
+        <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:24px;">
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 42px; height: 42px; border-radius: 14px; background: var(--accent-dim); color: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid rgba(94, 179, 255, 0.3);">
               <i class="fa-solid fa-shield-halved"></i>
             </div>
             <div>
               <h2 style="font-size: 18px; font-weight: 800; margin:0;">Admin Panel</h2>
-              <p style="font-size: 11px; color: var(--text-muted); margin:0;">User Moderation & Security</p>
+              <p style="font-size: 11px; color: var(--text-muted); margin:2px 0 0 0;">User Moderation & Security</p>
             </div>
           </div>
-          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); color: #fff; padding: 8px 14px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i> User Mode
+          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 10px 16px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s;">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Mode
           </button>
         </div>
 
-        <div class="neo-wrap">
-          <div class="neo-card">
-            <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">
-              Lookup User by Telegram ID
-            </label>
-            <div style="display: flex; gap: 8px;">
-              <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: var(--bg-dark); border: 1px solid var(--border-soft); border-radius: 12px; padding: 12px 14px; color: #fff; font-size: 14px; outline: none;">
-              <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-green); border: none; color: #000; padding: 0 18px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                <i class="fa-solid fa-magnifying-glass"></i> Search
-              </button>
-            </div>
-            <div id="admin-lookup-loader" style="display: none; text-align: center; padding: 16px 0;">
-              <div class="loader-spinner" style="margin: 0 auto;"></div>
-            </div>
+        <div class="glass-card">
+          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+            Lookup User by Telegram ID
+          </label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; color: #fff; font-size: 14px; outline: none;">
+            <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-main); border: none; color: #000; padding: 0 20px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+              <i class="fa-solid fa-magnifying-glass"></i> Search
+            </button>
+          </div>
+          <div id="admin-lookup-loader" style="display: none; text-align: center; padding: 20px 0;">
+            <div class="loader-spinner" style="margin: 0 auto;"></div>
           </div>
         </div>
 
-        <div id="admin-user-result" style="display: none;"></div>
+        <div id="admin-user-result" style="display: none; margin-top: 16px;"></div>
       </div>
 
     </main>
@@ -679,11 +672,11 @@
         <i class="fa-solid fa-bolt"></i> Earn
       </button>
       
-      <button class="nav-item center-btn" onclick="showView('tasks-view'); switchEarnTab('offerwall');">
+      <button class="nav-item center-btn" onclick="showView('home-view');">
         <div class="center-icon-wrap">
-           <div class="center-inner" id="nav-wolf-lottie" style="padding: 10px;"></div>
+           <div class="center-inner" id="nav-wolf-lottie" style="padding: 12px;"></div>
         </div>
-        <span style="margin-top: 22px;">Play</span>
+        <span style="margin-top: 24px;">Play</span>
       </button>
       
       <button class="nav-item" onclick="showView('team-view')">
@@ -704,9 +697,11 @@
     let monetagInFlight = false;
     let monetagLastRun = 0;
     let monetagAdsWatched = 0;
+    let monetagNextReward = 100;
     
     let gateCheckInterval = null;
     let isAdminUser = false;
+    let midnightTimerInterval = null;
 
     const howlAudio = new Audio('assets/howl.mp3');
     howlAudio.volume = 1.0;
@@ -741,7 +736,6 @@
             lottie.loadAnimation({ container: document.getElementById('wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
-            lottie.loadAnimation({ container: document.getElementById('eye-anim-2'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
         }
 
         setInterval(updateCooldownTimers, 1000);
@@ -899,7 +893,7 @@
             if (window.Telegram && Telegram.WebApp) {
                 Telegram.WebApp.ready();
                 Telegram.WebApp.expand();
-                Telegram.WebApp.setHeaderColor('#06110a');
+                Telegram.WebApp.setHeaderColor('#02040f');
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                     if (String(tgUser.id) === '8026237972') checkAdminStatus({ is_admin: true });
@@ -926,7 +920,7 @@
                     const statusBadge = document.getElementById(`status-${channel.key}`);
                     if (statusBadge) {
                         if (channel.joined) {
-                            statusBadge.style.color = "var(--accent-green)";
+                            statusBadge.style.color = "var(--accent-main)";
                             statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> Joined';
                         } else {
                             statusBadge.style.color = "var(--text-muted)";
@@ -943,9 +937,7 @@
                 setTimeout(() => { gate.style.display = 'none'; }, 400);
                 setupOfferwallIframes();
                 generateRefLink();
-                document.getElementById('panel-offerwall').style.display = 'block';
-                checkStoredCooldowns();
-                syncAdStatusFromServer(); // Pulls accurate ad count from backend
+                syncAdStatusFromServer();
             }
         } catch (error) {}
     }
@@ -971,8 +963,6 @@
     }
 
     function setupOfferwallIframes() {
-        const offerwallIframe = document.getElementById('offerwall-iframe');
-        if (offerwallIframe) offerwallIframe.src = `https://offerwall.me/offerwall/xX8xgdqTIsgOpXHcngm5uiEaDb1wPM/${currentUserId}`;
         const timewallIframe = document.getElementById('timewall-iframe');
         if (timewallIframe) timewallIframe.src = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${currentUserId}`;
     }
@@ -1037,19 +1027,29 @@
         document.getElementById('main-content').scrollTop = 0;
     }
 
-    function switchEarnTab(tabName) {
-        triggerHaptic('light');
-        document.querySelectorAll('.earn-section-panel').forEach(panel => { panel.classList.remove('active'); panel.style.display = 'none'; });
-        document.querySelectorAll('.category-tab').forEach(tab => tab.classList.remove('active'));
-        const t = document.getElementById(`tab-${tabName}`);
-        if(t) t.classList.add('active');
-        const targetPanel = document.getElementById(`panel-${tabName}`);
-        if(targetPanel) { targetPanel.classList.add('active'); targetPanel.style.display = 'block'; }
-    }
+    function updateMidnightTimer() {
+        if (monetagAdsWatched < 10) return;
+        const now = new Date();
+        const tomorrow = new Date(now);
+        tomorrow.setUTCHours(24, 0, 0, 0); // Sets time to exactly midnight UTC tonight
+        
+        const diff = tomorrow - now;
+        
+        if (diff <= 0) {
+            // New day hit while looking at screen
+            monetagAdsWatched = 0;
+            updateMonetagUI();
+            return;
+        }
 
-    function checkStoredCooldowns() {
-        const storedMonetag = localStorage.getItem(`howl_monetag_cd_${currentUserId}`);
-        if (storedMonetag) monetagLastRun = parseInt(storedMonetag) || 0;
+        const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+        const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+        const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+        
+        const timerEl = document.getElementById('monetagNextDayTimer');
+        if (timerEl) {
+            timerEl.textContent = `Ads Reset In: ${h}:${m}:${s}`;
+        }
     }
 
     function updateMonetagUI() {
@@ -1057,26 +1057,23 @@
         const rewardEl = document.getElementById('monetagRewardVal');
         const progressEl = document.getElementById('monetagProgressBar');
         const btnEl = document.getElementById('monetagArrow');
-        const adLabelEl = document.getElementById('monetagAdLabel');
+        const timerEl = document.getElementById('monetagNextDayTimer');
 
         let watched = parseInt(monetagAdsWatched) || 0;
         if (watched < 0) watched = 0;
 
         if (limitEl) limitEl.textContent = `${watched}/10`;
         
-        if (adLabelEl) {
-            let nextAdNum = watched + 1;
-            if (nextAdNum > 10) nextAdNum = 10;
-            adLabelEl.textContent = `AD #${nextAdNum}`;
-        }
-        
         if (watched >= 10) {
             if (rewardEl) rewardEl.textContent = "0";
             if (progressEl) progressEl.style.width = "100%";
             if (btnEl) {
-                btnEl.textContent = "COME BACK TOMORROW";
-                btnEl.style.opacity = "0.5";
-                btnEl.disabled = true;
+                btnEl.style.display = "none";
+            }
+            if (timerEl) {
+                timerEl.style.display = "block";
+                if (!midnightTimerInterval) midnightTimerInterval = setInterval(updateMidnightTimer, 1000);
+                updateMidnightTimer();
             }
         } else {
             // Calculates reward purely on frontend: 100, 90, 80...
@@ -1085,11 +1082,15 @@
             
             if (rewardEl) rewardEl.textContent = currentReward;
             if (progressEl) progressEl.style.width = `${(watched / 10) * 100}%`;
+            
+            if (timerEl) timerEl.style.display = "none";
             if (btnEl) {
+                btnEl.style.display = "block";
                 btnEl.textContent = "WATCH";
                 btnEl.style.opacity = "1";
                 btnEl.disabled = false;
             }
+            if (midnightTimerInterval) { clearInterval(midnightTimerInterval); midnightTimerInterval = null; }
         }
     }
 
@@ -1105,7 +1106,7 @@
                 const left = Math.max(0, 5 - monetagDiff);
                 monetagCard.style.opacity = '0.7';
                 monetagCD.style.display = 'block';
-                monetagCD.textContent = monetagInFlight ? 'WAIT...' : `${left}s CD`;
+                monetagCD.textContent = monetagInFlight ? 'WAITING FOR AD...' : `COOLDOWN: ${left}s`;
                 monetagArrow.style.display = 'none';
             } else {
                 monetagCard.style.opacity = '1';
@@ -1181,7 +1182,7 @@
             }
             historyList.innerHTML = data.map(item => {
                 const isDeduction = item.reward_amount < 0 || (item.task_type && item.task_type.includes('BEP20'));
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-green)'}">${isDeduction ? '' : '+'}$${Math.abs(item.reward_amount).toFixed(4)}</div></div>`;
+                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${isDeduction ? '' : '+'}$${Math.abs(item.reward_amount).toFixed(4)}</div></div>`;
             }).join('');
         } catch (err) { historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load ledger.</div>`; }
     }
@@ -1213,7 +1214,7 @@
                 <div class="data-item" style="border: 1px solid ${index === 0 ? 'rgba(234,179,8,0.3)' : 'var(--border-soft)'};">
                     <div style="display:flex; align-items:center; gap:12px;">
                         <div class="data-icon" style="background:transparent; width:28px; height:28px; margin-right:0; color:${rankColor}; font-weight:800; font-size:14px;">${rankBadge}</div>
-                        <div style="width:40px; height:40px; border-radius:12px; background:var(--accent-green); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div>
+                        <div style="width:40px; height:40px; border-radius:12px; background:var(--accent-main); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div>
                         <div>
                             <h4 style="margin:0; font-size:14px; font-weight:700;">${earner.name}</h4>
                             <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">ID: ${maskedId}</p>
@@ -1242,16 +1243,15 @@
         
         if (typeof show_11499185 === 'function') {
             monetagInFlight = true;
+            updateCooldownTimers();
             show_11499185().then(() => {
                 monetagLastRun = Date.now();
-                localStorage.setItem(`howl_monetag_cd_${currentUserId}`, monetagLastRun.toString());
                 monetagInFlight = false;
                 
                 sendRewardWebhook();
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
             }).catch(e => {
                 monetagLastRun = Date.now();
-                localStorage.setItem(`howl_monetag_cd_${currentUserId}`, monetagLastRun.toString());
                 monetagInFlight = false;
                 alert('No ads available right now. Please try again later.');
             });
@@ -1319,20 +1319,20 @@
                 if (resultCard) {
                     resultCard.style.display = 'block';
                     resultCard.innerHTML = `
-                    <div class="neo-wrap"><div class="neo-card" style="text-align: center;">
+                    <div class="glass-card" style="text-align: center;">
                         <i class="fa-solid fa-user-xmark" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px; opacity: 0.5;"></i>
                         <h4 style="margin: 0 0 6px 0;">User Not Found</h4>
                         <p style="font-size: 13px; color: var(--text-muted); margin: 0;">No account registered with ID <code>${targetId}</code></p>
-                    </div></div>`;
+                    </div>`;
                 }
                 return;
             }
 
             const u = data.user;
-            let statusBadge = '<span style="background: rgba(59,217,98,0.15); color: var(--accent-green); border: 1px solid rgba(59,217,98,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">ACTIVE</span>';
+            let statusBadge = '<span style="background: rgba(94, 179, 255, 0.15); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">ACTIVE</span>';
             if (data.status === 'banned_manual' || data.is_manually_banned) { statusBadge = '<span style="background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">BANNED (MANUAL)</span>'; } 
             else if (data.status === 'banned_multiaccount') { statusBadge = '<span style="background: rgba(245,158,11,0.15); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">DEVICE COLLISION</span>'; } 
-            else if (data.status === 'unbanned_override') { statusBadge = '<span style="background: rgba(59,217,98,0.15); color: var(--accent-green); border: 1px solid rgba(59,217,98,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">UNBANNED OVERRIDE</span>'; } 
+            else if (data.status === 'unbanned_override') { statusBadge = '<span style="background: rgba(94, 179, 255, 0.15); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">UNBANNED OVERRIDE</span>'; } 
 
             let collisionHtml = '';
             if (data.device_collisions && data.device_collisions.length > 0) {
@@ -1345,10 +1345,10 @@
 
             resultCard.style.display = 'block';
             resultCard.innerHTML = `
-            <div class="neo-wrap"><div class="neo-card">
+            <div class="glass-card">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
                     <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-green); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden; color: #000;">
+                        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden; color: #000;">
                             ${u.photo_url ? `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : (u.name ? u.name.charAt(0) : '?')}
                         </div>
                         <div>
@@ -1360,19 +1360,19 @@
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; font-size: 12px;">
-                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
                         <div style="color: var(--text-muted); margin-bottom: 2px;">Total Balance</div>
-                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-green);">${Math.round(u.total_howl || u.coins || 0).toLocaleString()} HWL</div>
+                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-main);">${Math.round(u.total_howl || u.coins || 0).toLocaleString()} HWL</div>
                     </div>
-                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
                         <div style="color: var(--text-muted); margin-bottom: 2px;">USD Value</div>
-                        <div style="font-weight: 800; font-size: 14px; color: #3b82f6;">$${parseFloat(u.total_usd || u.balance || 0).toFixed(4)}</div>
+                        <div style="font-weight: 800; font-size: 14px; color: #a855f7;">$${parseFloat(u.total_usd || u.balance || 0).toFixed(4)}</div>
                     </div>
-                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
                         <div style="color: var(--text-muted); margin-bottom: 2px;">Joined</div>
                         <div style="color: #fff;">${u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}</div>
                     </div>
-                    <div style="background: var(--bg-dark); border-radius: 10px; padding: 10px;">
+                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
                         <div style="color: var(--text-muted); margin-bottom: 2px;">Referred By</div>
                         <div style="color: #fff;">${u.referred_by || 'None'}</div>
                     </div>
@@ -1382,11 +1382,11 @@
                     <button onclick="adminExecuteAction('ban', '${u.user_id}')" style="flex: 1; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: var(--accent-red); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <i class="fa-solid fa-ban"></i> Ban
                     </button>
-                    <button onclick="adminExecuteAction('unban', '${u.user_id}')" style="flex: 1; background: rgba(59,217,98,0.15); border: 1px solid rgba(59,217,98,0.4); color: var(--accent-green); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button onclick="adminExecuteAction('unban', '${u.user_id}')" style="flex: 1; background: rgba(94, 179, 255, 0.15); border: 1px solid rgba(94, 179, 255, 0.4); color: var(--accent-main); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <i class="fa-solid fa-unlock"></i> Unban
                     </button>
                 </div>
-            </div></div>`;
+            </div>`;
         } catch (err) {
             if (loader) loader.style.display = 'none';
             alert('Failed to connect to admin API.');
