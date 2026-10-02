@@ -112,14 +112,22 @@ export default async function handler(req, res) {
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               
-              // 1. SUCCESS NOTIFICATION HTML
-              const successHtml = 
+              // 1. PRIVATE USER MESSAGE (No Name, No App Link)
+              const userHtml = 
+                '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
+                '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
+
+              // 2. PUBLIC GROUP MESSAGE (Includes Name and App Link)
+              const groupHtml = 
                 '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
                 '<tg-emoji emoji-id="5316989025037334866">👤</tg-emoji> User: <b>' + firstName + '</b>\n' +
                 '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
                 '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
                 '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
-                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> App: <a href="https://t.me/howl_paybot/app?startapp=ref_8026237972">HOWL</a>';
 
               const replyMarkup = {
                   inline_keyboard: [
@@ -131,26 +139,26 @@ export default async function handler(req, res) {
                   ]
               };
 
-              // 2. SEND TO PRIVATE CHAT (USER)
+              // SEND TO PRIVATE CHAT (USER)
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                       chat_id: userId,
-                      text: successHtml,
+                      text: userHtml,
                       parse_mode: 'HTML',
                       disable_web_page_preview: true,
                       reply_markup: replyMarkup
                   })
               });
 
-              // 3. SEND TO PUBLIC PAYOUT CHANNEL (@howlpayout)
+              // SEND TO PUBLIC PAYOUT CHANNEL (@howlpayout)
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                       chat_id: '@howlpayout',
-                      text: successHtml,
+                      text: groupHtml,
                       parse_mode: 'HTML',
                       disable_web_page_preview: true,
                       reply_markup: replyMarkup
