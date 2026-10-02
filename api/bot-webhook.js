@@ -60,7 +60,7 @@ export default async function handler(req, res) {
           }]);
           
           await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
-          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDexusdtFormat(usdtDeducted) + " has been refunded to your balance.");
+          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
 
       } else if (action === 'NR') {
           await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
@@ -105,21 +105,21 @@ export default async function handler(req, res) {
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               
-              // CUSTOM NOTIFICATION FORMAT MATCHING YOUR DESIGN
-              const successHtml = 
-                '<emoji id="6267107057304868214">⚡</emoji> <b>Withdrawal Successful!</b>\n\n' +
-                '💵 Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
-                '<emoji id="5280944517027998187">🪙</emoji> Gateway: <b>USDT BEP20</b>\n' +
-                '<emoji id="5445221832074483553">📦</emoji> Address: <code>' + address + '</code>\n\n' +
-                '<emoji id="5188481279963715781">🚀</emoji> Your funds have been sent successfully!';
+              // SUCCESS NOTIFICATION WITH CUSTOM PREMIUM EMOJIS
+              const successText = 
+                '[⚡](https://t.me/i/emoji/6267107057304868214) *Withdrawal Successful\\!*\\n\\n' +
+                '💵 Amount: *$' + payoutUsdt.toFixed(4) + ' USDT* \\(after $0.01 fee\\)\\n' +
+                '[🪙](https://t.me/i/emoji/5280944517027998187) Gateway: *USDT BEP20*\\n' +
+                '[📦](https://t.me/i/emoji/5445221832074483553) Address: `' + address + '`\\n\\n' +
+                '[🚀](https://t.me/i/emoji/5188481279963715781) Your funds have been sent successfully\\!';
 
               await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
                       chat_id: userId,
-                      text: successHtml,
-                      parse_mode: 'HTML',
+                      text: successText,
+                      parse_mode: 'MarkdownV2',
                       reply_markup: {
                           inline_keyboard: [
                               [{ text: "🪙 View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
