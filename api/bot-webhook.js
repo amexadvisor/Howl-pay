@@ -48,10 +48,8 @@ export default async function handler(req, res) {
       const payoutUsdt = usdtDeducted - 0.01;
 
       if (action === 'R') {
-          // 1. Mark original pending withdrawal as rejected
           await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
 
-          // 2. Write REFUND entry to history ledger so it shows up visibly for the user
           await supabase.from('transactions').insert([{
               user_id: userId,
               reward_amount: usdtDeducted,
@@ -62,13 +60,11 @@ export default async function handler(req, res) {
           }]);
           
           await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
-          await notifyUser(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
+          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDexusdtFormat(usdtDeducted) + " has been refunded to your balance.");
 
       } else if (action === 'NR') {
-          // 1. Mark original pending withdrawal as rejected without refund
           await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
 
-          // 2. Write REJECTED entry to history ledger
           await supabase.from('transactions').insert([{
               user_id: userId,
               reward_amount: 0,
@@ -79,7 +75,7 @@ export default async function handler(req, res) {
           }]);
           
           await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.");
-          await notifyUser(userId, "❌ Your withdrawal request was rejected by administration.");
+          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected by administration.");
 
       } else if (action === 'A') {
           await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
@@ -96,10 +92,8 @@ export default async function handler(req, res) {
               const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
               const tx = await contract.transfer(address, amountInWei);
               
-              // 1. Mark original pending withdrawal as approved
               await supabase.from('transactions').update({ status: 'approved' }).eq('transaction_id', txRow.transaction_id);
 
-              // 2. Write successful payout entry to history ledger with tx hash
               await supabase.from('transactions').insert([{
                   user_id: userId,
                   reward_amount: -payoutUsdt,
@@ -110,10 +104,31 @@ export default async function handler(req, res) {
               }]);
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
-              await notifyUser(userId, "🎉 *Withdrawal Approved!*\n$" + payoutUsdt.toFixed(4) + " USDT (BEP-20) has been sent to your wallet.\n\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
+              
+              // CUSTOM NOTIFICATION FORMAT MATCHING YOUR DESIGN
+              const successHtml = 
+                '<emoji id="6267107057304868214">⚡</emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '💵 Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<emoji id="5280944517027998187">🪙</emoji> Gateway: <b>USDT BEP20</b>\n' +
+                '<emoji id="5445221832074483553">📦</emoji> Address: <code>' + address + '</code>\n\n' +
+                '<emoji id="5188481279963715781">🚀</emoji> Your funds have been sent successfully!';
+
+              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      chat_id: userId,
+                      text: successHtml,
+                      parse_mode: 'HTML',
+                      reply_markup: {
+                          inline_keyboard: [
+                              [{ text: "🪙 View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
+                          ]
+                      }
+                  })
+              });
           
           } catch (err) {
-              // BLOCKCHAIN ERROR AUTOMATIC REFUND & HISTORY LOGGING
               await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
 
               await supabase.from('transactions').insert([{
@@ -127,7 +142,7 @@ export default async function handler(req, res) {
 
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
               await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
-              await notifyUser(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+              await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
           }
       }
     }
@@ -144,9 +159,9 @@ async function editAdminMessage(messageId, newText) {
     });
 }
 
-async function notifyUser(userId, text) {
+async function notifyUserRaw(userId, text) {
     await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: userId, text: text, parse_mode: 'Markdown', disable_web_page_preview: true })
+        body: JSON.stringify({ chat_id: userId, text: text, disable_web_page_preview: true })
     });
 }
