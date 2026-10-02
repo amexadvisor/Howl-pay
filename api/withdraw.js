@@ -31,6 +31,8 @@ export default async function handler(req, res) {
   }
 
   let targetUserId = null;
+  let userName = 'User';
+  let userPhoto = null;
 
   try {
     const params = new URLSearchParams(rawInitData);
@@ -61,6 +63,8 @@ export default async function handler(req, res) {
       const parsed = JSON.parse(userStr);
       if (parsed && parsed.id) {
         targetUserId = String(parsed.id);
+        userName = `${parsed.first_name \vert{}\vert{} ''}${parsed.last_name || ''}`.trim() || 'User';
+        userPhoto = parsed.photo_url || null;
       }
     }
   } catch (e) {
@@ -77,15 +81,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Fetch user data (checking both coins and total_howl columns to match all sync variations)
-    const { data: user, error: userError } = await supabase
+    // 1. Fetch user data, auto-creating the record if it doesn't exist yet
+    let { data: user, error: userError } = await supabase
       .from('users')
       .select('balance, coins, total_howl')
       .eq('user_id', targetUserId)
       .maybeSingle();
 
-    if (userError || !user) {
-      return res.status(400).json({ success: false, message: "User account not found in database." });
+    if (!user) {
+      await supabase.from('users').insert([{
+        user_id: targetUserId,
+        name: userName,
+        photo_url: userPhoto,
+        balance: 0,
+        coins: 0,
+        total_howl: 0
+      }]);
+      user = { balance: 0, coins: 0, total_howl: 0 };
     }
 
     const availableHowl = parseFloat(user.coins || user.total_howl || 0);
@@ -116,7 +128,7 @@ export default async function handler(req, res) {
 
     const timestampId = Date.now();
 
-    // 3. Insert into existing transactions table (No new tables needed!)
+    // 3. Insert withdrawal record into the transactions table
     const { error: txError } = await supabase.from('transactions').insert([{
       user_id: targetUserId,
       reward_amount: -usdtValue, 
