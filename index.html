@@ -83,7 +83,9 @@
     })();
   </script>
 
-  <script src="https://sdk.adsbitvex.com/functions/v1/ad-script?appid=000402"></script>
+  <!-- Monetag Rewarded Ads SDK -->
+  <script src="https://alwingulla.com/88/tag.min.js" data-zone="3514066" data-cfasync="false" async></script>
+  
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
@@ -418,21 +420,21 @@
         </div>
         
         <div class="watch-grid">
-          <!-- Ad 1 (AdsBitvex) -->
+          <!-- Monetag Rewarded Ad -->
           <div class="neo-wrap">
-            <div class="neo-card watch-card" id="adsbitvexCard">
-              <div class="watch-top"><span>AD #1</span> <span id="adStepIndicator">0/3</span></div>
+            <div class="neo-card watch-card" id="monetagCard">
+              <div class="watch-top"><span>WATCH ADS</span></div>
               <div id="eye-anim-1" class="eye-container"></div>
-              <div class="watch-reward"><i class="fa-solid fa-paw" style="color: var(--accent-green); font-size:14px;"></i> 200</div>
-              <span id="adsbitvexCD" style="font-size:10px; color:var(--accent-orange); display:none; margin-bottom:4px; font-weight:700;"></span>
-              <button class="watch-btn" id="adsbitvexArrow" onclick="startAdsBitvexTask()">WATCH</button>
+              <div class="watch-reward"><i class="fa-solid fa-paw" style="color: var(--accent-green); font-size:14px;"></i> 25</div>
+              <span id="monetagCD" style="font-size:10px; color:var(--accent-orange); display:none; margin-bottom:4px; font-weight:700;"></span>
+              <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
             </div>
           </div>
           
           <!-- Ad 2 (Placeholder) -->
           <div class="neo-wrap" style="opacity: 0.6;">
             <div class="neo-card watch-card">
-              <div class="watch-top"><span>AD #2</span> <span>0/10</span></div>
+              <div class="watch-top"><span>AD #2</span></div>
               <div id="eye-anim-2" class="eye-container"></div>
               <div class="watch-reward"><i class="fa-solid fa-paw" style="color: var(--accent-green); font-size:14px;"></i> 100</div>
               <button class="watch-btn" onclick="alert('Ad network 2 coming soon!')">WATCH</button>
@@ -685,12 +687,14 @@
   </div>
 
 <script>
-    let adsCountToday = 0;
     let tgUser = null;
     let currentUserId = 'guest_user';
     let currentHowlBalance = 0;
-    let adsbitvexInFlight = false;
-    let adsbitvexLastRun = 0;
+    
+    // Monetag variables
+    let monetagInFlight = false;
+    let monetagLastRun = 0;
+    
     let gateCheckInterval = null;
     let isAdminUser = false;
 
@@ -931,7 +935,6 @@
                 generateRefLink();
                 document.getElementById('panel-offerwall').style.display = 'block';
                 checkStoredCooldowns();
-                updateDisplayCounters();
             }
         } catch (error) {}
     }
@@ -1014,38 +1017,30 @@
     }
 
     function checkStoredCooldowns() {
-        const storedAdsbitvex = localStorage.getItem(`howl_adsbitvex_cd_${currentUserId}`);
-        if (storedAdsbitvex) adsbitvexLastRun = parseInt(storedAdsbitvex) || 0;
-        const storedCount = localStorage.getItem(`howl_ads_count_${currentUserId}`);
-        if (storedCount) adsCountToday = parseInt(storedCount) || 0;
+        const storedMonetag = localStorage.getItem(`howl_monetag_cd_${currentUserId}`);
+        if (storedMonetag) monetagLastRun = parseInt(storedMonetag) || 0;
     }
 
     function updateCooldownTimers() {
         const now = Date.now();
-        const adsbitvexDiff = Math.floor((now - adsbitvexLastRun) / 1000);
-        const adsbitvexCard = document.getElementById('adsbitvexCard');
-        const adsbitvexCD = document.getElementById('adsbitvexCD');
-        const adsbitvexArrow = document.getElementById('adsbitvexArrow');
+        const monetagDiff = Math.floor((now - monetagLastRun) / 1000);
+        const monetagCard = document.getElementById('monetagCard');
+        const monetagCD = document.getElementById('monetagCD');
+        const monetagArrow = document.getElementById('monetagArrow');
 
-        if (adsbitvexCard && adsbitvexCD && adsbitvexArrow) {
-            if (adsbitvexInFlight || adsbitvexDiff < 5) {
-                const left = Math.max(0, 5 - adsbitvexDiff);
-                adsbitvexCard.style.opacity = '0.7';
-                adsbitvexCD.style.display = 'block';
-                adsbitvexCD.textContent = adsbitvexInFlight ? 'WAIT...' : `${left}s CD`;
-                adsbitvexArrow.style.display = 'none';
+        if (monetagCard && monetagCD && monetagArrow) {
+            if (monetagInFlight || monetagDiff < 5) {
+                const left = Math.max(0, 5 - monetagDiff);
+                monetagCard.style.opacity = '0.7';
+                monetagCD.style.display = 'block';
+                monetagCD.textContent = monetagInFlight ? 'WAIT...' : `${left}s CD`;
+                monetagArrow.style.display = 'none';
             } else {
-                adsbitvexCard.style.opacity = '1';
-                adsbitvexCD.style.display = 'none';
-                adsbitvexArrow.style.display = 'block';
+                monetagCard.style.opacity = '1';
+                monetagCD.style.display = 'none';
+                monetagArrow.style.display = 'block';
             }
         }
-    }
-
-    function updateDisplayCounters() {
-        const currentProgress = adsCountToday % 3;
-        const stepEl = document.getElementById('adStepIndicator');
-        if (stepEl) stepEl.textContent = `${currentProgress}/3`;
     }
 
     function loadTelegramUser() {
@@ -1161,50 +1156,33 @@
         } catch (err) { leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load leaderboard.</div>`; }
     }
 
-    function startAdsBitvexTask() {
-        if (adsbitvexInFlight) return;
+    function startMonetagTask() {
+        if (monetagInFlight) return;
         const now = Date.now();
-        if (now - adsbitvexLastRun < 5000) {
-            const left = Math.ceil((5000 - (now - adsbitvexLastRun)) / 1000);
+        if (now - monetagLastRun < 5000) {
+            const left = Math.ceil((5000 - (now - monetagLastRun)) / 1000);
             return alert(`⏳ Cooldown active! Wait ${left}s.`);
         }
-        if (typeof window.showadsbitvex !== 'function') return alert('Network error: SDK failed to load.');
-
-        adsbitvexInFlight = true;
-        let userSwitchedContext = false;
-        const focusLossHandler = () => { userSwitchedContext = true; };
         
-        window.addEventListener('blur', focusLossHandler);
-        window.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') userSwitchedContext = true; });
-
-        window.showadsbitvex().then(() => {
-            window.removeEventListener('blur', focusLossHandler);
-            adsbitvexLastRun = Date.now();
-            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
-            adsbitvexInFlight = false;
-
-            if (!userSwitchedContext) {
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('error');
-                return alert('⚠️ Ad ignored! You must click into the ad page to verify.');
-            }
-
-            adsCountToday += 1;
-            localStorage.setItem(`howl_ads_count_${currentUserId}`, adsCountToday.toString());
-            updateDisplayCounters();
-
-            if (adsCountToday % 3 === 0) {
+        if (typeof show_3514066 === 'function') {
+            monetagInFlight = true;
+            show_3514066().then(() => {
+                monetagLastRun = Date.now();
+                localStorage.setItem(`howl_monetag_cd_${currentUserId}`, monetagLastRun.toString());
+                monetagInFlight = false;
+                
+                // Immediately grant reward when the ad completes
                 sendRewardWebhook();
-            } else {
-                const currentProgress = adsCountToday % 3;
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-                alert(`✅ Verified! Progress: ${currentProgress}/3`);
-            }
-        }).catch((e) => {
-            window.removeEventListener('blur', focusLossHandler);
-            adsbitvexLastRun = Date.now();
-            localStorage.setItem(`howl_adsbitvex_cd_${currentUserId}`, adsbitvexLastRun.toString());
-            adsbitvexInFlight = false;
-        });
+            }).catch(e => {
+                monetagLastRun = Date.now();
+                localStorage.setItem(`howl_monetag_cd_${currentUserId}`, monetagLastRun.toString());
+                monetagInFlight = false;
+                alert('No ads available right now. Please try again later.');
+            });
+        } else {
+            alert('Ad network is still loading or blocked by your browser. Please try again in a few seconds.');
+        }
     }
 
     async function sendRewardWebhook() {
