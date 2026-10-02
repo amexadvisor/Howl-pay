@@ -82,28 +82,42 @@ export default async function handler(req, res) {
   }
 
   try {
-    let { data: user, error: userError } = await supabase
+    // 1. Calculate true balance dynamically from the transactions ledger (just like leaderboard/claim-bonus)
+    const { data: txs, error: txFetchError } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', targetUserId);
+
+    if (txFetchError) {
+      return res.status(500).json({ success: false, message: "Failed to fetch user ledger: " + txFetchError.message });
+    }
+
+    let totalUsdEarned = 0;
+    txs?.forEach(tx => {
+      totalUsdEarned += (parseFloat(tx.reward_amount) || 0);
+    });
+
+    // Convert total USD to HOWL (1 HOWL = $0.00002, so HOWL = USD / 0.00002)
+    // Or if reward amounts store coin counts for certain tasks, let's look at how your app computes it:
+    // If USD balance is stored in transactions, let's calculate HOWL equivalent:
+    let totalHowlBalance = Math.round(totalUsdEarned / 0.00002);
+
+    // Fallback/Safety check: if transactions store raw coin amounts or mixed values, check user table too
+    const { data: userRecord } = await supabase
       .from('users')
-      .select('balance, coins, total_howl')
+      .select('coins, total_howl, balance')
       .eq('user_id', targetUserId)
       .maybeSingle();
 
-    if (!user) {
-      await supabase.from('users').insert([{
-        user_id: targetUserId,
-        name: userName,
-        photo_url: userPhoto,
-        balance: 0,
-        coins: 0,
-        total_howl: 0
-      }]);
-      user = { balance: 0, coins: 0, total_howl: 0 };
+    if (userRecord) {
+      const tableCoins = parseFloat(userRecord.coins || userRecord.total_howl || 0);
+      if (tableCoins > totalHowlBalance) {
+        totalHowlBalance = tableCoins;
+      }
     }
 
-    const availableHowl = parseFloat(user.coins || user.total_howl || 0);
-
-    if (availableHowl < reqAmount) {
-      return res.status(400).json({ success: false, message: "Insufficient HOWL balance. You have " + availableHowl + " HOWL." });
+    if (totalHowlBalance < reqAmount) {
+      return res.status(400).json({ success: false, message: "Insufficient HOWL balance. You have " + totalHowlBalance + " HOWL." });
     }
 
     const usdtValue = reqAmount * 0.00002;
@@ -113,33 +127,23 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount too low to cover $0.01 network fee." });
     }
 
-    const newCoins = Math.max(0, availableHowl - reqAmount);
-    const newBalance = Math.max(0, parseFloat(user.balance || 0) - usdtValue);
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ coins: newCoins, total_howl: newCoins, balance: newBalance })
-      .eq('user_id', targetUserId);
-
-    if (updateError) {
-      return res.status(500).json({ success: false, message: "Database update error: " + updateError.message });
-    }
-
     const timestampId = Date.now();
 
-    const { error: txError } = await supabase.from('transactions').insert([{
+    // 2. Insert withdrawal deduction directly into transactions table (Negative reward amount reduces ledger balance)
+    const { error: insertError } = await supabase.from('transactions').insert([{
       user_id: targetUserId,
       reward_amount: -usdtValue, 
       transaction_id: 'W_' + timestampId + '_' + targetUserId,
-      task_type: 'BEP20: ' + address, 
+      task_type: 'BEP20 Withdrawal: ' + address, 
       status: 'pending',
       created_at: new Date().toISOString()
     }]);
 
-    if (txError) {
-      return res.status(500).json({ success: false, message: "Transaction logging error: " + txError.message });
+    if (insertError) {
+      return res.status(500).json({ success: false, message: "Transaction logging error: " + insertError.message });
     }
 
+    // 3. Message Admin ID: 8026237972
     const adminMsg = "🚨 *New Withdrawal Request*\n\nUser ID: `" + targetUserId + "`\nAmount: *" + reqAmount + " HOWL* ($" + usdtValue.toFixed(4) + ")\nFee: $0.0100\nPayout: *$" + payoutUsdt.toFixed(4) + " USDT*\n\nAddress: `" + address + "`";
 
     await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
