@@ -108,7 +108,7 @@ export default async function handler(req, res) {
               // SUCCESS NOTIFICATION WITH PROPER HTML TG-EMOJI TAGS
               const successHtml = 
                 '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
-                '💵 Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
                 '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
                 '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
                 '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
@@ -143,7 +143,7 @@ export default async function handler(req, res) {
 
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
               await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
-              await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+              await notifyUserRaw(userId, "⚠️️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
           }
       }
     }
