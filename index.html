@@ -704,7 +704,6 @@
     let monetagInFlight = false;
     let monetagLastRun = 0;
     let monetagAdsWatched = 0;
-    let monetagNextReward = 100;
     
     let gateCheckInterval = null;
     let isAdminUser = false;
@@ -946,7 +945,7 @@
                 generateRefLink();
                 document.getElementById('panel-offerwall').style.display = 'block';
                 checkStoredCooldowns();
-                syncAdStatusFromServer(); // Request backend database for accurate ad stats
+                syncAdStatusFromServer(); // Pulls accurate ad count from backend
             }
         } catch (error) {}
     }
@@ -963,8 +962,7 @@
             });
             const data = await response.json();
             if (data.success) {
-                monetagAdsWatched = data.ads_watched;
-                monetagNextReward = data.next_reward;
+                monetagAdsWatched = data.ads_watched || 0;
                 updateMonetagUI();
             }
         } catch (e) {
@@ -1061,15 +1059,18 @@
         const btnEl = document.getElementById('monetagArrow');
         const adLabelEl = document.getElementById('monetagAdLabel');
 
-        if (limitEl) limitEl.textContent = `${monetagAdsWatched}/10`;
+        let watched = parseInt(monetagAdsWatched) || 0;
+        if (watched < 0) watched = 0;
+
+        if (limitEl) limitEl.textContent = `${watched}/10`;
         
         if (adLabelEl) {
-            let nextAdNum = monetagAdsWatched + 1;
+            let nextAdNum = watched + 1;
             if (nextAdNum > 10) nextAdNum = 10;
             adLabelEl.textContent = `AD #${nextAdNum}`;
         }
         
-        if (monetagAdsWatched >= 10) {
+        if (watched >= 10) {
             if (rewardEl) rewardEl.textContent = "0";
             if (progressEl) progressEl.style.width = "100%";
             if (btnEl) {
@@ -1078,8 +1079,12 @@
                 btnEl.disabled = true;
             }
         } else {
-            if (rewardEl) rewardEl.textContent = monetagNextReward;
-            if (progressEl) progressEl.style.width = `${(monetagAdsWatched / 10) * 100}%`;
+            // Calculates reward purely on frontend: 100, 90, 80...
+            let currentReward = 100 - (watched * 10);
+            if (currentReward < 10) currentReward = 10; 
+            
+            if (rewardEl) rewardEl.textContent = currentReward;
+            if (progressEl) progressEl.style.width = `${(watched / 10) * 100}%`;
             if (btnEl) {
                 btnEl.textContent = "WATCH";
                 btnEl.style.opacity = "1";
@@ -1274,8 +1279,7 @@
                 syncUserProfile();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
                 
-                monetagAdsWatched = data.ads_watched;
-                monetagNextReward = data.next_reward;
+                monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
                 updateMonetagUI();
             } else {
                 alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
