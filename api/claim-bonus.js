@@ -1,8 +1,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
-// Use the powerful service_role key to bypass RLS for writes, with fallback
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
@@ -19,17 +18,17 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { completed, initData } = req.body || {};
+  const { initData } = req.body || {};
   const BOT_TOKEN = process.env.BOT_TOKEN;
-  const targetWebhook = process.env.ADS_WEBHOOK_URL;
 
-  if (!BOT_TOKEN || !targetWebhook) {
-    return res.status(500).json({ error: "Server configuration error: missing environment variables" });
+  if (!BOT_TOKEN || !supabase) {
+    return res.status(500).json({ error: "Server configuration error." });
   }
 
   const rawInitData = initData || req.headers['x-telegram-init-data'];
-  let targetUserId = null;
+  let targetUserIdStr = null;
 
+  // 1. SECURITY: Telegram Signature Validation
   if (!rawInitData || typeof rawInitData !== 'string') {
     return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
   }
@@ -38,9 +37,7 @@ export default async function handler(req, res) {
     const params = new URLSearchParams(rawInitData);
     const hash = params.get('hash');
 
-    if (!hash) {
-      return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
-    }
+    if (!hash) return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
 
     params.delete('hash');
     params.sort();
@@ -62,184 +59,149 @@ export default async function handler(req, res) {
     if (userStr) {
       const parsed = JSON.parse(userStr);
       if (parsed && parsed.id) {
-        targetUserId = parsed.id;
+        targetUserIdStr = String(parsed.id);
       }
     }
   } catch (e) {
     return res.status(400).json({ error: "Bad Request: " + e.message });
   }
 
-  if (!targetUserId) {
-    return res.status(400).json({ error: "Missing user identification within validated context" });
+  if (!targetUserIdStr) {
+    return res.status(400).json({ error: "Missing user identification." });
   }
 
-  let supabaseErrorDetails = null;
+  let currentRewardHowl = 0;
+  let currentRewardUsd = 0;
 
-  // Securely log the verified ad transaction to Supabase using the service role key
-  if (supabase) {
-    try {
-      function isOlderAccount(current, other) {
-        if (!current) return false;
-        if (!other) return true;
-        const currentCreated = current.created_at ? new Date(current.created_at).getTime() : null;
-        const otherCreated = other.created_at ? new Date(other.created_at).getTime() : null;
-        if (currentCreated && otherCreated && !isNaN(currentCreated) && !isNaN(otherCreated)) {
-          return currentCreated < otherCreated;
-        }
-        if (currentCreated && !isNaN(currentCreated)) return true;
-        if (otherCreated && !isNaN(otherCreated)) return false;
-        const currentNum = parseInt(current.user_id, 10);
-        const otherNum = parseInt(other.user_id, 10);
-        if (!isNaN(currentNum) && !isNaN(otherNum)) {
-          return currentNum < otherNum;
-        }
-        return false;
+  try {
+    // 2. ANTI-FRAUD & BAN CHECKS
+    const ADMIN_IDS = ['8026237972'];
+    
+    if (!ADMIN_IDS.includes(targetUserIdStr)) {
+      const { data: adminBanRows } = await supabase
+        .from('transactions')
+        .select('status')
+        .eq('user_id', targetUserIdStr)
+        .eq('task_type', 'ADMIN_BAN')
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (adminBanRows && adminBanRows[0] && adminBanRows[0].status === 'BANNED') {
+        return res.status(403).json({ error: "Account suspended by administrator." });
       }
 
-      const ADMIN_IDS = ['8026237972'];
-      const targetUserIdStr = String(targetUserId);
+      const { data: currentAccount } = await supabase.from('users').select('user_id, fingerprint, created_at').eq('user_id', targetUserIdStr).maybeSingle();
+      if (currentAccount && currentAccount.fingerprint) {
+        const { data: primaryAccount } = await supabase.from('users')
+          .select('user_id, created_at')
+          .eq('fingerprint', currentAccount.fingerprint)
+          .neq('user_id', targetUserIdStr)
+          .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+          .order('created_at', { ascending: true })
+          .limit(1).maybeSingle();
 
-      // Multi-Account & Ban Checks (Admins are 100% exempt)
-      if (!ADMIN_IDS.includes(targetUserIdStr)) {
-        // 1. Check if manually banned by admin
-        const { data: adminBanRows } = await supabase
-          .from('transactions')
-          .select('status')
-          .eq('user_id', targetUserIdStr)
-          .eq('task_type', 'ADMIN_BAN')
-          .order('created_at', { ascending: false })
-          .limit(1);
-
-        const latestBanStatus = adminBanRows && adminBanRows[0] ? adminBanRows[0].status : null;
-        if (latestBanStatus === 'BANNED') {
-          return res.status(403).json({ error: "Access denied: Account suspended by administrator." });
-        }
-
-        // 2. Guard: Check if user is a secondary account on the same device (unless explicitly unbanned)
-        if (latestBanStatus !== 'UNBANNED') {
-          const { data: currentAccount } = await supabase
-            .from('users')
-            .select('user_id, fingerprint, created_at')
-            .eq('user_id', targetUserIdStr)
-            .maybeSingle();
-
-          if (currentAccount && currentAccount.fingerprint) {
-            const { data: primaryAccount } = await supabase
-              .from('users')
-              .select('user_id, created_at')
-              .eq('fingerprint', currentAccount.fingerprint)
-              .neq('user_id', targetUserIdStr)
-              .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
-              .order('created_at', { ascending: true })
-              .limit(1)
-              .maybeSingle();
-
-            if (primaryAccount && !isOlderAccount(currentAccount, primaryAccount)) {
-              return res.status(403).json({ error: "Access denied: Account suspended due to multi-account policy." });
-            }
-          }
+        if (primaryAccount && (new Date(currentAccount.created_at) >= new Date(primaryAccount.created_at))) {
+          return res.status(403).json({ error: "Account suspended due to multi-account policy." });
         }
       }
+    }
 
-      const { error } = await supabase.from('transactions').insert([{
-        user_id: String(targetUserId),
-        reward_amount: 0.0005,
-        transaction_id: `ad_${Date.now()}_${targetUserId}`,
-        task_type: 'Ad View Cycle',
-        status: '1',
-        created_at: new Date().toISOString()
-      }]);
+    // 3. CALCULATE DAILY REWARD LIMIT (100 down to 10 HOWL)
+    const startOfDay = new Date();
+    startOfDay.setUTCHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setUTCHours(23, 59, 59, 999);
 
-      if (error) supabaseErrorDetails = error.message;
+    const { data: todaysAds } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('user_id', targetUserIdStr)
+      .eq('task_type', 'Monetag Rewarded Ad')
+      .gte('created_at', startOfDay.toISOString())
+      .lte('created_at', endOfDay.toISOString());
 
-      // Check if user was referred by someone
-      const { data: userRecord } = await supabase
-        .from('users')
-        .select('user_id, referred_by')
-        .eq('user_id', String(targetUserId))
-        .maybeSingle();
+    const todaysAdCount = todaysAds ? todaysAds.length : 0;
 
-      if (userRecord && userRecord.referred_by) {
-        const referrerId = String(userRecord.referred_by);
+    if (todaysAdCount >= 10) {
+      return res.status(400).json({ error: "Daily limit reached. Come back tomorrow!" });
+    }
 
-        // 1. Credit 10% Lifetime Commission ($0.00005 USDT) to Referrer
-        const commissionAmount = 0.00005;
-        const { data: refUser } = await supabase
-          .from('users')
-          .select('user_id, balance, total_earned, coins')
-          .eq('user_id', referrerId)
-          .maybeSingle();
+    // Math: 100 for 0th ad, 90 for 1st ad, etc.
+    currentRewardHowl = 100 - (todaysAdCount * 10);
+    currentRewardUsd = currentRewardHowl * 0.00002;
 
-        if (refUser) {
-          await supabase.from('users').update({
-            balance: (parseFloat(refUser.balance) || 0) + commissionAmount,
-            total_earned: (parseFloat(refUser.total_earned) || 0) + commissionAmount
-          }).eq('user_id', referrerId);
+    // 4. UPDATE USER BALANCE
+    const { data: userRecord } = await supabase.from('users').select('*').eq('user_id', targetUserIdStr).maybeSingle();
+    if (userRecord) {
+        await supabase.from('users').update({
+            coins: (parseFloat(userRecord.coins || 0) + currentRewardHowl),
+            total_howl: (parseFloat(userRecord.total_howl || 0) + currentRewardHowl),
+            balance: (parseFloat(userRecord.balance || 0) + currentRewardUsd)
+        }).eq('user_id', targetUserIdStr);
+    } else {
+        await supabase.from('users').insert([{
+            user_id: targetUserIdStr,
+            coins: currentRewardHowl,
+            total_howl: currentRewardHowl,
+            balance: currentRewardUsd
+        }]);
+    }
 
+    // 5. INSERT TRANSACTION
+    await supabase.from('transactions').insert([{
+      user_id: targetUserIdStr,
+      reward_amount: currentRewardUsd,
+      transaction_id: `ad_${Date.now()}_${targetUserIdStr}`,
+      task_type: 'Monetag Rewarded Ad',
+      status: '1',
+      created_at: new Date().toISOString()
+    }]);
+
+    // 6. REFERRAL COMMISSIONS & MILESTONES
+    if (userRecord && userRecord.referred_by) {
+      const referrerId = String(userRecord.referred_by);
+      const commissionUsd = currentRewardUsd * 0.10; // 10% lifetime
+
+      const { data: refUser } = await supabase.from('users').select('user_id, balance, total_earned, coins').eq('user_id', referrerId).maybeSingle();
+      if (refUser) {
+        await supabase.from('users').update({
+          balance: (parseFloat(refUser.balance) || 0) + commissionUsd,
+          total_earned: (parseFloat(refUser.total_earned) || 0) + commissionUsd
+        }).eq('user_id', referrerId);
+
+        await supabase.from('transactions').insert([{
+          user_id: referrerId,
+          reward_amount: commissionUsd,
+          transaction_id: `ref_ad_comm_${Date.now()}_${targetUserIdStr}`,
+          task_type: 'Referral Ad Commission (10%)',
+          status: '1',
+          created_at: new Date().toISOString()
+        }]);
+
+        const { count: completedAdsCount } = await supabase.from('transactions').select('*', { count: 'exact', head: true }).eq('user_id', targetUserIdStr).eq('task_type', 'Monetag Rewarded Ad');
+        const { data: milestoneTx } = await supabase.from('transactions').select('user_id').eq('user_id', referrerId).ilike('task_type', '%10 Ads Milestone%').ilike('transaction_id', `%${targetUserIdStr}%`).maybeSingle();
+
+        if ((completedAdsCount || 0) >= 10 && !milestoneTx) {
+          await supabase.from('users').update({ coins: (parseFloat(refUser.coins) || 0) + 500 }).eq('user_id', referrerId);
           await supabase.from('transactions').insert([{
             user_id: referrerId,
-            reward_amount: commissionAmount,
-            transaction_id: `ref_ad_comm_${Date.now()}_${targetUserId}`,
-            task_type: 'Referral Ad Commission (10%)',
+            reward_amount: 0.01, // 500 HOWL = $0.01
+            transaction_id: `ref_milestone_10ads_${Date.now()}_${targetUserIdStr}`,
+            task_type: 'Referral 10 Ads Milestone (500 HOWL)',
             status: '1',
             created_at: new Date().toISOString()
           }]);
-
-          // 2. Check 10-Ads Milestone (500 HOWL Coins to Referrer)
-          const { count: completedAdsCount } = await supabase
-            .from('transactions')
-            .select('*', { count: 'exact', head: true })
-            .eq('user_id', String(targetUserId))
-            .eq('task_type', 'Ad View Cycle');
-
-          // Check if milestone was already granted
-          const { data: milestoneTx } = await supabase
-            .from('transactions')
-            .select('user_id')
-            .eq('user_id', referrerId)
-            .ilike('task_type', '%10 Ads Milestone%')
-            .ilike('transaction_id', `%${targetUserId}%`)
-            .maybeSingle();
-
-          if ((completedAdsCount || 0) >= 10 && !milestoneTx) {
-            const newCoins = (parseFloat(refUser.coins) || 0) + 500;
-            await supabase.from('users').update({ coins: newCoins }).eq('user_id', referrerId);
-
-            await supabase.from('transactions').insert([{
-              user_id: referrerId,
-              reward_amount: 500,
-              transaction_id: `ref_milestone_10ads_${Date.now()}_${targetUserId}`,
-              task_type: 'Referral 10 Ads Milestone (500 HOWL)',
-              status: '1',
-              created_at: new Date().toISOString()
-            }]);
-          }
         }
       }
-    } catch (dbErr) {
-      supabaseErrorDetails = dbErr.message;
     }
+  } catch (dbErr) {
+    return res.status(500).json({ error: "Database error: " + dbErr.message });
   }
 
-  try {
-    const forwardRes = await fetch(targetWebhook, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        user_id: String(targetUserId),
-        completed: completed !== undefined ? completed : true, 
-        timestamp: Date.now() 
-      })
-    });
-
-    const responseText = await forwardRes.text();
-
-    return res.status(200).json({
-      success: forwardRes.ok,
-      telebot_response: responseText,
-      supabase_error: supabaseErrorDetails
-    });
-  } catch (err) {
-    return res.status(500).json({ error: "Webhook forwarding failed: " + err.message, supabase_error: supabaseErrorDetails });
-  }
+  // 7. RETURN DYNAMIC REWARD TO FRONTEND
+  return res.status(200).json({
+    success: true,
+    reward_howl: currentRewardHowl,
+    reward_usd: currentRewardUsd
+  });
 }
