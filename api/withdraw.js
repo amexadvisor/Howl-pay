@@ -82,7 +82,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Calculate true balance dynamically from the transactions ledger (just like leaderboard/claim-bonus)
     const { data: txs, error: txFetchError } = await supabase
       .from('transactions')
       .select('reward_amount, task_type')
@@ -97,12 +96,8 @@ export default async function handler(req, res) {
       totalUsdEarned += (parseFloat(tx.reward_amount) || 0);
     });
 
-    // Convert total USD to HOWL (1 HOWL = $0.00002, so HOWL = USD / 0.00002)
-    // Or if reward amounts store coin counts for certain tasks, let's look at how your app computes it:
-    // If USD balance is stored in transactions, let's calculate HOWL equivalent:
     let totalHowlBalance = Math.round(totalUsdEarned / 0.00002);
 
-    // Fallback/Safety check: if transactions store raw coin amounts or mixed values, check user table too
     const { data: userRecord } = await supabase
       .from('users')
       .select('coins, total_howl, balance')
@@ -129,7 +124,6 @@ export default async function handler(req, res) {
 
     const timestampId = Date.now();
 
-    // 2. Insert withdrawal deduction directly into transactions table (Negative reward amount reduces ledger balance)
     const { error: insertError } = await supabase.from('transactions').insert([{
       user_id: targetUserId,
       reward_amount: -usdtValue, 
@@ -143,7 +137,6 @@ export default async function handler(req, res) {
       return res.status(500).json({ success: false, message: "Transaction logging error: " + insertError.message });
     }
 
-    // 3. Message Admin ID: 8026237972
     const adminMsg = "🚨 *New Withdrawal Request*\n\nUser ID: `" + targetUserId + "`\nAmount: *" + reqAmount + " HOWL* ($" + usdtValue.toFixed(4) + ")\nFee: $0.0100\nPayout: *$" + payoutUsdt.toFixed(4) + " USDT*\n\nAddress: `" + address + "`";
 
     await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
@@ -156,7 +149,8 @@ export default async function handler(req, res) {
         reply_markup: {
           inline_keyboard: [
             [{ text: "✅ Approve & Pay", callback_data: "A_" + timestampId }],
-            [{ text: "❌ Reject & Refund", callback_data: "R_" + timestampId }]
+            [{ text: "❌ Reject & Refund", callback_data: "R_" + timestampId }],
+            [{ text: "❌ Reject (No Refund)", callback_data: "NR_" + timestampId }]
           ]
         }
       })
