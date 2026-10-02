@@ -91,13 +91,12 @@
 
   <style>
     :root {
-      /* Deep Midnight Wolf Theme */
-      --bg-dark: #030614;
-      --card-bg-light: rgba(30, 45, 85, 0.6);
+      --bg-dark: #02040f;
+      --card-bg-light: rgba(20, 32, 60, 0.7);
       --text-main: #ffffff;
       --text-muted: #8aa4c4;
       
-      --accent-main: #5eb3ff; /* Electric Moonlight Blue */
+      --accent-main: #5eb3ff;
       --accent-dim: rgba(94, 179, 255, 0.15);
       --accent-orange: #f59e0b;
       --accent-red: #ef4444;
@@ -110,7 +109,7 @@
       --radius-pill: 50px;
     }
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; will-change: transform; }
 
     html, body {
       margin: 0; padding: 0; height: 100vh; width: 100vw;
@@ -120,63 +119,81 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Live Animated Night Background */
-    .night-sky-bg {
+    /* Live Animated Video-Like Background */
+    .live-bg-container {
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background: linear-gradient(180deg, #02040f 0%, #0a1128 40%, #02040f 100%);
+      background: radial-gradient(circle at 50% 20%, #081235 0%, #02040f 70%);
+      overflow: hidden;
     }
-    .stars {
-      position: absolute; inset: 0; opacity: 0.5;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 70px, #a6c8ff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 50px 160px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 90px 40px, #e0e7ff, rgba(0,0,0,0));
-      background-repeat: repeat; background-size: 200px 200px;
-      animation: twinkle 4s infinite alternate;
-    }
-    @keyframes twinkle { 0% { opacity: 0.3; } 100% { opacity: 0.7; } }
     
-    .moon-glow {
-      position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
-      width: 140px; height: 140px; background: #e0e7ff; border-radius: 50%;
-      box-shadow: 0 0 60px #a6c8ff, 0 0 120px #5eb3ff, inset -15px -15px 30px rgba(0,0,0,0.15);
-      animation: pulseMoon 5s infinite alternate;
+    /* Pulsing Moon */
+    .live-moon {
+      position: absolute; top: 10%; left: 50%; transform: translateX(-50%);
+      width: 130px; height: 130px; background: #e0e7ff; border-radius: 50%;
+      box-shadow: 0 0 50px #a6c8ff, 0 0 100px rgba(94,179,255,0.6);
+      animation: moonPulse 6s ease-in-out infinite alternate;
     }
-    @keyframes pulseMoon { 
-      0% { box-shadow: 0 0 60px #a6c8ff, 0 0 120px rgba(94,179,255,0.6), inset -15px -15px 30px rgba(0,0,0,0.15); } 
-      100% { box-shadow: 0 0 80px #a6c8ff, 0 0 160px rgba(94,179,255,0.9), inset -15px -15px 30px rgba(0,0,0,0.15); } 
+    @keyframes moonPulse {
+      0% { transform: translateX(-50%) scale(0.98); box-shadow: 0 0 40px #a6c8ff, 0 0 80px rgba(94,179,255,0.4); }
+      100% { transform: translateX(-50%) scale(1.02); box-shadow: 0 0 70px #e0e7ff, 0 0 130px rgba(94,179,255,0.8); }
     }
 
-    .wolf-art {
-      position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px; height: 35vh;
+    /* Twinkling Star Layers */
+    .stars-layer {
+      position: absolute; inset: 0; opacity: 0.6;
+      background-image: 
+        radial-gradient(1.5px 1.5px at 15px 40px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 80px 120px, #a6c8ff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 150px 220px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 240px 90px, #e0e7ff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 320px 300px, #fff, rgba(0,0,0,0));
+      background-repeat: repeat; background-size: 350px 350px;
+      animation: starTwinkle 3s ease-in-out infinite alternate;
     }
-    
-    /* Main Content Wrapper - Glassmorphism */
+    @keyframes starTwinkle { 0% { opacity: 0.4; } 100% { opacity: 0.85; } }
+
+    /* Drifting Clouds for Live Video Effect */
+    .clouds-drift {
+      position: absolute; inset: 0; opacity: 0.15;
+      background: radial-gradient(ellipse at 30% 40%, rgba(94,179,255,0.4) 0%, transparent 60%),
+                  radial-gradient(ellipse at 70% 60%, rgba(166,200,255,0.3) 0%, transparent 70%);
+      background-size: 200% 200%;
+      animation: cloudDrift 20s linear infinite;
+    }
+    @keyframes cloudDrift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Mountain & Howling Wolf Silhouette */
+    .wolf-mountain-art {
+      position: absolute; bottom: 0; left: 0; width: 100%; height: 32vh;
+    }
+
+    /* Lightning Fast UI Glassmorphism Container */
     .container { 
       position: relative; width: 100%; height: 100%; max-width: 480px; margin: 0 auto; 
       display: flex; flex-direction: column; z-index: 1; 
-      backdrop-filter: blur(2px); background: rgba(2, 4, 15, 0.4);
+      background: rgba(2, 4, 15, 0.35); backdrop-filter: blur(1px);
     }
     main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 110px 16px; position: relative; scroll-behavior: smooth; }
     main::-webkit-scrollbar { display: none; } 
     .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.4s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    .view.active { display: block; animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-    /* New Glass Cards */
     .glass-card {
-      background: rgba(15, 22, 45, 0.65);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+      background: rgba(12, 20, 42, 0.7);
+      backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
       border: 1px solid var(--border-soft);
       border-radius: var(--radius-xl);
       padding: 18px; margin-bottom: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
       position: relative; overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
+      transition: transform 0.15s ease, background 0.15s ease;
     }
-    .clickable:active .glass-card { transform: scale(0.98); background: rgba(20, 30, 60, 0.8); }
+    .clickable:active .glass-card { transform: scale(0.97); background: rgba(18, 28, 56, 0.85); }
 
     .top-bar-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px; }
     .user-greeting { display: flex; align-items: center; gap: 12px; }
@@ -194,7 +211,7 @@
     .pill-usd { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft); }
 
     .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .action-btn { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: #fff; padding: 18px; border-radius: var(--radius-xl); background: var(--card-bg-light); border: 1px solid var(--border-soft); cursor: pointer; transition: 0.2s;}
+    .action-btn { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: #fff; padding: 18px; border-radius: var(--radius-xl); background: var(--card-bg-light); border: 1px solid var(--border-soft); cursor: pointer; transition: 0.15s;}
     .action-btn:active { background: var(--accent-main); color: #000; }
     .action-btn i { color: var(--accent-main); font-size: 16px; }
     .action-btn:active i { color: #000; }
@@ -213,55 +230,55 @@
     .watch-top { width: 100%; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
     .eye-container { width: 70px; height: 70px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
     .watch-reward { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 28px; font-weight: 900; color: var(--accent-main); margin-bottom: 12px; text-shadow: 0 0 15px rgba(94, 179, 255, 0.4); }
-    .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
+    .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.15s; }
     .watch-btn:active { background: var(--accent-main); color: #000; box-shadow: 0 0 20px rgba(94, 179, 255, 0.4); }
     .watch-btn:disabled { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent; box-shadow: none; cursor: not-allowed; }
 
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
-    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(3, 6, 20, 0.9); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.6); }
+    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.15s; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
     .nav-item.active { color: var(--accent-main); }
     .nav-item.center-btn { position: relative; }
-    .center-icon-wrap { width: 64px; height: 64px; background: #050714; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid rgba(255,255,255,0.05); }
+    .center-icon-wrap { width: 64px; height: 64px; background: #030614; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid rgba(255,255,255,0.05); }
     .center-inner { width: 100%; height: 100%; background: var(--accent-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 24px; box-shadow: 0 0 25px rgba(94, 179, 255, 0.5); }
 
     .offerwall-iframe-container { width: 100%; height: 70vh; background: rgba(0,0,0,0.5); border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; margin-top: 10px; }
     .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; }
     
-    .data-item { background: rgba(15, 22, 45, 0.6); backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
+    .data-item { background: rgba(12, 20, 42, 0.65); backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
     .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; background: var(--card-bg-light); color:var(--accent-main);}
     .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
     .data-info p { margin: 0; font-size: 12px; color: var(--text-muted); }
     .data-val { font-size: 15px; font-weight: 700; color: var(--accent-main); }
 
-    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
+    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.25s; padding: 20px; }
     .full-screen-modal.active { opacity: 1; visibility: visible; }
-    .modal-content { background: rgba(15, 22, 45, 0.95); backdrop-filter: blur(20px); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .modal-content { background: rgba(12, 20, 42, 0.95); backdrop-filter: blur(20px); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
     .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; color: #fff;}
     .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
     .modal-btn { background: var(--accent-main); color: #000; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; border: none; font-size: 15px; cursor: pointer; }
 
-    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-main); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
+    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-main); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   </style>
 </head>
 <body>
 
-  <!-- Live Animated Background -->
-  <div class="night-sky-bg">
-    <div class="stars"></div>
-    <div class="moon-glow"></div>
-    <div class="wolf-art">
-      <!-- High Quality SVG Silhouette of Wolf Howling on a Mountain -->
+  <!-- Live Animated Video-Like Background -->
+  <div class="live-bg-container">
+    <div class="live-moon"></div>
+    <div class="stars-layer"></div>
+    <div class="clouds-drift"></div>
+    <div class="wolf-mountain-art">
       <svg viewBox="0 0 800 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,400 L0,350 Q100,320 200,340 T400,280 Q450,260 480,210 Q485,190 495,195 Q500,185 510,180 C515,160 530,130 550,110 L545,100 C540,95 535,90 535,85 C550,80 560,85 570,95 C580,85 585,75 590,65 L595,70 C600,60 610,65 615,75 C625,90 620,110 615,130 Q630,150 640,180 Q660,240 700,280 T800,350 L800,400 Z" fill="#02040f" />
+        <path d="M0,400 L0,340 Q120,310 220,330 T420,270 Q465,250 485,205 Q490,185 498,190 Q502,180 512,175 C517,155 532,125 552,105 L547,95 C542,90 537,85 537,80 C552,75 562,80 572,90 C582,80 587,70 592,60 L597,65 C602,55 612,60 617,70 C627,85 622,105 617,125 Q632,145 642,175 Q662,235 702,275 T800,340 L800,400 Z" fill="#010207" />
       </svg>
     </div>
   </div>
 
   <!-- Splash Screen -->
-  <div id="splash-screen" style="position: fixed; inset: 0; background: #030614; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
+  <div id="splash-screen" style="position: fixed; inset: 0; background: #02040f; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.4s;">
     <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
       <div id="splash-wolf-emoji" style="width: 110px; height: 110px; filter: drop-shadow(0 0 25px rgba(94,179,255,0.5));"></div>
     </div>
@@ -273,7 +290,7 @@
   </div>
 
   <!-- Mandatory Channel Gate -->
-  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
+  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(2, 4, 15, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
     <div style="text-align: center; margin: 40px 0 30px 0;">
       <div style="width: 64px; height: 64px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color: var(--accent-main); box-shadow: 0 0 20px rgba(94,179,255,0.3);">
         <i class="fa-solid fa-lock"></i>
@@ -341,7 +358,7 @@
   </div>
 
   <!-- Admin Entry Mode Selection Modal -->
-  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
+  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(2, 4, 15, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
     <div class="glass-card" style="max-width: 360px; width: 100%; text-align: center;">
       <div style="width: 64px; height: 64px; border-radius: 20px; background: var(--accent-dim); border: 1px solid rgba(94, 179, 255, 0.4); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-main); margin: 0 auto 16px;">
         <i class="fa-solid fa-shield-halved"></i>
@@ -490,7 +507,7 @@
               <span id="wd-receive-val" style="color: var(--accent-main);">$0.0000</span>
             </div>
           </div>
-          <button id="wd-btn" onclick="requestWithdrawal()" style="width: 100%; background: var(--accent-main); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s;">
+          <button id="wd-btn" onclick="requestWithdrawal()" style="width: 100%; background: var(--accent-main); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.15s;">
             Submit Withdrawal Request
           </button>
         </div>
@@ -553,7 +570,7 @@
           <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Share with friends to automatically credit your rewards.</div>
           <div style="display:flex; gap:10px;">
             <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:var(--text-main); padding:14px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
-            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 18px; cursor:pointer; transition: 0.2s;"><i class="fa-regular fa-copy"></i></button>
+            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 18px; cursor:pointer; transition: 0.15s;"><i class="fa-regular fa-copy"></i></button>
           </div>
           <button onclick="shareApp()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:16px; border-radius:var(--radius-lg); font-weight:800; font-size:14px; margin-top:16px; display:flex; justify-content:center; align-items:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
         </div>
@@ -638,7 +655,7 @@
               <p style="font-size: 11px; color: var(--text-muted); margin:2px 0 0 0;">User Moderation & Security</p>
             </div>
           </div>
-          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 10px 16px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s;">
+          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 10px 16px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.15s;">
             <i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Mode
           </button>
         </div>
@@ -697,7 +714,6 @@
     let monetagInFlight = false;
     let monetagLastRun = 0;
     let monetagAdsWatched = 0;
-    let monetagNextReward = 100;
     
     let gateCheckInterval = null;
     let isAdminUser = false;
@@ -742,8 +758,8 @@
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
-        }, 7000);
+            setTimeout(() => splash.style.display = 'none', 400);
+        }, 5000);
     });
 
     function getDeviceFingerprint() {
@@ -943,7 +959,7 @@
     }
 
     async function syncAdStatusFromServer() {
-        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
+        const initDataPayload = window.Telegram && Telegram.WebApp ? window.Telegram.WebApp.initData : "";
         if (!initDataPayload) return;
 
         try {
@@ -1031,12 +1047,11 @@
         if (monetagAdsWatched < 10) return;
         const now = new Date();
         const tomorrow = new Date(now);
-        tomorrow.setUTCHours(24, 0, 0, 0); // Sets time to exactly midnight UTC tonight
+        tomorrow.setUTCHours(24, 0, 0, 0); 
         
         const diff = tomorrow - now;
         
         if (diff <= 0) {
-            // New day hit while looking at screen
             monetagAdsWatched = 0;
             updateMonetagUI();
             return;
@@ -1067,16 +1082,13 @@
         if (watched >= 10) {
             if (rewardEl) rewardEl.textContent = "0";
             if (progressEl) progressEl.style.width = "100%";
-            if (btnEl) {
-                btnEl.style.display = "none";
-            }
+            if (btnEl) btnEl.style.display = "none";
             if (timerEl) {
                 timerEl.style.display = "block";
                 if (!midnightTimerInterval) midnightTimerInterval = setInterval(updateMidnightTimer, 1000);
                 updateMidnightTimer();
             }
         } else {
-            // Calculates reward purely on frontend: 100, 90, 80...
             let currentReward = 100 - (watched * 10);
             if (currentReward < 10) currentReward = 10; 
             
