@@ -26,7 +26,7 @@ export default async function handler(req, res) {
       const action = data.startsWith('NR_') ? 'NR' : data.split('_')[0]; 
       const timestampId = data.startsWith('NR_') ? data.split('_')[1] : data.split('_')[1];
 
-      // Retrieve transaction data natively from existing tables
+      // Retrieve pending withdrawal transaction data
       const { data: txRow } = await supabase.from('transactions')
           .select('*').like('transaction_id', 'W_' + timestampId + '_%').single();
 
@@ -48,24 +48,35 @@ export default async function handler(req, res) {
       const payoutUsdt = usdtDeducted - 0.01;
 
       if (action === 'R') {
-          // Reject WITH Refund
+          // 1. Mark original pending withdrawal as rejected
+          await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
+
+          // 2. Write REFUND entry to history ledger so it shows up visibly for the user
           await supabase.from('transactions').insert([{
               user_id: userId,
               reward_amount: usdtDeducted,
               transaction_id: 'REF_' + Date.now() + '_' + userId,
-              task_type: 'Withdrawal Refund (Admin Rejected)',
+              task_type: 'Withdrawal Refund (Rejected by Admin)',
               status: '1',
               created_at: new Date().toISOString()
           }]);
-          
-          await supabase.from('transactions').update({ status: 'rejected_refunded' }).eq('transaction_id', txRow.transaction_id);
           
           await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
           await notifyUser(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
 
       } else if (action === 'NR') {
-          // Reject WITHOUT Refund
+          // 1. Mark original pending withdrawal as rejected without refund
           await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
+
+          // 2. Write REJECTED entry to history ledger
+          await supabase.from('transactions').insert([{
+              user_id: userId,
+              reward_amount: 0,
+              transaction_id: 'REJ_' + Date.now() + '_' + userId,
+              task_type: 'Withdrawal Rejected (No Refund)',
+              status: '1',
+              created_at: new Date().toISOString()
+          }]);
           
           await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.");
           await notifyUser(userId, "❌ Your withdrawal request was rejected by administration.");
@@ -85,24 +96,34 @@ export default async function handler(req, res) {
               const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
               const tx = await contract.transfer(address, amountInWei);
               
-              // Mark transaction approved and save tx hash in history
-              await supabase.from('transactions').update({ status: 'approved', transaction_id: tx.hash }).eq('transaction_id', txRow.transaction_id);
+              // 1. Mark original pending withdrawal as approved
+              await supabase.from('transactions').update({ status: 'approved' }).eq('transaction_id', txRow.transaction_id);
+
+              // 2. Write successful payout entry to history ledger with tx hash
+              await supabase.from('transactions').insert([{
+                  user_id: userId,
+                  reward_amount: -payoutUsdt,
+                  transaction_id: tx.hash,
+                  task_type: 'USDT Payout (BEP-20)',
+                  status: '1',
+                  created_at: new Date().toISOString()
+              }]);
               
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               await notifyUser(userId, "🎉 *Withdrawal Approved!*\n$" + payoutUsdt.toFixed(4) + " USDT (BEP-20) has been sent to your wallet.\n\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
           
           } catch (err) {
-              // BLOCKCHAIN ERROR AUTOMATIC REFUND LOGIC
+              // BLOCKCHAIN ERROR AUTOMATIC REFUND & HISTORY LOGGING
+              await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
+
               await supabase.from('transactions').insert([{
                   user_id: userId,
                   reward_amount: usdtDeducted,
                   transaction_id: 'REF_ERR_' + Date.now() + '_' + userId,
-                  task_type: 'Withdrawal Auto-Refund (Blockchain Error)',
+                  task_type: 'Withdrawal Auto-Refund (Network Error)',
                   status: '1',
                   created_at: new Date().toISOString()
               }]);
-
-              await supabase.from('transactions').update({ status: 'blockchain_failed_refunded' }).eq('transaction_id', txRow.transaction_id);
 
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
               await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
