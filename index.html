@@ -704,6 +704,7 @@
     let monetagInFlight = false;
     let monetagLastRun = 0;
     let monetagAdsWatched = 0;
+    let monetagNextReward = 100;
     
     let gateCheckInterval = null;
     let isAdminUser = false;
@@ -945,8 +946,30 @@
                 generateRefLink();
                 document.getElementById('panel-offerwall').style.display = 'block';
                 checkStoredCooldowns();
+                syncAdStatusFromServer(); // Request backend database for accurate ad stats
             }
         } catch (error) {}
+    }
+
+    async function syncAdStatusFromServer() {
+        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
+        if (!initDataPayload) return;
+
+        try {
+            const response = await fetch('/api/claim-bonus', {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
+                body: JSON.stringify({ check_status: true, initData: initDataPayload })
+            });
+            const data = await response.json();
+            if (data.success) {
+                monetagAdsWatched = data.ads_watched;
+                monetagNextReward = data.next_reward;
+                updateMonetagUI();
+            }
+        } catch (e) {
+            console.log("Status sync failed", e);
+        }
     }
 
     function setupOfferwallIframes() {
@@ -1029,17 +1052,6 @@
     function checkStoredCooldowns() {
         const storedMonetag = localStorage.getItem(`howl_monetag_cd_${currentUserId}`);
         if (storedMonetag) monetagLastRun = parseInt(storedMonetag) || 0;
-
-        const todayStr = new Date().toDateString();
-        const storedDate = localStorage.getItem(`howl_monetag_date_${currentUserId}`);
-        if (storedDate !== todayStr) {
-            monetagAdsWatched = 0;
-            localStorage.setItem(`howl_monetag_date_${currentUserId}`, todayStr);
-            localStorage.setItem(`howl_monetag_count_${currentUserId}`, 0);
-        } else {
-            monetagAdsWatched = parseInt(localStorage.getItem(`howl_monetag_count_${currentUserId}`)) || 0;
-        }
-        updateMonetagUI();
     }
 
     function updateMonetagUI() {
@@ -1066,8 +1078,7 @@
                 btnEl.disabled = true;
             }
         } else {
-            let currentReward = 100 - (monetagAdsWatched * 10);
-            if (rewardEl) rewardEl.textContent = currentReward;
+            if (rewardEl) rewardEl.textContent = monetagNextReward;
             if (progressEl) progressEl.style.width = `${(monetagAdsWatched / 10) * 100}%`;
             if (btnEl) {
                 btnEl.textContent = "WATCH";
@@ -1231,7 +1242,6 @@
                 localStorage.setItem(`howl_monetag_cd_${currentUserId}`, monetagLastRun.toString());
                 monetagInFlight = false;
                 
-                // Immediately grant reward when the ad completes
                 sendRewardWebhook();
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
             }).catch(e => {
@@ -1264,14 +1274,13 @@
                 syncUserProfile();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
                 
-                monetagAdsWatched++;
-                localStorage.setItem(`howl_monetag_count_${currentUserId}`, monetagAdsWatched.toString());
+                monetagAdsWatched = data.ads_watched;
+                monetagNextReward = data.next_reward;
                 updateMonetagUI();
             } else {
                 alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
                 if (data.error && data.error.includes("Daily limit reached")) {
                     monetagAdsWatched = 10;
-                    localStorage.setItem(`howl_monetag_count_${currentUserId}`, '10');
                     updateMonetagUI();
                 }
             }
