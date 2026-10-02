@@ -18,13 +18,13 @@ export default async function handler(req, res) {
       const data = body.callback_query.data;
       const messageId = body.callback_query.message.message_id;
 
-      // SECURITY: Only process your specific button clicks
-      if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_'))) {
+      // SECURITY: Only process your specific admin button clicks
+      if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
         return res.status(200).json({ success: true }); 
       }
 
-      const action = data.split('_')[0]; 
-      const timestampId = data.split('_')[1];
+      const action = data.startsWith('NR_') ? 'NR' : data.split('_')[0]; 
+      const timestampId = data.startsWith('NR_') ? data.split('_')[1] : data.split('_')[1];
 
       // Retrieve transaction data natively from existing tables
       const { data: txRow } = await supabase.from('transactions')
@@ -40,31 +40,35 @@ export default async function handler(req, res) {
 
       const userId = txRow.user_id;
       
-      // FIXED: Thoroughly strip any whitespace, invisible characters, or labels from the address
       const rawTaskType = String(txRow.task_type || '');
       const addressPart = rawTaskType.includes(':') ? rawTaskType.split(':')[1] : rawTaskType;
       const address = addressPart.replace(/\s+/g, '').trim();
 
       const usdtDeducted = Math.abs(parseFloat(txRow.reward_amount));
       const payoutUsdt = usdtDeducted - 0.01;
-      const howlAmount = usdtDeducted / 0.00002;
 
       if (action === 'R') {
-          // Process Refund back into transaction history
+          // Reject WITH Refund
           await supabase.from('transactions').insert([{
               user_id: userId,
               reward_amount: usdtDeducted,
               transaction_id: 'REF_' + Date.now() + '_' + userId,
-              task_type: 'Withdrawal Refund',
+              task_type: 'Withdrawal Refund (Admin Rejected)',
               status: '1',
               created_at: new Date().toISOString()
           }]);
           
-          await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
+          await supabase.from('transactions').update({ status: 'rejected_refunded' }).eq('transaction_id', txRow.transaction_id);
           
-          // Notify
-          await editAdminMessage(messageId, "❌ *Rejected*\nUser refunded $" + usdtDeducted.toFixed(4) + ".");
-          await notifyUser(userId, "❌ Your withdrawal request was rejected and $" + usdtDeducted.toFixed(4) + " was refunded.");
+          await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
+          await notifyUser(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
+
+      } else if (action === 'NR') {
+          // Reject WITHOUT Refund
+          await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
+          
+          await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.");
+          await notifyUser(userId, "❌ Your withdrawal request was rejected by administration.");
 
       } else if (action === 'A') {
           await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
@@ -81,13 +85,28 @@ export default async function handler(req, res) {
               const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
               const tx = await contract.transfer(address, amountInWei);
               
+              // Mark transaction approved and save tx hash in history
               await supabase.from('transactions').update({ status: 'approved', transaction_id: tx.hash }).eq('transaction_id', txRow.transaction_id);
               
-              // Notify
               await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
               await notifyUser(userId, "🎉 *Withdrawal Approved!*\n$" + payoutUsdt.toFixed(4) + " USDT (BEP-20) has been sent to your wallet.\n\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
+          
           } catch (err) {
-              await editAdminMessage(messageId, "⚠️ *Blockchain Failed*\nError: " + err.message.substring(0, 50) + "\n\nTransaction remains pending.");
+              // BLOCKCHAIN ERROR AUTOMATIC REFUND LOGIC
+              await supabase.from('transactions').insert([{
+                  user_id: userId,
+                  reward_amount: usdtDeducted,
+                  transaction_id: 'REF_ERR_' + Date.now() + '_' + userId,
+                  task_type: 'Withdrawal Auto-Refund (Blockchain Error)',
+                  status: '1',
+                  created_at: new Date().toISOString()
+              }]);
+
+              await supabase.from('transactions').update({ status: 'blockchain_failed_refunded' }).eq('transaction_id', txRow.transaction_id);
+
+              const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
+              await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
+              await notifyUser(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
           }
       }
     }
