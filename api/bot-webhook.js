@@ -123,7 +123,11 @@ export default async function handler(req, res) {
                       disable_web_page_preview: true,
                       reply_markup: {
                           inline_keyboard: [
-                              [{ text: "View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]
+                              [{ 
+                                  text: "View on BscScan", 
+                                  url: "https://bscscan.com/tx/" + tx.hash,
+                                  icon_custom_emoji_id: "5280944517027998187"
+                              }]
                           ]
                       }
                   })
@@ -143,7 +147,7 @@ export default async function handler(req, res) {
 
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
               await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
-              await notifyUserRaw(userId, "⚠️️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+              await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
           }
       }
     }
