@@ -222,6 +222,7 @@
 
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-green); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
   </style>
 </head>
 <body>
@@ -687,6 +688,7 @@
     let adsCountToday = 0;
     let tgUser = null;
     let currentUserId = 'guest_user';
+    let currentHowlBalance = 0;
     let adsbitvexInFlight = false;
     let adsbitvexLastRun = 0;
     let gateCheckInterval = null;
@@ -860,7 +862,6 @@
         }
     }
 
-    let currentHowlBalance = 0;
     let currentUsdBalance = 0;
 
     function updateBalanceUI(b) {
@@ -945,21 +946,21 @@
     function generateRefLink() {
         const refInput = document.getElementById('ref-link-input');
         if (refInput && currentUserId && currentUserId !== 'guest_user') {
-            refInput.value = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+            refInput.value = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         }
     }
 
     function copyRefLink() {
         triggerHaptic('light');
         const refInput = document.getElementById('ref-link-input');
-        const link = refInput ? refInput.value : `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        const link = refInput ? refInput.value : `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(() => alert("Copied!")).catch(() => { refInput.select(); document.execCommand("copy"); alert("Copied!"); });
         else { refInput.select(); document.execCommand("copy"); alert("Copied!"); }
     }
 
     function shareApp() {
         triggerHaptic('medium');
-        const referralLink = `https://t.me/howl_paybot/app?startapp=ref_${currentUserId}`;
+        const referralLink = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
         const text = `Join HOWL, complete simple tasks & earn USDT directly to your bot!`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(shareUrl);
@@ -1074,7 +1075,7 @@
 
         if (!address.startsWith('0x') || address.length !== 42) return alert("Invalid BEP-20 address format.");
         if (isNaN(amount) || amount < 1500) return alert("Minimum withdrawal is 1,500 HOWL.");
-        if (amount > currentHowlBalance) return alert("Insufficient HOWL balance.");
+        if (amount > currentHowlBalance) return alert(`Insufficient HOWL balance. You have ${currentHowlBalance} HOWL.`);
 
         const btn = document.getElementById('wd-btn');
         btn.disabled = true;
