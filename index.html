@@ -1073,10 +1073,6 @@
         const address = document.getElementById('wd-address').value.trim();
         const amount = parseInt(document.getElementById('wd-amount').value);
 
-        if (!address.startsWith('0x') || address.length !== 42) return alert("Invalid BEP-20 address format.");
-        if (isNaN(amount) || amount < 1500) return alert("Minimum withdrawal is 1,500 HOWL.");
-        if (amount > currentHowlBalance) return alert(`Insufficient HOWL balance. You have ${currentHowlBalance} HOWL.`);
-
         const btn = document.getElementById('wd-btn');
         btn.disabled = true;
         btn.innerText = "Processing Request...";
