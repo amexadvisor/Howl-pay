@@ -10,85 +10,50 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
+  if (req.method !== 'POST') return res.status(405).json({ error: "Method not allowed" });
 
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { initData } = req.body || {};
+  const { initData, check_status } = req.body || {};
   const BOT_TOKEN = process.env.BOT_TOKEN;
 
-  if (!BOT_TOKEN || !supabase) {
-    return res.status(500).json({ error: "Server configuration error." });
-  }
+  if (!BOT_TOKEN || !supabase) return res.status(500).json({ error: "Server configuration error." });
 
   const rawInitData = initData || req.headers['x-telegram-init-data'];
   let targetUserIdStr = null;
 
-  // 1. SECURITY: Telegram Signature Validation
-  if (!rawInitData || typeof rawInitData !== 'string') {
-    return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
-  }
+  if (!rawInitData || typeof rawInitData !== 'string') return res.status(401).json({ error: "Unauthorized: Missing Telegram WebApp security context" });
 
   try {
     const params = new URLSearchParams(rawInitData);
     const hash = params.get('hash');
-
     if (!hash) return res.status(401).json({ error: "Unauthorized: Missing signature hash" });
 
     params.delete('hash');
     params.sort();
-
     const dataCheckArr = [];
     for (const [key, value] of params.entries()) {
       dataCheckArr.push(`${key}=${value}`);
     }
-    const dataCheckString = dataCheckArr.join('\n');
-
     const secretKey = crypto.createHmac('sha256', 'WebAppData').update(BOT_TOKEN).digest();
-    const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex');
+    const calculatedHash = crypto.createHmac('sha256', secretKey).update(dataCheckArr.join('\n')).digest('hex');
 
-    if (calculatedHash !== hash) {
-      return res.status(403).json({ error: "Forbidden: Invalid Telegram signature" });
-    }
+    if (calculatedHash !== hash) return res.status(403).json({ error: "Forbidden: Invalid Telegram signature" });
 
     const userStr = params.get('user');
     if (userStr) {
       const parsed = JSON.parse(userStr);
-      if (parsed && parsed.id) {
-        targetUserIdStr = String(parsed.id);
-      }
+      if (parsed && parsed.id) targetUserIdStr = String(parsed.id);
     }
-  } catch (e) {
-    return res.status(400).json({ error: "Bad Request: " + e.message });
-  }
+  } catch (e) { return res.status(400).json({ error: "Bad Request: " + e.message }); }
 
-  if (!targetUserIdStr) {
-    return res.status(400).json({ error: "Missing user identification." });
-  }
-
-  let currentRewardHowl = 0;
-  let currentRewardUsd = 0;
+  if (!targetUserIdStr) return res.status(400).json({ error: "Missing user identification." });
 
   try {
-    // 2. ANTI-FRAUD & BAN CHECKS
     const ADMIN_IDS = ['8026237972'];
     
     if (!ADMIN_IDS.includes(targetUserIdStr)) {
-      const { data: adminBanRows } = await supabase
-        .from('transactions')
-        .select('status')
-        .eq('user_id', targetUserIdStr)
-        .eq('task_type', 'ADMIN_BAN')
-        .order('created_at', { ascending: false })
-        .limit(1);
-
-      if (adminBanRows && adminBanRows[0] && adminBanRows[0].status === 'BANNED') {
-        return res.status(403).json({ error: "Account suspended by administrator." });
-      }
+      const { data: adminBanRows } = await supabase.from('transactions').select('status').eq('user_id', targetUserIdStr).eq('task_type', 'ADMIN_BAN').order('created_at', { ascending: false }).limit(1);
+      if (adminBanRows && adminBanRows[0] && adminBanRows[0].status === 'BANNED') return res.status(403).json({ error: "Account suspended by administrator." });
 
       const { data: currentAccount } = await supabase.from('users').select('user_id, fingerprint, created_at').eq('user_id', targetUserIdStr).maybeSingle();
       if (currentAccount && currentAccount.fingerprint) {
@@ -106,7 +71,7 @@ export default async function handler(req, res) {
       }
     }
 
-    // 3. CALCULATE DAILY REWARD LIMIT (100 down to 10 HOWL)
+    // CALCULATE DAILY REWARD LIMIT FROM DATABASE LEDGER
     const startOfDay = new Date();
     startOfDay.setUTCHours(0, 0, 0, 0);
     const endOfDay = new Date();
@@ -121,16 +86,25 @@ export default async function handler(req, res) {
       .lte('created_at', endOfDay.toISOString());
 
     const todaysAdCount = todaysAds ? todaysAds.length : 0;
+    
+    // Decreasing math: 1st ad = 100, 2nd = 90, 3rd = 80...
+    let currentRewardHowl = 100 - (todaysAdCount * 10);
+    if (currentRewardHowl < 0) currentRewardHowl = 0;
+    let currentRewardUsd = currentRewardHowl * 0.00002;
+
+    // Check status flag to sync frontend display on load without granting reward
+    if (check_status) {
+        return res.status(200).json({
+            success: true,
+            ads_watched: todaysAdCount,
+            next_reward: currentRewardHowl
+        });
+    }
 
     if (todaysAdCount >= 10) {
       return res.status(400).json({ error: "Daily limit reached. Come back tomorrow!" });
     }
 
-    // Math: 100 for 0th ad, 90 for 1st ad, etc.
-    currentRewardHowl = 100 - (todaysAdCount * 10);
-    currentRewardUsd = currentRewardHowl * 0.00002;
-
-    // 4. UPDATE USER BALANCE
     const { data: userRecord } = await supabase.from('users').select('*').eq('user_id', targetUserIdStr).maybeSingle();
     if (userRecord) {
         await supabase.from('users').update({
@@ -147,7 +121,6 @@ export default async function handler(req, res) {
         }]);
     }
 
-    // 5. INSERT TRANSACTION
     await supabase.from('transactions').insert([{
       user_id: targetUserIdStr,
       reward_amount: currentRewardUsd,
@@ -157,10 +130,9 @@ export default async function handler(req, res) {
       created_at: new Date().toISOString()
     }]);
 
-    // 6. REFERRAL COMMISSIONS & MILESTONES
     if (userRecord && userRecord.referred_by) {
       const referrerId = String(userRecord.referred_by);
-      const commissionUsd = currentRewardUsd * 0.10; // 10% lifetime
+      const commissionUsd = currentRewardUsd * 0.10; 
 
       const { data: refUser } = await supabase.from('users').select('user_id, balance, total_earned, coins').eq('user_id', referrerId).maybeSingle();
       if (refUser) {
@@ -185,7 +157,7 @@ export default async function handler(req, res) {
           await supabase.from('users').update({ coins: (parseFloat(refUser.coins) || 0) + 500 }).eq('user_id', referrerId);
           await supabase.from('transactions').insert([{
             user_id: referrerId,
-            reward_amount: 0.01, // 500 HOWL = $0.01
+            reward_amount: 0.01,
             transaction_id: `ref_milestone_10ads_${Date.now()}_${targetUserIdStr}`,
             task_type: 'Referral 10 Ads Milestone (500 HOWL)',
             status: '1',
@@ -194,14 +166,14 @@ export default async function handler(req, res) {
         }
       }
     }
+
+    return res.status(200).json({
+      success: true,
+      reward_howl: currentRewardHowl,
+      reward_usd: currentRewardUsd,
+      ads_watched: todaysAdCount + 1
+    });
   } catch (dbErr) {
     return res.status(500).json({ error: "Database error: " + dbErr.message });
   }
-
-  // 7. RETURN DYNAMIC REWARD TO FRONTEND
-  return res.status(200).json({
-    success: true,
-    reward_howl: currentRewardHowl,
-    reward_usd: currentRewardUsd
-  });
 }
