@@ -1,4 +1,4 @@
-This is api/bot-webhook.js:import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
