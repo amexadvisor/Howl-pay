@@ -49,14 +49,16 @@ export default async function handler(req, res) {
 
       // Fetch User's First Name for the public notification
       let firstName = "User";
-      const { data: userRecord } = await supabase.from('users').select('name').eq('user_id', userId).maybeSingle();
+      const { data: userRecord } = await supabase.from('users').select('name, coins, balance').eq('user_id', userId).maybeSingle();
       if (userRecord && userRecord.name) {
           firstName = userRecord.name.split(' ')[0]; // Extract just the first name
       }
 
       if (action === 'R') {
+          // Update transaction status
           await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
 
+          // Log the refund transaction
           await supabase.from('transactions').insert([{
               user_id: userId,
               reward_amount: usdtDeducted,
@@ -65,6 +67,15 @@ export default async function handler(req, res) {
               status: '1',
               created_at: new Date().toISOString()
           }]);
+
+          // ACTUAL REFUND: Restore the user's database balance
+          if (userRecord) {
+              const howlRefund = Math.round(usdtDeducted / 0.00002);
+              await supabase.from('users').update({
+                  coins: (parseFloat(userRecord.coins) || 0) + howlRefund,
+                  balance: (parseFloat(userRecord.balance) || 0) + usdtDeducted
+              }).eq('user_id', userId);
+          }
           
           await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
           await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
@@ -176,6 +187,15 @@ export default async function handler(req, res) {
                   status: '1',
                   created_at: new Date().toISOString()
               }]);
+
+              // ACTUAL AUTO-REFUND: Restore the user's database balance on blockchain failure
+              if (userRecord) {
+                  const howlRefund = Math.round(usdtDeducted / 0.00002);
+                  await supabase.from('users').update({
+                      coins: (parseFloat(userRecord.coins) || 0) + howlRefund,
+                      balance: (parseFloat(userRecord.balance) || 0) + usdtDeducted
+                  }).eq('user_id', userId);
+              }
 
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
               await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
