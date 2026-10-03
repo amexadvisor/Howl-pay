@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
   
-  const { initData, fingerprint, startParam, isLocalMulti, syncOnly } = req.body || {};
+  const { initData, fingerprint, startParam } = req.body || {};
   const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
 
   if (!initData) return res.status(200).json({ success: false, error: 'Missing Telegram initData' });
@@ -92,171 +92,178 @@ export default async function handler(req, res) {
 
     const isAdmin = ADMIN_IDS.includes(userIdStr);
 
-    if (!syncOnly) {
-      // Multi-Account & Ban Verification (Admins are 100% exempt)
-      if (!isAdmin) {
-        // 1. Manual Admin Ban Check from transactions table
-        const { data: adminBanRows } = await supabase
-          .from('transactions')
-          .select('status')
-          .eq('user_id', userIdStr)
-          .eq('task_type', 'ADMIN_BAN')
-          .order('created_at', { ascending: false })
-          .limit(1);
+    // Multi-Account & Ban Verification (Admins are 100% exempt)
+    if (!isAdmin) {
+      // 1. Manual Admin Ban Check from transactions table
+      const { data: adminBanRows } = await supabase
+        .from('transactions')
+        .select('status')
+        .eq('user_id', userIdStr)
+        .eq('task_type', 'ADMIN_BAN')
+        .order('created_at', { ascending: false })
+        .limit(1);
 
-        const latestBanStatus = adminBanRows && adminBanRows[0] ? adminBanRows[0].status : null;
-        if (latestBanStatus === 'BANNED') {
-          return res.status(200).json({
-            success: false,
-            banned: true,
-            ban_reason: 'Your account has been suspended by an administrator.'
-          });
+      const latestBanStatus = adminBanRows && adminBanRows[0] ? adminBanRows[0].status : null;
+      if (latestBanStatus === 'BANNED') {
+        return res.status(200).json({
+          success: false,
+          banned: true,
+          ban_reason: 'Your account has been suspended by an administrator.'
+        });
+      }
+
+      // 2. Multi-Account Device & 20-min IP Verification (Skipped if admin explicitly unbanned this user)
+      if (latestBanStatus !== 'UNBANNED') {
+        let primaryAccount = null;
+        let isIpMatch = false;
+
+        // 2A. Check by localStorage device fingerprint
+        if (clientFingerprint) {
+          const { data: deviceMatch } = await supabase
+            .from('users')
+            .select('user_id, created_at')
+            .eq('fingerprint', clientFingerprint)
+            .neq('user_id', userIdStr)
+            .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+            .order('created_at', { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (deviceMatch) primaryAccount = deviceMatch;
         }
 
-        // 2. Multi-Account Device & 20-min IP Verification
-        if (latestBanStatus !== 'UNBANNED') {
-          if (isLocalMulti) {
+        // 2B. Check by 20-minute IP window (catches cloned apps / dual-apps on the same network)
+        if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+          const { data: recentIpTxs } = await supabase
+            .from('transactions')
+            .select('user_id, created_at')
+            .eq('task_type', 'SYSTEM_IP_LOG')
+            .eq('status', clientIp)
+            .neq('user_id', userIdStr)
+            .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
+            .gt('created_at', ipWindowThreshold)
+            .order('created_at', { ascending: true })
+            .limit(1);
+
+          if (recentIpTxs && recentIpTxs.length > 0) {
+            primaryAccount = recentIpTxs[0];
+            isIpMatch = true;
+          }
+        }
+
+        if (primaryAccount) {
+          const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
+          if (!isCurrentOlder) {
+            const reason = isIpMatch
+              ? 'Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted.'
+              : 'Multiple accounts detected on this device. Only your original account is permitted.';
+            console.log(`[Anti-Fraud] Ban triggered: Device/IP owned by ${primaryAccount.user_id}, blocked ${userIdStr} (IP match: ${isIpMatch})`);
+            
+            try {
+              await supabase.from('users').upsert({
+                user_id: userIdStr,
+                name: fullName,
+                photo_url: photoUrl,
+                fingerprint: clientFingerprint,
+                last_seen: new Date().toISOString()
+              }, { onConflict: 'user_id' });
+            } catch (e) {}
+
             return res.status(200).json({
               success: false,
               banned: true,
-              ban_reason: 'Multiple accounts detected on this device. Only your original account is permitted.'
+              ban_reason: reason
             });
           }
-
-          let primaryAccount = null;
-          let isIpMatch = false;
-
-          if (clientFingerprint) {
-            const { data: deviceMatch } = await supabase
-              .from('users')
-              .select('user_id, created_at')
-              .eq('fingerprint', clientFingerprint)
-              .neq('user_id', userIdStr)
-              .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
-              .order('created_at', { ascending: true })
-              .limit(1)
-              .maybeSingle();
-
-            if (deviceMatch) primaryAccount = deviceMatch;
-          }
-
-          if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
-            const { data: recentIpTxs } = await supabase
-              .from('transactions')
-              .select('user_id, created_at')
-              .eq('task_type', 'SYSTEM_IP_LOG')
-              .eq('status', clientIp)
-              .neq('user_id', userIdStr)
-              .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
-              .gt('created_at', ipWindowThreshold)
-              .order('created_at', { ascending: true })
-              .limit(1);
-
-            if (recentIpTxs && recentIpTxs.length > 0) {
-              primaryAccount = recentIpTxs[0];
-              isIpMatch = true;
-            }
-          }
-
-          if (primaryAccount) {
-            const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
-            if (!isCurrentOlder) {
-              const reason = isIpMatch
-                ? 'Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted.'
-                : 'Multiple accounts detected on this device. Only your original account is permitted.';
-              
-              try {
-                await supabase.from('users').upsert({
-                  user_id: userIdStr,
-                  name: fullName,
-                  photo_url: photoUrl,
-                  fingerprint: clientFingerprint,
-                  last_seen: new Date().toISOString()
-                }, { onConflict: 'user_id' });
-              } catch (e) {}
-
-              return res.status(200).json({
-                success: false,
-                banned: true,
-                ban_reason: reason
-              });
-            }
-          }
         }
-      }
-
-      let finalReferrer = null;
-
-      if (!existingUser) {
-        const rawStartParam = params.get('start_param') || startParam || '';
-        let cleanRef = String(rawStartParam).trim();
-        if (cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
-
-        if (cleanRef && cleanRef !== userIdStr) {
-          const { data: referrer } = await supabase
-            .from('users')
-            .select('user_id, last_seen, fingerprint, coins')
-            .eq('user_id', cleanRef)
-            .maybeSingle();
-
-          if (referrer) {
-            const isSameDevice = Boolean(clientFingerprint && referrer.fingerprint && clientFingerprint === referrer.fingerprint);
-
-            let isSameIpRecent = false;
-            if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
-              const { data: refIpTxs } = await supabase
-                .from('transactions')
-                .select('id')
-                .eq('task_type', 'SYSTEM_IP_LOG')
-                .eq('status', clientIp)
-                .eq('user_id', cleanRef)
-                .gt('created_at', ipWindowThreshold)
-                .limit(1);
-              if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
-            }
-
-            if (!isSameDevice && !isSameIpRecent) {
-              finalReferrer = cleanRef;
-              const currentCoins = parseFloat(referrer.coins) || 0;
-              await supabase.from('users').update({ coins: currentCoins + 250 }).eq('user_id', cleanRef);
-
-              await supabase.from('transactions').insert([{
-                user_id: String(cleanRef),
-                reward_amount: 250,
-                transaction_id: `ref_join_${Date.now()}_${userIdStr}`,
-                task_type: 'Referral Signup Bonus (250 HOWL)',
-                status: '1',
-                created_at: new Date().toISOString()
-              }]);
-            }
-          }
-        }
-
-        await supabase.from('users').insert([{
-          user_id: userIdStr,
-          name: fullName,
-          photo_url: photoUrl,
-          referred_by: finalReferrer,
-          fingerprint: clientFingerprint,
-          balance: 0.0000,
-          coins: 0.00,
-          total_earned: 0.0000,
-          created_at: new Date().toISOString(),
-          last_seen: new Date().toISOString()
-        }]);
-
-      } else {
-        const updatePayload = {
-          name: fullName,
-          photo_url: photoUrl || existingUser.photo_url,
-          last_seen: new Date().toISOString()
-        };
-        if (clientFingerprint) updatePayload.fingerprint = clientFingerprint;
-
-        await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
       }
     }
 
+    let finalReferrer = null;
+
+    if (!existingUser) {
+      // 1. BRAND NEW USER REGISTRATION
+      const rawStartParam = params.get('start_param') || startParam || '';
+      let cleanRef = String(rawStartParam).trim();
+      if (cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
+
+      if (cleanRef && cleanRef !== userIdStr) {
+        // Fetch Referrer details for anti-cheat verification
+        const { data: referrer } = await supabase
+          .from('users')
+          .select('user_id, last_seen, fingerprint, coins')
+          .eq('user_id', cleanRef)
+          .maybeSingle();
+
+        if (referrer) {
+          const isSameDevice = Boolean(clientFingerprint && referrer.fingerprint && clientFingerprint === referrer.fingerprint);
+
+          // Check if referrer was active on this exact IP within the 20-minute window
+          let isSameIpRecent = false;
+          if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+            const { data: refIpTxs } = await supabase
+              .from('transactions')
+              .select('id')
+              .eq('task_type', 'SYSTEM_IP_LOG')
+              .eq('status', clientIp)
+              .eq('user_id', cleanRef)
+              .gt('created_at', ipWindowThreshold)
+              .limit(1);
+            if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
+          }
+
+          if (isSameDevice || isSameIpRecent) {
+            console.log(`[Anti-Fraud] Self-referral blocked: same device/IP (${cleanRef} -> ${userIdStr})`);
+            finalReferrer = null; // Deny referral reward, but allow user to use app
+          } else {
+            // Valid new referral!
+            finalReferrer = cleanRef;
+
+            // Reward Referrer: +250 HOWL Coins for joining and verified
+            const currentCoins = parseFloat(referrer.coins) || 0;
+            const updatedCoins = currentCoins + 250;
+            await supabase.from('users').update({ coins: updatedCoins }).eq('user_id', cleanRef);
+
+            // Record transaction for referrer
+            await supabase.from('transactions').insert([{
+              user_id: String(cleanRef),
+              reward_amount: 250,
+              transaction_id: `ref_join_${Date.now()}_${userIdStr}`,
+              task_type: 'Referral Signup Bonus (250 HOWL)',
+              status: '1',
+              created_at: new Date().toISOString()
+            }]);
+          }
+        }
+      }
+
+      // Insert new user record
+      await supabase.from('users').insert([{
+        user_id: userIdStr,
+        name: fullName,
+        photo_url: photoUrl,
+        referred_by: finalReferrer,
+        fingerprint: clientFingerprint,
+        balance: 0.0000,
+        coins: 0.00,
+        total_earned: 0.0000,
+        created_at: new Date().toISOString(),
+        last_seen: new Date().toISOString()
+      }]);
+
+    } else {
+      // 2. RETURNING USER - Update profile and presence
+      const updatePayload = {
+        name: fullName,
+        photo_url: photoUrl || existingUser.photo_url,
+        last_seen: new Date().toISOString()
+      };
+      if (clientFingerprint) updatePayload.fingerprint = clientFingerprint;
+
+      await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
+    }
+
+    // Record/refresh IP session for this user (at most once every 10 minutes to save DB writes)
     if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
       try {
         const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000).toISOString();
@@ -278,7 +285,9 @@ export default async function handler(req, res) {
             created_at: new Date().toISOString()
           }]);
         }
-      } catch (ipLogErr) {}
+      } catch (ipLogErr) {
+        console.error('[IP Log Error]', ipLogErr.message);
+      }
     }
 
     // 3. FETCH REFERRAL STATS FOR THIS USER
@@ -310,7 +319,7 @@ export default async function handler(req, res) {
     const HOWL_USD_RATE = 0.00002;
     const totalReferralUsdtEquivalent = (totalHowlEarned * HOWL_USD_RATE) + totalUsdtEarned;
 
-    // 4. FETCH USER BALANCE & COINS (FIXED: Uses actual current database record safely without forcing historical max)
+    // 4. FETCH USER BALANCE & COINS (CALCULATE HOWL & USD CONVERSION)
     const { data: currentUserData } = await supabase
       .from('users')
       .select('balance, coins, total_earned')
@@ -320,19 +329,41 @@ export default async function handler(req, res) {
     const storedCoins = parseFloat(currentUserData?.coins) || 0;
     const storedBalance = parseFloat(currentUserData?.balance) || 0;
 
-    const convertedFromUsdt = storedBalance > 0 ? (storedBalance / HOWL_USD_RATE) : 0;
-    const totalHowlBalance = Math.round(storedCoins + convertedFromUsdt);
+    const { data: allUserTxs } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', userIdStr)
+      .not('task_type', 'eq', 'ADMIN_BAN')
+      .not('task_type', 'like', 'SYSTEM_%');
+
+    let ledgerHowlCoins = 0;
+    let ledgerUsdt = 0;
+
+    if (allUserTxs && allUserTxs.length > 0) {
+      allUserTxs.forEach(tx => {
+        const amt = parseFloat(tx.reward_amount) || 0;
+        if (tx.task_type.includes('HOWL')) {
+          ledgerHowlCoins += amt;
+        } else {
+          ledgerUsdt += amt;
+        }
+      });
+    }
+
+    const effectiveCoins = Math.max(storedCoins, ledgerHowlCoins);
+    const effectiveUsdt = Math.max(storedBalance, ledgerUsdt);
+    const convertedFromUsdt = effectiveUsdt > 0 ? (effectiveUsdt / HOWL_USD_RATE) : 0;
+    const totalHowlBalance = Math.round(effectiveCoins + convertedFromUsdt);
     const totalUsdValue = +( (totalHowlBalance * HOWL_USD_RATE).toFixed(4) );
 
     return res.status(200).json({
       success: true,
-      message: "Verified",
       is_admin: isAdmin,
       user_balance: {
         total_howl: totalHowlBalance,
         total_usd: totalUsdValue,
-        coins: storedCoins,
-        usdt_earnings: +(storedBalance.toFixed(4)),
+        coins: effectiveCoins,
+        usdt_earnings: +(effectiveUsdt.toFixed(4)),
         rate: HOWL_USD_RATE
       },
       referral_stats: {
@@ -346,4 +377,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-}
+      }
