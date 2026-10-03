@@ -646,7 +646,7 @@
             Lookup User by Telegram ID
           </label>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; color: #fff; font-size: 14px; outline: none;">
+            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; outline: none;">
             <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-main); border: none; color: #000; padding: 0 20px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
               <i class="fa-solid fa-magnifying-glass"></i> Search
             </button>
@@ -881,17 +881,12 @@
             if (data.banned) { triggerBanScreen(data.message); return; }
             
             if (data.user_data) {
-                // RESTORED: Precise balance mapping matching your fully working balance implementation
-                const howlAmt = parseFloat(data.user_data.coins || data.user_data.total_howl || 0);
-                const usdtVal = (data.user_data.balance !== undefined && parseFloat(data.user_data.balance) > 0)
-                    ? parseFloat(data.user_data.balance)
-                    : (howlAmt * 0.00002);
-
-                updateBalanceUI({ total_howl: howlAmt, total_usd: usdtVal });
+                // RESTORED: Exactly mapping user_data.coins (HOWL) and user_data.balance (USD)
+                updateBalanceUI({ total_howl: data.user_data.coins, total_usd: data.user_data.balance });
                 updateReferralStatsUI({ 
                     friends_count: data.user_data.active_friends, 
-                    total_howl: howlAmt, 
-                    total_usdt: usdtVal 
+                    total_howl: data.user_data.coins, 
+                    total_usdt: data.user_data.balance 
                 });
             }
             if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus({ is_admin: true });
