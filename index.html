@@ -317,7 +317,9 @@
 
   <!-- Multi-Account Ban Screen -->
   <div id="ban-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
-    <div id="ban-anim" style="width: 100px; height: 100px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(239,68,68,0.5));"></div>
+    <div style="width: 72px; height: 72px; border-radius: 22px; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.4); display: flex; align-items: center; justify-content: center; font-size: 32px; color: var(--accent-red); margin-bottom: 20px;">
+      <i class="fa-solid fa-shield-halved"></i>
+    </div>
     <div style="display:inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--accent-red); padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
       Multi-Account Prohibited
     </div>
@@ -646,7 +648,7 @@
             Lookup User by Telegram ID
           </label>
           <div style="display: flex; gap: 8px;">
-            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; outline: none;">
+            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; color: #fff; font-size: 14px; outline: none;">
             <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-main); border: none; color: #000; padding: 0 20px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
               <i class="fa-solid fa-magnifying-glass"></i> Search
             </button>
@@ -734,7 +736,6 @@
             lottie.loadAnimation({ container: document.getElementById('wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
-            lottie.loadAnimation({ container: document.getElementById('ban-anim'), renderer: 'svg', loop: true, autoplay: true, path: 'assets/ban.json' });
         }
 
         setInterval(updateCooldownTimers, 1000);
@@ -837,59 +838,19 @@
         if (!window.Telegram || !Telegram.WebApp || !Telegram.WebApp.initData) return;
         const startParam = (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || urlParams.get('startapp') || '';
         const deviceFp = getDeviceFingerprint();
-        const currentTgId = String(Telegram.WebApp.initDataUnsafe.user.id);
         
-        let isLocalMulti = false;
-        const storedUser = localStorage.getItem('howl_verified_user');
-        
-        if (storedUser && storedUser !== currentTgId) {
-            isLocalMulti = true;
-        } else if (!storedUser) {
-            localStorage.setItem('howl_verified_user', currentTgId);
-        }
-
-        const payload = { 
-            initData: Telegram.WebApp.initData, 
-            fingerprint: deviceFp, 
-            startParam: startParam,
-            isLocalMulti: isLocalMulti
-        };
-
-        if (window.Telegram.WebApp.CloudStorage) {
-            window.Telegram.WebApp.CloudStorage.getItem('howl_verified_user', (err, val) => {
-                if (!err && val && val !== currentTgId) {
-                    payload.isLocalMulti = true;
-                } else if (!val) {
-                    window.Telegram.WebApp.CloudStorage.setItem('howl_verified_user', currentTgId);
-                }
-                executeSyncRequest(payload);
-            });
-        } else {
-            executeSyncRequest(payload);
-        }
-    }
-
-    function executeSyncRequest(payload) {
-        fetch('/api/verify', {
+        fetch('/api/sync-profile', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({ initData: Telegram.WebApp.initData, fingerprint: deviceFp, startParam: startParam })
         })
         .then(async r => {
             const data = await r.json().catch(() => null);
             if (!data) return;
-            if (data.banned) { triggerBanScreen(data.message); return; }
-            
-            if (data.user_data) {
-                // RESTORED: Exactly mapping user_data.coins (HOWL) and user_data.balance (USD)
-                updateBalanceUI({ total_howl: data.user_data.coins, total_usd: data.user_data.balance });
-                updateReferralStatsUI({ 
-                    friends_count: data.user_data.active_friends, 
-                    total_howl: data.user_data.coins, 
-                    total_usdt: data.user_data.balance 
-                });
-            }
-            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus({ is_admin: true });
+            if (data.banned) { triggerBanScreen(data.ban_reason); return; }
+            if (data.user_balance) updateBalanceUI(data.user_balance);
+            if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
+            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus(data);
         }).catch(e => {});
     }
 
