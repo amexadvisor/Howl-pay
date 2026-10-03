@@ -738,24 +738,6 @@
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
         }
 
-        // Initialize Monetag In-App Interstitial (Banner Alternative) overlay
-        setTimeout(() => {
-            if (typeof show_11935325 === 'function') {
-                try {
-                    show_11935325({
-                      type: 'inApp',
-                      inAppSettings: {
-                        frequency: 2,
-                        capping: 0.1,
-                        interval: 30,
-                        timeout: 5,
-                        everyPage: false
-                      }
-                    });
-                } catch (e) { console.log('Monetag Interstitial init error', e); }
-            }
-        }, 1500);
-
         setInterval(updateCooldownTimers, 1000);
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
