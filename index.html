@@ -852,8 +852,7 @@
             initData: Telegram.WebApp.initData, 
             fingerprint: deviceFp, 
             startParam: startParam,
-            isLocalMulti: isLocalMulti,
-            syncOnly: true
+            isLocalMulti: isLocalMulti
         };
 
         if (window.Telegram.WebApp.CloudStorage) {
@@ -881,18 +880,9 @@
             if (!data) return;
             if (data.banned) { triggerBanScreen(data.message); return; }
             
-            if (data.user_data) {
-                const howlAmt = parseFloat(data.user_data.coins || data.user_data.total_howl || 0);
-                const usdtAmt = parseFloat(data.user_data.balance || data.user_data.total_usd || 0);
-                
-                updateBalanceUI({ total_howl: howlAmt, total_usd: usdtAmt });
-                updateReferralStatsUI({ 
-                    friends_count: data.user_data.active_friends, 
-                    total_howl: howlAmt, 
-                    total_usdt: usdtAmt 
-                });
-            }
-            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus({ is_admin: true });
+            if (data.user_balance) updateBalanceUI(data.user_balance);
+            if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
+            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus(data);
         }).catch(e => {});
     }
 
@@ -1314,7 +1304,8 @@
 
             if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                incrementLocalBalance(data.reward_howl, data.reward_usd);
+                // Removed redundant incrementLocalBalance. Relying purely on executeSyncRequest to fetch precise DB totals.
+                syncUserProfile();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
                 
                 monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
