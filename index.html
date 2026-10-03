@@ -855,7 +855,6 @@
             isLocalMulti: isLocalMulti
         };
 
-        // Secure Telegram Cloud Storage Check
         if (window.Telegram.WebApp.CloudStorage) {
             window.Telegram.WebApp.CloudStorage.getItem('howl_verified_user', (err, val) => {
                 if (!err && val && val !== currentTgId) {
@@ -882,6 +881,7 @@
             if (data.banned) { triggerBanScreen(data.message); return; }
             
             if (data.user_data) {
+                // FIXED: Correctly reading coins & balance from user_data response object
                 updateBalanceUI({ total_howl: data.user_data.coins, total_usd: data.user_data.balance });
                 updateReferralStatsUI({ 
                     friends_count: data.user_data.active_friends, 
@@ -1049,9 +1049,9 @@
         const nav = document.getElementById('bottom-nav');
         if (viewId === 'admin-view') { if (nav) nav.style.display = 'none'; } else { if (nav) nav.style.display = 'flex'; }
 
-        if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); }
+        if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); syncUserProfile(); }
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
-        if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); }
+        if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); syncUserProfile(); }
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
         if(viewId === 'leaderboard-view') {
             if (lastViewBeforeLeaderboard === 'profile-view') {
@@ -1313,6 +1313,7 @@
             if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 incrementLocalBalance(data.reward_howl, data.reward_usd);
+                syncUserProfile();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
                 
                 monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
