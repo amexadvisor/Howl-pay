@@ -83,7 +83,7 @@
     })();
   </script>
 
-  <!-- Monetag Rewarded & Banner Ads SDK -->
+  <!-- Monetag Rewarded Ads SDK -->
   <script src='//libtl.com/sdk.js' data-zone='11935325' data-sdk='show_11935325'></script>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
@@ -408,11 +408,6 @@
               <i class="fa-solid fa-download"></i> WITHDRAW
             </div>
           </div>
-        </div>
-        
-        <!-- Monetag Banner Ad Placeholder (Linked to 11935325) -->
-        <div class="glass-card" style="padding: 10px; display: flex; justify-content: center; align-items: center; min-height: 60px;">
-          <div id="container-11935325"></div>
         </div>
 
         <div class="clickable" onclick="openLeaderboard('home-view')">
@@ -742,6 +737,24 @@
             lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
         }
+
+        // Initialize Monetag In-App Interstitial (Banner Alternative) overlay
+        setTimeout(() => {
+            if (typeof show_11935325 === 'function') {
+                try {
+                    show_11935325({
+                      type: 'inApp',
+                      inAppSettings: {
+                        frequency: 2,
+                        capping: 0.1,
+                        interval: 30,
+                        timeout: 5,
+                        everyPage: false
+                      }
+                    });
+                } catch (e) { console.log('Monetag Interstitial init error', e); }
+            }
+        }, 1500);
 
         setInterval(updateCooldownTimers, 1000);
         setTimeout(() => { 
