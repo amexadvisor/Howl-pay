@@ -83,8 +83,8 @@
     })();
   </script>
 
-  <!-- Monetag Rewarded Ads SDK -->
-  <script src='//libtl.com/sdk.js' data-zone='11499185' data-sdk='show_11499185'></script>
+  <!-- Monetag Rewarded & Banner Ads SDK -->
+  <script src='//libtl.com/sdk.js' data-zone='11935325' data-sdk='show_11935325'></script>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
@@ -408,6 +408,11 @@
               <i class="fa-solid fa-download"></i> WITHDRAW
             </div>
           </div>
+        </div>
+        
+        <!-- Monetag Banner Ad Placeholder (Linked to 11935325) -->
+        <div class="glass-card" style="padding: 10px; display: flex; justify-content: center; align-items: center; min-height: 60px;">
+          <div id="container-11935325"></div>
         </div>
 
         <div class="clickable" onclick="openLeaderboard('home-view')">
@@ -1241,10 +1246,10 @@
             return alert(`⏳ Cooldown active! Wait ${left}s.`);
         }
         
-        if (typeof show_11499185 === 'function') {
+        if (typeof show_11935325 === 'function') {
             monetagInFlight = true;
             updateCooldownTimers();
-            show_11499185().then(() => {
+            show_11935325().then(() => {
                 monetagLastRun = Date.now();
                 monetagInFlight = false;
                 
