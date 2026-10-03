@@ -60,49 +60,6 @@ export default async function handler(req, res) {
 
     // 2. Fetch User Record
     const { data: existingUser } = await supabase.from('users').select('*').eq('user_id', targetUserId).maybeSingle();
-    const { count } = await supabase.from('users').select('*', { count: 'exact', head: true }).eq('referred_by', targetUserId);
-    const activeFriends = count || 0;
-
-    if (syncOnly && existingUser) {
-        return res.status(200).json({
-            success: true,
-            user_data: {
-                user_id: existingUser.user_id,
-                balance: existingUser.balance || 0,
-                coins: existingUser.coins || 0, 
-                total_earned: existingUser.total_earned || 0,
-                active_friends: activeFriends
-            }
-        });
-    }
-
-    // 3. Parallel Telegram Channel Verification
-    const requiredChannels = [
-      { id: '@howlnews', name: 'HOWL News' },
-      { id: '@howl_community', name: 'Community' },
-      { id: '@howlnotification', name: 'Notifications' }
-    ];
-
-    const channelChecks = await Promise.all(
-      requiredChannels.map(async (ch) => {
-        try {
-            const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`);
-            const tgData = await tgRes.json();
-            const isMember = tgData.ok && ['member', 'administrator', 'creator'].includes(tgData.result?.status);
-            return { channel: ch.name, ok: isMember };
-        } catch (e) {
-            return { channel: ch.name, ok: false };
-        }
-      })
-    );
-
-    const missingChannel = channelChecks.find(c => !c.ok);
-    if (missingChannel) {
-        return res.status(200).json({ 
-            success: false, 
-            message: `Please join ${missingChannel.channel} first.` 
-        });
-    }
 
     function getClientIp(req) {
       let ip = null;
@@ -118,116 +75,217 @@ export default async function handler(req, res) {
     const IP_WINDOW_MINUTES = 20;
     const ipWindowThreshold = new Date(Date.now() - IP_WINDOW_MINUTES * 60 * 1000).toISOString();
 
-    // 4. Strict Anti-Cheat Device Fingerprint & IP Verification
-    if (!isAdmin) {
-        // INSTANT REJECT if local Telegram CloudStorage caught them
-        if (isLocalMulti) {
-            return res.status(200).json({ 
-                success: false, 
-                banned: true,
-                message: "Multiple accounts detected on this device. Only your original account is permitted."
-            });
-        }
+    if (!syncOnly) {
+        // 3. Parallel Telegram Channel Verification
+        const requiredChannels = [
+          { id: '@howlnews', name: 'HOWL News' },
+          { id: '@howl_community', name: 'Community' },
+          { id: '@howlnotification', name: 'Notifications' }
+        ];
 
-        let primaryAccount = null;
-        let isIpMatch = false;
-
-        if (fingerprint && !fingerprint.startsWith('hw_err_')) {
-            const { data: deviceMatch } = await supabase.from('users').select('user_id, created_at').eq('fingerprint', fingerprint).neq('user_id', targetUserId).order('created_at', { ascending: true }).limit(1).maybeSingle();
-            if (deviceMatch) primaryAccount = deviceMatch;
-        }
-
-        if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
-            const { data: recentIpTxs } = await supabase.from('transactions').select('user_id, created_at').eq('task_type', 'SYSTEM_IP_LOG').eq('status', clientIp).neq('user_id', targetUserId).gt('created_at', ipWindowThreshold).order('created_at', { ascending: true }).limit(1);
-            if (recentIpTxs && recentIpTxs.length > 0) {
-                primaryAccount = recentIpTxs[0];
-                isIpMatch = true;
+        const channelChecks = await Promise.all(
+          requiredChannels.map(async (ch) => {
+            try {
+                const tgRes = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${ch.id}&user_id=${targetUserId}`);
+                const tgData = await tgRes.json();
+                const isMember = tgData.ok && ['member', 'administrator', 'creator'].includes(tgData.result?.status);
+                return { channel: ch.name, ok: isMember };
+            } catch (e) {
+                return { channel: ch.name, ok: false };
             }
+          })
+        );
+
+        const missingChannel = channelChecks.find(c => !c.ok);
+        if (missingChannel) {
+            return res.status(200).json({ success: false, message: `Please join ${missingChannel.channel} first.` });
         }
 
-        if (primaryAccount) {
-            const currentCreated = existingUser?.created_at ? new Date(existingUser.created_at).getTime() : Date.now();
-            const primaryCreated = new Date(primaryAccount.created_at).getTime();
-            
-            if (currentCreated > primaryCreated) {
-                const reason = isIpMatch
-                    ? "Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted."
-                    : "Multiple accounts detected on this device. Only your original account is permitted.";
-                return res.status(200).json({ success: false, banned: true, message: reason });
+        // 4. Strict Anti-Cheat Device Fingerprint & IP Verification
+        if (!isAdmin) {
+            // INSTANT REJECT if local Telegram CloudStorage caught them
+            if (isLocalMulti) {
+                return res.status(200).json({ 
+                    success: false, 
+                    banned: true,
+                    message: "Multiple accounts detected on this device. Only your original account is permitted."
+                });
             }
-        }
 
-        // Log IP for future collision checks
-        if (clientIp && clientIp !== '127.0.0.1') {
-            await supabase.from('transactions').insert([{
-                user_id: targetUserId,
-                reward_amount: 0,
-                transaction_id: `ip_${Date.now()}_${targetUserId}`,
-                task_type: 'SYSTEM_IP_LOG',
-                status: clientIp,
-                created_at: new Date().toISOString()
-            }]);
-        }
-    }
+            let primaryAccount = null;
+            let isIpMatch = false;
 
-    let finalUserData = null;
+            if (fingerprint && !fingerprint.startsWith('hw_err_')) {
+                const { data: deviceMatch } = await supabase.from('users').select('user_id, created_at').eq('fingerprint', fingerprint).neq('user_id', targetUserId).order('created_at', { ascending: true }).limit(1).maybeSingle();
+                if (deviceMatch) primaryAccount = deviceMatch;
+            }
 
-    if (!existingUser) {
-        let cleanRef = startParam ? String(startParam).trim() : null;
-        if (cleanRef && cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
+            if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
+                const { data: recentIpTxs } = await supabase.from('transactions').select('user_id, created_at').eq('task_type', 'SYSTEM_IP_LOG').eq('status', clientIp).neq('user_id', targetUserId).gt('created_at', ipWindowThreshold).order('created_at', { ascending: true }).limit(1);
+                if (recentIpTxs && recentIpTxs.length > 0) {
+                    primaryAccount = recentIpTxs[0];
+                    isIpMatch = true;
+                }
+            }
 
-        let isSameIpRecent = false;
-        if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost' && cleanRef) {
-            const { data: refIpTxs } = await supabase.from('transactions').select('id').eq('task_type', 'SYSTEM_IP_LOG').eq('status', clientIp).eq('user_id', cleanRef).gt('created_at', ipWindowThreshold).limit(1);
-            if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
-        }
+            if (primaryAccount) {
+                const currentCreated = existingUser?.created_at ? new Date(existingUser.created_at).getTime() : Date.now();
+                const primaryCreated = new Date(primaryAccount.created_at).getTime();
+                
+                if (currentCreated > primaryCreated) {
+                    const reason = isIpMatch
+                        ? "Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted."
+                        : "Multiple accounts detected on this device. Only your original account is permitted.";
+                    return res.status(200).json({ success: false, banned: true, message: reason });
+                }
+            }
 
-        const finalReferrer = (isLocalMulti || isSameIpRecent || cleanRef === targetUserId) ? null : cleanRef;
-
-        if (finalReferrer) {
-            const { data: refUser } = await supabase.from('users').select('coins').eq('user_id', finalReferrer).maybeSingle();
-            if (refUser) {
-                await supabase.from('users').update({ coins: (parseFloat(refUser.coins) || 0) + 250 }).eq('user_id', finalReferrer);
+            // Log IP for future collision checks
+            if (clientIp && clientIp !== '127.0.0.1') {
                 await supabase.from('transactions').insert([{
-                    user_id: String(finalReferrer),
-                    reward_amount: 250,
-                    transaction_id: `ref_join_${Date.now()}_${targetUserId}`,
-                    task_type: 'Referral Signup Bonus (250 HOWL)',
-                    status: '1',
+                    user_id: targetUserId,
+                    reward_amount: 0,
+                    transaction_id: `ip_${Date.now()}_${targetUserId}`,
+                    task_type: 'SYSTEM_IP_LOG',
+                    status: clientIp,
                     created_at: new Date().toISOString()
                 }]);
             }
         }
 
-        await supabase.from('users').insert([{
-            user_id: targetUserId,
-            name: fullName,
-            photo_url: photoUrl,
-            referred_by: finalReferrer,
-            fingerprint: fingerprint || null,
-            balance: 0.0000,
-            coins: 0.00,
-            total_earned: 0.0000
-        }]);
+        // 5. Registration / Update
+        if (!existingUser) {
+            let cleanRef = startParam ? String(startParam).trim() : null;
+            if (cleanRef && cleanRef.startsWith('ref_')) cleanRef = cleanRef.substring(4);
 
-        finalUserData = { user_id: targetUserId, balance: 0.0000, coins: 0.00, total_earned: 0.0000, active_friends: 0 };
-    } else {
-        await supabase.from('users').update({ 
-            name: fullName, 
-            photo_url: photoUrl, 
-            fingerprint: fingerprint || existingUser.fingerprint 
-        }).eq('user_id', targetUserId);
+            let isSameIpRecent = false;
+            if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost' && cleanRef) {
+                const { data: refIpTxs } = await supabase.from('transactions').select('id').eq('task_type', 'SYSTEM_IP_LOG').eq('status', clientIp).eq('user_id', cleanRef).gt('created_at', ipWindowThreshold).limit(1);
+                if (refIpTxs && refIpTxs.length > 0) isSameIpRecent = true;
+            }
 
-        finalUserData = { 
-            user_id: existingUser.user_id, 
-            balance: existingUser.balance || 0, 
-            coins: existingUser.coins || 0, 
-            total_earned: existingUser.total_earned || 0, 
-            active_friends: activeFriends 
-        };
+            const finalReferrer = (isLocalMulti || isSameIpRecent || cleanRef === targetUserId) ? null : cleanRef;
+
+            if (finalReferrer) {
+                const { data: refUser } = await supabase.from('users').select('coins').eq('user_id', finalReferrer).maybeSingle();
+                if (refUser) {
+                    await supabase.from('users').update({ coins: (parseFloat(refUser.coins) || 0) + 250 }).eq('user_id', finalReferrer);
+                    await supabase.from('transactions').insert([{
+                        user_id: String(finalReferrer),
+                        reward_amount: 250,
+                        transaction_id: `ref_join_${Date.now()}_${targetUserId}`,
+                        task_type: 'Referral Signup Bonus (250 HOWL)',
+                        status: '1',
+                        created_at: new Date().toISOString()
+                    }]);
+                }
+            }
+
+            await supabase.from('users').insert([{
+                user_id: targetUserId,
+                name: fullName,
+                photo_url: photoUrl,
+                referred_by: finalReferrer,
+                fingerprint: fingerprint || null,
+                balance: 0.0000,
+                coins: 0.00,
+                total_earned: 0.0000
+            }]);
+        } else {
+            await supabase.from('users').update({ 
+                name: fullName, 
+                photo_url: photoUrl, 
+                fingerprint: fingerprint || existingUser.fingerprint 
+            }).eq('user_id', targetUserId);
+        }
     }
 
-    return res.status(200).json({ success: true, message: "Verified", user_data: finalUserData });
+    // -----------------------------------------------------------
+    // 6. FULL LEDGER CALCULATION (RESTORED FROM OLD SYNC-PROFILE)
+    // -----------------------------------------------------------
+    const { count: friendsCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true })
+      .eq('referred_by', targetUserId);
+
+    const { data: refTxs } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', targetUserId)
+      .ilike('task_type', 'Referral%');
+
+    let totalHowlEarned = 0;
+    let totalUsdtEarned = 0;
+
+    if (refTxs && refTxs.length > 0) {
+      refTxs.forEach(tx => {
+        const amt = parseFloat(tx.reward_amount) || 0;
+        if (tx.task_type.includes('HOWL')) {
+          totalHowlEarned += amt;
+        } else {
+          totalUsdtEarned += amt;
+        }
+      });
+    }
+
+    const HOWL_USD_RATE = 0.00002;
+    const totalReferralUsdtEquivalent = (totalHowlEarned * HOWL_USD_RATE) + totalUsdtEarned;
+
+    // Fetch User Balance & Coins
+    const { data: currentUserData } = await supabase
+      .from('users')
+      .select('balance, coins')
+      .eq('user_id', targetUserId)
+      .maybeSingle();
+
+    const storedCoins = parseFloat(currentUserData?.coins) || 0;
+    const storedBalance = parseFloat(currentUserData?.balance) || 0;
+
+    const { data: allUserTxs } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', targetUserId)
+      .not('task_type', 'eq', 'ADMIN_BAN')
+      .not('task_type', 'like', 'SYSTEM_%');
+
+    let ledgerHowlCoins = 0;
+    let ledgerUsdt = 0;
+
+    if (allUserTxs && allUserTxs.length > 0) {
+      allUserTxs.forEach(tx => {
+        const amt = parseFloat(tx.reward_amount) || 0;
+        if (tx.task_type.includes('HOWL') || tx.task_type.includes('Ads Milestone')) {
+          ledgerHowlCoins += amt;
+        } else {
+          ledgerUsdt += amt;
+        }
+      });
+    }
+
+    const effectiveCoins = Math.max(storedCoins, ledgerHowlCoins);
+    const effectiveUsdt = Math.max(storedBalance, ledgerUsdt);
+    const convertedFromUsdt = effectiveUsdt > 0 ? (effectiveUsdt / HOWL_USD_RATE) : 0;
+    const totalHowlBalance = Math.round(effectiveCoins + convertedFromUsdt);
+    const totalUsdValue = +( (totalHowlBalance * HOWL_USD_RATE).toFixed(4) );
+
+    return res.status(200).json({
+      success: true,
+      message: "Verified",
+      is_admin: isAdmin,
+      user_balance: {
+        total_howl: totalHowlBalance,
+        total_usd: totalUsdValue,
+        coins: effectiveCoins,
+        usdt_earnings: +(effectiveUsdt.toFixed(4)),
+        rate: HOWL_USD_RATE
+      },
+      referral_stats: {
+        friends_count: friendsCount || 0,
+        total_howl: totalHowlEarned,
+        total_usdt: +(totalReferralUsdtEquivalent.toFixed(4)),
+        direct_usdt: +(totalUsdtEarned.toFixed(4))
+      }
+    });
 
   } catch (error) {
     return res.status(200).json({ success: false, message: error.message });
