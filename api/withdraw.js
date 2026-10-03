@@ -82,22 +82,37 @@ export default async function handler(req, res) {
   }
 
   try {
-    // FETCH EXACT BALANCE FROM USERS TABLE (Single Source of Truth)
-    const { data: userRecord, error: userFetchError } = await supabase
+    const { data: txs, error: txFetchError } = await supabase
+      .from('transactions')
+      .select('reward_amount, task_type')
+      .eq('user_id', targetUserId);
+
+    if (txFetchError) {
+      return res.status(500).json({ success: false, message: "Failed to fetch user ledger: " + txFetchError.message });
+    }
+
+    let totalUsdEarned = 0;
+    txs?.forEach(tx => {
+      totalUsdEarned += (parseFloat(tx.reward_amount) || 0);
+    });
+
+    let totalHowlBalance = Math.round(totalUsdEarned / 0.00002);
+
+    const { data: userRecord } = await supabase
       .from('users')
-      .select('coins, balance')
+      .select('coins, total_howl, balance')
       .eq('user_id', targetUserId)
       .maybeSingle();
 
-    if (userFetchError || !userRecord) {
-      return res.status(500).json({ success: false, message: "Failed to fetch user profile." });
+    if (userRecord) {
+      const tableCoins = parseFloat(userRecord.coins || userRecord.total_howl || 0);
+      if (tableCoins > totalHowlBalance) {
+        totalHowlBalance = tableCoins;
+      }
     }
 
-    const currentCoins = parseFloat(userRecord.coins) || 0;
-    const currentBalance = parseFloat(userRecord.balance) || 0;
-
-    if (currentCoins < reqAmount) {
-      return res.status(400).json({ success: false, message: "Insufficient HOWL balance. You have " + Math.round(currentCoins) + " HOWL." });
+    if (totalHowlBalance < reqAmount) {
+      return res.status(400).json({ success: false, message: "Insufficient HOWL balance. You have " + totalHowlBalance + " HOWL." });
     }
 
     const usdtValue = reqAmount * 0.00002;
@@ -107,22 +122,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ success: false, message: "Amount too low to cover $0.01 network fee." });
     }
 
-    // IMMEDIATELY DEDUCT FROM USERS TABLE TO PREVENT INFINITE WITHDRAWALS
-    const newCoins = currentCoins - reqAmount;
-    const newBalance = currentBalance - usdtValue;
-
-    const { error: updateError } = await supabase
-      .from('users')
-      .update({ coins: newCoins, balance: newBalance })
-      .eq('user_id', targetUserId);
-
-    if (updateError) {
-      return res.status(500).json({ success: false, message: "Failed to deduct balance: " + updateError.message });
-    }
-
     const timestampId = Date.now();
 
-    // Log the transaction
     const { error: insertError } = await supabase.from('transactions').insert([{
       user_id: targetUserId,
       reward_amount: -usdtValue, 
@@ -133,8 +134,6 @@ export default async function handler(req, res) {
     }]);
 
     if (insertError) {
-      // If logging fails, try to reverse the deduction to be safe
-      await supabase.from('users').update({ coins: currentCoins, balance: currentBalance }).eq('user_id', targetUserId);
       return res.status(500).json({ success: false, message: "Transaction logging error: " + insertError.message });
     }
 
@@ -162,4 +161,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, message: "Server error: " + err.message });
   }
-}
+    }
