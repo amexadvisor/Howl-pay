@@ -1326,6 +1326,15 @@
         const targetId = input ? input.value.trim() : '';
         if (!targetId) return alert('Please enter a Telegram User ID');
 
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        const num = (n) => Math.round(parseFloat(n) || 0).toLocaleString();
+        const usd = (n) => '$' + (parseFloat(n) || 0).toFixed(4);
+        const date = (d) => d ? new Date(d).toLocaleDateString() : 'N/A';
+        const dateTime = (d) => d ? new Date(d).toLocaleString() : 'N/A';
+        const stat = (label, value, color) => `<div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"><div style="color: var(--text-muted); margin-bottom: 2px;">${label}</div><div style="font-weight: 800; font-size: 14px; color: ${color || '#fff'}; word-break: break-word;">${value}</div></div>`;
+        const grid = (items) => `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">${items.join('')}</div>`;
+        const section = (title, icon) => `<div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; margin: 18px 0 8px;"><i class="fa-solid ${icon}" style="color: var(--accent-main); margin-right: 6px;"></i>${title}</div>`;
+
         triggerHaptic('light');
         const loader = document.getElementById('admin-lookup-loader');
         const resultCard = document.getElementById('admin-user-result');
@@ -1352,67 +1361,114 @@
                     <div class="glass-card" style="text-align: center;">
                         <i class="fa-solid fa-user-xmark" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px; opacity: 0.5;"></i>
                         <h4 style="margin: 0 0 6px 0;">User Not Found</h4>
-                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">No account registered with ID <code>${targetId}</code></p>
+                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">No account registered with ID <code>${esc(targetId)}</code></p>
                     </div>`;
                 }
                 return;
             }
 
             const u = data.user;
-            let statusBadge = '<span style="background: rgba(94, 179, 255, 0.15); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">ACTIVE</span>';
-            if (data.status === 'banned_manual' || data.is_manually_banned) { statusBadge = '<span style="background: rgba(239,68,68,0.15); color: var(--accent-red); border: 1px solid rgba(239,68,68,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">BANNED (MANUAL)</span>'; } 
-            else if (data.status === 'banned_multiaccount') { statusBadge = '<span style="background: rgba(245,158,11,0.15); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">DEVICE COLLISION</span>'; } 
-            else if (data.status === 'unbanned_override') { statusBadge = '<span style="background: rgba(94, 179, 255, 0.15); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">UNBANNED OVERRIDE</span>'; } 
+            const r = data.referrals || {};
+            const a = data.activity || {};
+            const w = data.withdrawals || {};
+            const badge = (bg, color, border, text) => `<span style="background: ${bg}; color: ${color}; border: 1px solid ${border}; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">${text}</span>`;
+            let statusBadge = badge('rgba(94,179,255,0.15)', 'var(--accent-main)', 'rgba(94,179,255,0.3)', 'ACTIVE');
+            if (data.status === 'banned_manual' || data.is_manually_banned) statusBadge = badge('rgba(239,68,68,0.15)', 'var(--accent-red)', 'rgba(239,68,68,0.3)', 'BANNED (MANUAL)');
+            else if (data.status === 'banned_multiaccount') statusBadge = badge('rgba(245,158,11,0.15)', 'var(--accent-orange)', 'rgba(245,158,11,0.3)', 'DEVICE COLLISION');
+            else if (data.status === 'unbanned_override') statusBadge = badge('rgba(94,179,255,0.15)', 'var(--accent-main)', 'rgba(94,179,255,0.3)', 'UNBANNED OVERRIDE');
+            else if (data.status === 'admin_protected') statusBadge = badge('rgba(168,85,247,0.15)', '#a855f7', 'rgba(168,85,247,0.3)', 'ADMIN');
 
             let collisionHtml = '';
             if (data.device_collisions && data.device_collisions.length > 0) {
                 collisionHtml = `
-                <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 10px; margin-top: 12px; font-size: 12px;">
+                <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 10px; margin-top: 14px; font-size: 12px;">
                     <div style="font-weight: 700; color: var(--accent-orange); margin-bottom: 4px;">Colliding Accounts (Same Device):</div>
-                    ${data.device_collisions.map(c => `<div>• ID: <code>${c.user_id}</code> (${c.name || 'No name'})</div>`).join('')}
+                    ${data.device_collisions.map(c => `<div>• ID: <code>${esc(c.user_id)}</code> (${esc(c.name || 'No name')})</div>`).join('')}
                 </div>`;
             }
+
+            const referrerText = r.referrer ? `${esc(r.referrer.name || 'User')} (<code>${esc(r.referrer.user_id)}</code>)` : (u.referred_by ? `<code>${esc(u.referred_by)}</code>` : 'None');
+            const activeLabel = (r.total > (r.active_sample_size || 0)) ? `${num(r.active)} <span style="font-size:10px;color:var(--text-muted);font-weight:600;">of latest ${num(r.active_sample_size)}</span>` : num(r.active);
+
+            const recentRefs = (r.recent && r.recent.length)
+                ? r.recent.map(x => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;"><span>${esc(x.name || 'User')} <code style="color:var(--text-muted)">${esc(x.user_id)}</code></span><span style="color:var(--text-muted)">${date(x.created_at)}</span></div>`).join('')
+                : '<div style="font-size:12px;color:var(--text-muted);">No referrals yet.</div>';
+
+            const recentTx = (data.recent_transactions && data.recent_transactions.length)
+                ? data.recent_transactions.map(t => {
+                    const isHowl = String(t.task_type || '').includes('HOWL');
+                    const amt = parseFloat(t.reward_amount) || 0;
+                    const val = isHowl ? `${amt >= 0 ? '+' : ''}${num(amt)} HOWL` : `${amt >= 0 ? '+' : '-'}$${Math.abs(amt).toFixed(4)}`;
+                    const color = amt < 0 ? 'var(--accent-orange)' : 'var(--accent-main)';
+                    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(String(t.task_type || '').slice(0, 34))}<br><span style="color:var(--text-muted);font-size:10px;">${dateTime(t.created_at)}${t.status && t.status !== '1' ? ' • ' + esc(t.status) : ''}</span></span><span style="font-weight:800;color:${color};white-space:nowrap;">${val}</span></div>`;
+                }).join('')
+                : '<div style="font-size:12px;color:var(--text-muted);">No transactions.</div>';
 
             resultCard.style.display = 'block';
             resultCard.innerHTML = `
             <div class="glass-card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-                    <div style="display: flex; align-items: center; gap: 12px;">
-                        <div style="width: 44px; height: 44px; border-radius: 50%; background: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden; color: #000;">
-                            ${u.photo_url ? `<img src="${u.photo_url}" style="width:100%;height:100%;object-fit:cover;">` : (u.name ? u.name.charAt(0) : '?')}
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px;">
+                    <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
+                        <div style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden; color: #000;">
+                            ${u.photo_url ? `<img src="${esc(u.photo_url)}" style="width:100%;height:100%;object-fit:cover;">` : esc(u.name ? u.name.charAt(0) : '?')}
                         </div>
-                        <div>
-                            <h3 style="font-size: 16px; font-weight: 800; margin: 0;">${u.name || 'Telegram User'}</h3>
-                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">ID: <code>${u.user_id}</code></p>
+                        <div style="min-width: 0;">
+                            <h3 style="font-size: 16px; font-weight: 800; margin: 0; overflow: hidden; text-overflow: ellipsis;">${esc(u.name || 'Telegram User')}</h3>
+                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">ID: <code>${esc(u.user_id)}</code></p>
                         </div>
                     </div>
                     <div>${statusBadge}</div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; font-size: 12px;">
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">Total Balance</div>
-                        <div style="font-weight: 800; font-size: 14px; color: var(--accent-main);">${Math.round(u.total_howl || u.coins || 0).toLocaleString()} HWL</div>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">USD Value</div>
-                        <div style="font-weight: 800; font-size: 14px; color: #a855f7;">$${parseFloat(u.total_usd || u.balance || 0).toFixed(4)}</div>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">Joined</div>
-                        <div style="color: #fff;">${u.created_at ? new Date(u.created_at).toLocaleDateString() : 'N/A'}</div>
-                    </div>
-                    <div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;">
-                        <div style="color: var(--text-muted); margin-bottom: 2px;">Referred By</div>
-                        <div style="color: #fff;">${u.referred_by || 'None'}</div>
-                    </div>
-                </div>
+                ${section('Balance', 'fa-wallet')}
+                ${grid([
+                    stat('Total Balance', `${num(u.total_howl)} HWL`, 'var(--accent-main)'),
+                    stat('USD Value', usd(u.total_usd), '#a855f7'),
+                    stat('HOWL Coins', num(u.coins)),
+                    stat('USD Earnings', usd(u.balance)),
+                    stat('Lifetime HOWL', num(u.lifetime_howl)),
+                    stat('Commissions Earned', usd(u.total_earned))
+                ])}
+
+                ${section('Referrals', 'fa-user-group')}
+                ${grid([
+                    stat('Total Referrals', num(r.total), 'var(--accent-main)'),
+                    stat('Active (watched ads)', activeLabel),
+                    stat('Referral HOWL', `${num(r.howl_earned)} HOWL`, 'var(--accent-orange)'),
+                    stat('Referral USDT', usd(r.usdt_earned), '#a855f7'),
+                    stat('Total Referral Value', usd(r.total_usd_earned), 'var(--accent-main)'),
+                    stat('Commission Payments', num(r.commission_count)),
+                    stat('Signup Bonuses', num(r.signup_bonuses)),
+                    stat('10-Ad Milestones', num(r.milestones)),
+                    `<div style="grid-column: 1 / -1;">${stat('Referred By', referrerText)}</div>`
+                ])}
+                <div style="margin-top: 10px;">${recentRefs}</div>
+
+                ${section('Activity', 'fa-chart-line')}
+                ${grid([
+                    stat('Ads Today', `${num(a.ads_today)} / ${a.ads_daily_limit || 10}`),
+                    stat('Total Ads Watched', num(a.ads_total)),
+                    stat('Joined', date(u.created_at)),
+                    stat('Last Seen', dateTime(u.last_seen))
+                ])}
+
+                ${section('Withdrawals', 'fa-money-bill-transfer')}
+                ${grid([
+                    stat('Requests', num(w.requests)),
+                    stat('Rejected / Failed', num(w.rejected)),
+                    stat('Pending', usd(w.pending_usd), 'var(--accent-orange)'),
+                    stat('Paid Out', usd(w.paid_usd), 'var(--accent-main)')
+                ])}
+
+                ${section('Recent Transactions', 'fa-list')}
+                <div>${recentTx}</div>
+
                 ${collisionHtml}
                 <div style="display: flex; gap: 10px; margin-top: 16px;">
-                    <button onclick="adminExecuteAction('ban', '${u.user_id}')" style="flex: 1; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: var(--accent-red); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button onclick="adminExecuteAction('ban', '${esc(u.user_id)}')" style="flex: 1; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: var(--accent-red); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <i class="fa-solid fa-ban"></i> Ban
                     </button>
-                    <button onclick="adminExecuteAction('unban', '${u.user_id}')" style="flex: 1; background: rgba(94, 179, 255, 0.15); border: 1px solid rgba(94, 179, 255, 0.4); color: var(--accent-main); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <button onclick="adminExecuteAction('unban', '${esc(u.user_id)}')" style="flex: 1; background: rgba(94, 179, 255, 0.15); border: 1px solid rgba(94, 179, 255, 0.4); color: var(--accent-main); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
                         <i class="fa-solid fa-unlock"></i> Unban
                     </button>
                 </div>
