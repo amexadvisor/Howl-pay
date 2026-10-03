@@ -201,7 +201,7 @@ export default async function handler(req, res) {
     }
 
     // -----------------------------------------------------------
-    // 6. FULL LEDGER CALCULATION (RESTORED FROM OLD SYNC-PROFILE)
+    // 6. EXACT BALANCE AND REFERRAL STATS
     // -----------------------------------------------------------
     const { count: friendsCount } = await supabase
       .from('users')
@@ -231,41 +231,18 @@ export default async function handler(req, res) {
     const HOWL_USD_RATE = 0.00002;
     const totalReferralUsdtEquivalent = (totalHowlEarned * HOWL_USD_RATE) + totalUsdtEarned;
 
-    // Fetch User Balance & Coins
+    // Fetch User Balance EXACTLY as stored in DB (No Math.max trap!)
     const { data: currentUserData } = await supabase
       .from('users')
       .select('balance, coins')
       .eq('user_id', targetUserId)
       .maybeSingle();
 
-    const storedCoins = parseFloat(currentUserData?.coins) || 0;
-    const storedBalance = parseFloat(currentUserData?.balance) || 0;
+    const userCoins = parseFloat(currentUserData?.coins) || 0;
+    const userBalanceUsd = parseFloat(currentUserData?.balance) || 0;
 
-    const { data: allUserTxs } = await supabase
-      .from('transactions')
-      .select('reward_amount, task_type')
-      .eq('user_id', targetUserId)
-      .not('task_type', 'eq', 'ADMIN_BAN')
-      .not('task_type', 'like', 'SYSTEM_%');
-
-    let ledgerHowlCoins = 0;
-    let ledgerUsdt = 0;
-
-    if (allUserTxs && allUserTxs.length > 0) {
-      allUserTxs.forEach(tx => {
-        const amt = parseFloat(tx.reward_amount) || 0;
-        if (tx.task_type.includes('HOWL') || tx.task_type.includes('Ads Milestone')) {
-          ledgerHowlCoins += amt;
-        } else {
-          ledgerUsdt += amt;
-        }
-      });
-    }
-
-    const effectiveCoins = Math.max(storedCoins, ledgerHowlCoins);
-    const effectiveUsdt = Math.max(storedBalance, ledgerUsdt);
-    const convertedFromUsdt = effectiveUsdt > 0 ? (effectiveUsdt / HOWL_USD_RATE) : 0;
-    const totalHowlBalance = Math.round(effectiveCoins + convertedFromUsdt);
+    const convertedFromUsdt = userBalanceUsd > 0 ? (userBalanceUsd / HOWL_USD_RATE) : 0;
+    const totalHowlBalance = Math.round(userCoins + convertedFromUsdt);
     const totalUsdValue = +( (totalHowlBalance * HOWL_USD_RATE).toFixed(4) );
 
     return res.status(200).json({
@@ -275,8 +252,8 @@ export default async function handler(req, res) {
       user_balance: {
         total_howl: totalHowlBalance,
         total_usd: totalUsdValue,
-        coins: effectiveCoins,
-        usdt_earnings: +(effectiveUsdt.toFixed(4)),
+        coins: userCoins,
+        usdt_earnings: +(userBalanceUsd.toFixed(4)),
         rate: HOWL_USD_RATE
       },
       referral_stats: {
