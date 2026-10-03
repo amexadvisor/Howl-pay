@@ -1,10 +1,30 @@
 import { createClient } from '@supabase/supabase-js';
 import { ethers } from 'ethers';
+import { HOWL_USD_RATE, creditHowl } from '../lib/balance.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const BOT_TOKEN = process.env.BOT_TOKEN;
+
+// Give the HOWL back to the user's real balance (same logic as every other endpoint)
+async function refundToBalance(userId, usd) {
+  const howl = Math.round(usd / HOWL_USD_RATE);
+  try {
+    const r = await creditHowl(supabase, userId, howl, { lifetime: false });
+    return !!(r && r.ok);
+  } catch (e) {
+    console.error('Refund failed:', e.message);
+    return false;
+  }
+}
+
+async function answerCb(callbackId, text) {
+  await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackId, text })
+  });
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).end();
@@ -24,17 +44,27 @@ export default async function handler(req, res) {
       }
 
       const action = data.startsWith('NR_') ? 'NR' : data.split('_')[0]; 
-      const timestampId = data.startsWith('NR_') ? data.split('_')[1] : data.split('_')[1];
+      const timestampId = data.split('_')[1];
 
       // Retrieve pending withdrawal transaction data
       const { data: txRow } = await supabase.from('transactions')
           .select('*').like('transaction_id', 'W_' + timestampId + '_%').single();
 
       if (!txRow || txRow.status !== 'pending') {
-          await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ callback_query_id: callbackId, text: "Already processed or invalid." })
-          });
+          await answerCb(callbackId, "Already processed or invalid.");
+          return res.status(200).json({ success: true });
+      }
+
+      // ATOMIC CLAIM: only one click can move the request out of 'pending'.
+      // Prevents double refunds / double payouts on a double tap.
+      const { data: claimed } = await supabase.from('transactions')
+          .update({ status: 'processing' })
+          .eq('transaction_id', txRow.transaction_id)
+          .eq('status', 'pending')
+          .select('transaction_id');
+
+      if (!claimed || claimed.length === 0) {
+          await answerCb(callbackId, "Already processed or invalid.");
           return res.status(200).json({ success: true });
       }
 
@@ -51,10 +81,18 @@ export default async function handler(req, res) {
       let firstName = "User";
       const { data: userRecord } = await supabase.from('users').select('name').eq('user_id', userId).maybeSingle();
       if (userRecord && userRecord.name) {
-          firstName = userRecord.name.split(' ')[0]; // Extract just the first name
+          firstName = userRecord.name.split(' ')[0];
       }
 
       if (action === 'R') {
+          // Refund FIRST. If it fails, put the request back to pending so you can retry.
+          const refunded = await refundToBalance(userId, usdtDeducted);
+          if (!refunded) {
+              await supabase.from('transactions').update({ status: 'pending' }).eq('transaction_id', txRow.transaction_id);
+              await answerCb(callbackId, "Refund failed. Nothing changed, try again.");
+              return res.status(200).json({ success: true });
+          }
+
           await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
 
           await supabase.from('transactions').insert([{
@@ -85,20 +123,43 @@ export default async function handler(req, res) {
           await notifyUserRaw(userId, "❌ Your withdrawal request was rejected by administration.");
 
       } else if (action === 'A') {
-          await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ callback_query_id: callbackId, text: "Processing Blockchain Payout..." })
-          });
+          await answerCb(callbackId, "Processing Blockchain Payout...");
 
+          // --- Only the blockchain transfer is inside this try. ---
+          // If it fails, the money was NOT sent, so refunding is safe.
+          let tx;
           try {
-              // Connect and Execute Auto Web3 Payment via BSC
               const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
               const wallet = new ethers.Wallet(process.env.HOT_WALLET_PRIVATE_KEY, provider);
               const contract = new ethers.Contract("0x55d398326f99059fF775485246999027B3197955", ["function transfer(address to, uint256 amount) returns (bool)"], wallet);
               
               const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
-              const tx = await contract.transfer(address, amountInWei);
-              
+              tx = await contract.transfer(address, amountInWei);
+          } catch (err) {
+              await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
+
+              const refunded = await refundToBalance(userId, usdtDeducted);
+              const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
+
+              if (refunded) {
+                  await supabase.from('transactions').insert([{
+                      user_id: userId,
+                      reward_amount: usdtDeducted,
+                      transaction_id: 'REF_ERR_' + Date.now() + '_' + userId,
+                      task_type: 'Withdrawal Auto-Refund (Network Error)',
+                      status: '1',
+                      created_at: new Date().toISOString()
+                  }]);
+                  await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
+                  await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+              } else {
+                  await editAdminMessage(messageId, "🚨 *Blockchain Failed AND auto-refund failed*\nError: " + shortErr + "\n\nUser ID: `" + userId + "`\nRefund manually: $" + usdtDeducted.toFixed(4));
+              }
+              return res.status(200).json({ success: true });
+          }
+
+          // --- Payment is sent. Nothing below may ever trigger a refund. ---
+          try {
               await supabase.from('transactions').update({ status: 'approved' }).eq('transaction_id', txRow.transaction_id);
 
               await supabase.from('transactions').insert([{
@@ -164,22 +225,8 @@ export default async function handler(req, res) {
                       reply_markup: replyMarkup
                   })
               });
-          
-          } catch (err) {
-              await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
-
-              await supabase.from('transactions').insert([{
-                  user_id: userId,
-                  reward_amount: usdtDeducted,
-                  transaction_id: 'REF_ERR_' + Date.now() + '_' + userId,
-                  task_type: 'Withdrawal Auto-Refund (Network Error)',
-                  status: '1',
-                  created_at: new Date().toISOString()
-              }]);
-
-              const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
-              await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
-              await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+          } catch (postErr) {
+              console.error('Post-payment step failed (payout already sent):', postErr.message, 'tx:', tx && tx.hash);
           }
       }
     }
@@ -201,4 +248,4 @@ async function notifyUserRaw(userId, text) {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ chat_id: userId, text: text, disable_web_page_preview: true })
     });
-  }
+                                      }
