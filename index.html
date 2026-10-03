@@ -87,6 +87,8 @@
   <script src='//libtl.com/sdk.js' data-zone='11935325' data-sdk='show_11935325'></script>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Live balance sync (polling + stale-response protection) -->
+  <script src="/balance-client.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
   <style>
@@ -878,7 +880,7 @@
         .then(async r => {
             const data = await r.json().catch(() => null);
             if (!data) return;
-            if (data.banned) { triggerBanScreen(data.message); return; }
+            if (data.banned) { triggerBanScreen(data.message || data.ban_reason); return; }
             
             if (data.user_balance) updateBalanceUI(data.user_balance);
             if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
@@ -904,6 +906,8 @@
 
     let currentUsdBalance = 0;
 
+    // Fallback only. balance-client.js replaces this with the live, animated,
+    // stale-proof renderer as soon as the page loads.
     function updateBalanceUI(b) {
         if (!b) return;
         currentHowlBalance = Math.round(b.total_howl || 0);
@@ -912,12 +916,6 @@
         if (howlVal) howlVal.textContent = currentHowlBalance.toLocaleString();
         const usdVal = document.getElementById('user-usd-val');
         if (usdVal) usdVal.textContent = currentUsdBalance.toFixed(4);
-    }
-
-    function incrementLocalBalance(howlAdd, usdAdd) {
-        currentHowlBalance += (howlAdd || 0);
-        currentUsdBalance += (usdAdd || 0);
-        updateBalanceUI({ total_howl: currentHowlBalance, total_usd: currentUsdBalance });
     }
 
     function initApp() {
@@ -986,6 +984,7 @@
             });
             const data = await response.json();
             if (data.success) {
+                if (data.user_balance) updateBalanceUI(data.user_balance);
                 monetagAdsWatched = data.ads_watched || 0;
                 updateMonetagUI();
             }
@@ -1183,6 +1182,8 @@
                 body: JSON.stringify({ initData, address, amount })
             });
             const data = await res.json();
+            // Server always returns the authoritative balance after a debit / refund
+            if (data.user_balance) updateBalanceUI(data.user_balance);
             if (data.success) {
                 alert("✅ Request sent for Admin approval!");
                 document.getElementById('wd-amount').value = '';
@@ -1211,7 +1212,7 @@
             }
             historyList.innerHTML = data.map(item => {
                 const isDeduction = item.reward_amount < 0 || (item.task_type && item.task_type.includes('BEP20'));
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${isDeduction ? '' : '+'}$${Math.abs(item.reward_amount).toFixed(4)}</div></div>`;
+                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4)}</div></div>`;
             }).join('');
         } catch (err) { historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load ledger.</div>`; }
     }
@@ -1304,8 +1305,8 @@
 
             if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                // Removed redundant incrementLocalBalance. Relying purely on executeSyncRequest to fetch precise DB totals.
-                syncUserProfile();
+                // Balance comes straight from the DB in the claim response; fall back to a fresh fetch.
+                if (data.user_balance) updateBalanceUI(data.user_balance); else refreshBalance();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
                 
                 monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
@@ -1446,4 +1447,4 @@
     }
 </script>
 </body>
-</html>
+  </html>
