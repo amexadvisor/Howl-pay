@@ -127,11 +127,12 @@ export default async function handler(req, res) {
     try {
       credit = await creditHowl(supabase, targetUserIdStr, rewardHowl);
     } catch (e) {
-      credit = { ok: false };
+      console.error('[claim-bonus] credit failed:', e && (e.message || e.details || e));
+      credit = { ok: false, reason: (e && (e.message || e.details)) || 'unknown error' };
     }
     if (!credit.ok) {
       await supabase.from('transactions').delete().eq('transaction_id', txId);
-      return res.status(500).json({ error: 'Could not credit reward. Please try again.' });
+      return res.status(500).json({ error: 'Could not credit reward: ' + (credit.reason || 'unknown') });
     }
 
     // ---- Referral commission (10%, paid in USD to the referrer) ----
@@ -186,4 +187,4 @@ export default async function handler(req, res) {
   } catch (dbErr) {
     return res.status(500).json({ error: 'Database error: ' + dbErr.message });
   }
-    }
+      }
