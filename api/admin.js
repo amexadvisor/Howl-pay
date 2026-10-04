@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { HOWL_USD_RATE, verifyInitData, computeBalance } from '../lib/balance.js';
+import { getAdConfig, saveAdConfig, validateAdConfig } from '../lib/adconfig.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -48,7 +49,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { initData, action, targetUserId } = req.body || {};
+  const { initData, action, targetUserId, config: adConfigInput } = req.body || {};
   const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
 
   if (!initData) return res.status(400).json({ success: false, error: 'Missing Telegram initData' });
@@ -220,6 +221,19 @@ export default async function handler(req, res) {
       });
     }
 
+    // ---- Ad reward settings (admin only: the admin check above already ran) ----
+    if (action === 'get_ad_config') {
+      const config = await getAdConfig(supabase, { fresh: true });
+      return res.status(200).json({ success: true, config });
+    }
+
+    if (action === 'set_ad_config') {
+      const v = validateAdConfig(adConfigInput);
+      if (!v.ok) return res.status(400).json({ success: false, error: v.error });
+      const saved = await saveAdConfig(supabase, v.config, callerIdStr);
+      return res.status(200).json({ success: true, config: saved, message: 'Ad settings saved. They apply immediately.' });
+    }
+
     if (action === 'ban') {
       if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing targetUserId.' });
       const targetStr = String(targetUserId).trim();
@@ -273,4 +287,4 @@ export default async function handler(req, res) {
     console.error('[Admin Action Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-}
+    }
