@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { HOWL_USD_RATE, verifyInitData, debitHowl, creditHowl, releaseDueHolds } from '../lib/balance.js';
+import { HOWL_USD_RATE, verifyInitData, debitHowl, creditHowl, releaseDueHolds, signCallback } from '../lib/balance.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -30,8 +30,9 @@ export default async function handler(req, res) {
     return res.status(401).json({ success: false, message: 'Unauthorized: Missing Telegram WebApp security context' });
   }
 
-  const verified = verifyInitData(rawInitData, BOT_TOKEN);
-  if (!verified) return res.status(403).json({ success: false, message: 'Forbidden: Invalid Telegram signature' });
+  // Withdrawals need a session opened within the last 24h (a stolen old session is useless)
+  const verified = verifyInitData(rawInitData, BOT_TOKEN, 86400);
+  if (!verified) return res.status(403).json({ success: false, message: 'Session expired or invalid. Please close and reopen the app.' });
   const targetUserId = String(verified.user.id);
 
   // Banned or duplicate-device accounts cannot withdraw (admin Unban overrides)
@@ -125,9 +126,9 @@ export default async function handler(req, res) {
           parse_mode: 'Markdown',
           reply_markup: {
             inline_keyboard: [
-              [{ text: '✅ Approve & Pay', callback_data: 'A_' + timestampId }],
-              [{ text: '❌ Reject & Refund', callback_data: 'R_' + timestampId }],
-              [{ text: '❌ Reject (No Refund)', callback_data: 'NR_' + timestampId }]
+              [{ text: '✅ Approve & Pay', callback_data: 'A_' + timestampId + '_' + signCallback('A', timestampId, BOT_TOKEN) }],
+              [{ text: '❌ Reject & Refund', callback_data: 'R_' + timestampId + '_' + signCallback('R', timestampId, BOT_TOKEN) }],
+              [{ text: '❌ Reject (No Refund)', callback_data: 'NR_' + timestampId + '_' + signCallback('NR', timestampId, BOT_TOKEN) }]
             ]
           }
         })
@@ -141,4 +142,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
-}
+  }
