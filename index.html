@@ -87,6 +87,8 @@
   <script src='//libtl.com/sdk.js' data-zone='11935325' data-sdk='show_11935325'></script>
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- AdsGram task ads -->
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
   <!-- Live balance sync (polling + stale-response protection) -->
   <!-- Hardware fingerprint + persistent device vault (Telegram Secure/Device storage, local storage, IndexedDB, cookie) -->
   <script src="https://openfpcdn.io/fingerprintjs/v4" async></script>
@@ -222,6 +224,18 @@
     .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
     .watch-btn:active { background: var(--accent-main); color: #000; box-shadow: 0 0 20px rgba(94, 179, 255, 0.4); }
     .watch-btn:disabled { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent; box-shadow: none; cursor: not-allowed; }
+
+    /* AdsGram task component */
+    .adsgram-task {
+      --adsgram-task-font-size: 14px; --adsgram-task-icon-size: 40px; --adsgram-task-icon-title-gap: 12px;
+      --adsgram-task-icon-border-radius: 10px; --adsgram-task-button-width: 64px;
+      display: block; width: 100%; padding: 10px; border-radius: 14px; text-align: left;
+      background: rgba(255,255,255,0.05); border: 1px solid var(--border-soft); color: #fff; font-family: 'Inter', sans-serif;
+    }
+    .adsgram-task__reward { margin: 4px 0 0 0; font-size: 12px; color: var(--accent-main); font-weight: 800; }
+    .adsgram-task__button { margin-left: 10px; background: var(--accent-main); color: #000; border-radius: 8px; padding: 7px 12px; font-weight: 800; font-size: 12px; text-align: center; }
+    .adsgram-task__button_claim { margin-left: 0; background: var(--accent-orange); }
+    .adsgram-task__button_done { margin-left: 0; background: #16a34a; color: #fff; }
 
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
     .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -460,6 +474,24 @@
           <span id="monetagCD" style="font-size:11px; color:var(--accent-orange); display:none; margin-bottom:10px; font-weight:800; letter-spacing: 1px;"></span>
           <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
         </div>
+
+        <!-- AdsGram Task Ads -->
+        <div class="glass-card watch-card" id="adsgramCard">
+          <div class="watch-top">
+            <span style="color: #fff; font-weight: 800; letter-spacing: 1px;">ADSGRAM TASKS</span>
+            <span id="adsgramLimit" style="color: var(--accent-main); font-size: 13px;">0/5</span>
+          </div>
+          <div class="watch-reward">
+            <i class="fa-solid fa-paw" style="color: var(--accent-main);"></i>
+            <span id="adsgramRewardVal">170</span>
+          </div>
+          <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 16px; overflow: hidden;">
+            <div id="adsgramProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
+          </div>
+          <div id="adsgramNextDayTimer" style="display: none; font-size: 13px; font-weight: 800; color: var(--accent-orange); margin-bottom: 14px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
+          <div id="adsgramMsg" style="display: none; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;"></div>
+          <div id="adsgramSlot" style="width: 100%;"></div>
+        </div>
       </div>
 
       <!-- WITHDRAW VIEW -->
@@ -648,6 +680,29 @@
           </button>
         </div>
 
+        <div class="glass-card" id="ad-settings-card">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 4px 0;"><i class="fa-solid fa-sliders" style="color:var(--accent-main)"></i> Ad Rewards</h3>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">Reward for each ad = Start − Reduction × ads already watched today (in HOWL). Daily limit 0 turns that ad off. Changes apply to everyone immediately.</p>
+
+          <div style="font-size:12px; font-weight:800; color:#fff; margin-bottom:8px;">Monetag</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">START<input type="number" id="ad-monetag-start" min="1" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">REDUCE BY<input type="number" id="ad-monetag-step" min="0" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">DAILY LIMIT<input type="number" id="ad-monetag-limit" min="0" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          </div>
+          <div id="ad-monetag-preview" style="font-size:11px; color:var(--accent-main); margin:8px 0 16px 0; word-break:break-word;">—</div>
+
+          <div style="font-size:12px; font-weight:800; color:#fff; margin-bottom:8px;">AdsGram</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">START<input type="number" id="ad-adsgram-start" min="1" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">REDUCE BY<input type="number" id="ad-adsgram-step" min="0" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">DAILY LIMIT<input type="number" id="ad-adsgram-limit" min="0" oninput="adRefreshPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          </div>
+          <div id="ad-adsgram-preview" style="font-size:11px; color:var(--accent-main); margin:8px 0 16px 0; word-break:break-word;">—</div>
+
+          <button id="ad-settings-save" onclick="adminSaveAdConfig()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Ad Settings</button>
+        </div>
+
         <div class="glass-card">
           <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
             Lookup User by Telegram ID
@@ -804,6 +859,7 @@
         if (nav) nav.style.display = 'none';
 
         showView('admin-view');
+        adminLoadAdConfig();
     }
 
     const BAN_VIEWS = {
@@ -1072,8 +1128,8 @@
             const data = await response.json();
             if (data.success) {
                 if (data.user_balance) updateBalanceUI(data.user_balance);
-                monetagAdsWatched = data.ads_watched || 0;
-                updateMonetagUI();
+                // limits and rewards are set by the admin, so always take them from the server
+                applyAdStatus(data.ads || { monetag: { watched: data.ads_watched || 0, limit: monetagAdLimit, next_reward: data.next_reward || 0 } });
             }
         } catch (e) {
             console.log("Status sync failed", e);
@@ -1145,31 +1201,164 @@
         document.getElementById('main-content').scrollTop = 0;
     }
 
+    // ================= Ad state: limits & rewards come from the server (admin settings) =================
+    let monetagAdLimit = 10;
+    let adsgramWatched = 0, adsgramLimit = 5, adsgramNext = 170;
+    let adsgramClaiming = false;
+    let adsgramUnavailableUntil = 0;
+    let lastMidnightSync = 0;
+    const ADSGRAM_BLOCK_ID = 'task-51892';
+    const ADSGRAM_DEBUG = false;   // true = AdsGram test tasks. Rewards are still paid, so use only on a test account.
+
+    function applyAdStatus(ads) {
+        if (!ads) return;
+        if (ads.monetag) {
+            monetagAdsWatched = ads.monetag.watched || 0;
+            if (Number.isFinite(ads.monetag.limit)) monetagAdLimit = ads.monetag.limit;
+            monetagNextReward = ads.monetag.next_reward || 0;
+        }
+        if (ads.adsgram) {
+            adsgramWatched = ads.adsgram.watched || 0;
+            if (Number.isFinite(ads.adsgram.limit)) adsgramLimit = ads.adsgram.limit;
+            adsgramNext = ads.adsgram.next_reward || 0;
+        }
+        updateMonetagUI();
+        updateAdsgramUI();
+        mountAdsgramTask(false);
+    }
+
+    function adsgramDone() { return adsgramLimit <= 0 || adsgramWatched >= adsgramLimit; }
+
+    function setAdsgramMsg(text) {
+        const el = document.getElementById('adsgramMsg');
+        if (!el) return;
+        el.textContent = text || '';
+        el.style.display = text ? 'block' : 'none';
+    }
+
+    function updateAdsgramUI() {
+        const card = document.getElementById('adsgramCard');
+        const limitEl = document.getElementById('adsgramLimit');
+        const rewardEl = document.getElementById('adsgramRewardVal');
+        const progressEl = document.getElementById('adsgramProgressBar');
+        const timerEl = document.getElementById('adsgramNextDayTimer');
+        const done = adsgramDone();
+
+        if (card) card.style.display = adsgramLimit <= 0 ? 'none' : '';
+        if (limitEl) limitEl.textContent = `${adsgramWatched}/${adsgramLimit}`;
+        if (rewardEl) rewardEl.textContent = done ? '0' : adsgramNext;
+        if (progressEl) progressEl.style.width = adsgramLimit > 0 ? `${Math.min(100, (adsgramWatched / adsgramLimit) * 100)}%` : '100%';
+        if (timerEl) timerEl.style.display = done ? 'block' : 'none';
+        refreshMidnightTimerState();
+    }
+
+    // Creates a fresh <adsgram-task>. A new element is needed for every task (the next one loads after a claim).
+    function mountAdsgramTask(force) {
+        const slot = document.getElementById('adsgramSlot');
+        if (!slot) return;
+        if (adsgramDone()) { slot.innerHTML = ''; return; }
+        if (slot.querySelector('adsgram-task') && !force) return;
+        if (Date.now() < adsgramUnavailableUntil) return;
+
+        slot.innerHTML = '';
+        if (!customElements.get('adsgram-task')) {
+            setAdsgramMsg('AdsGram is still loading or is blocked by your browser.');
+            return;
+        }
+        setAdsgramMsg('');
+
+        const el = document.createElement('adsgram-task');
+        el.className = 'adsgram-task';
+        el.setAttribute('data-block-id', ADSGRAM_BLOCK_ID);
+        el.setAttribute('data-debug', ADSGRAM_DEBUG ? 'true' : 'false');
+        el.setAttribute('data-debug-console', 'false');
+        el.innerHTML =
+            `<span slot="reward" class="adsgram-task__reward">+${adsgramNext} HOWL</span>` +
+            `<div slot="button" class="adsgram-task__button">GO</div>` +
+            `<div slot="claim" class="adsgram-task__button adsgram-task__button_claim">CLAIM</div>` +
+            `<div slot="done" class="adsgram-task__button adsgram-task__button_done">DONE</div>`;
+
+        el.addEventListener('reward', onAdsgramReward);
+        el.addEventListener('onBannerNotFound', () => {
+            slot.innerHTML = '';
+            adsgramUnavailableUntil = Date.now() + 5 * 60 * 1000;
+            setAdsgramMsg('No task is available right now. Please check again in a few minutes.');
+        });
+        el.addEventListener('onError', () => {
+            slot.innerHTML = '';
+            adsgramUnavailableUntil = Date.now() + 2 * 60 * 1000;
+            setAdsgramMsg('Could not load the task. Please try again shortly.');
+        });
+        el.addEventListener('onTooLongSession', () => {
+            setAdsgramMsg('This session is too long. Please restart the app to load new tasks.');
+        });
+        slot.appendChild(el);
+    }
+
+    async function onAdsgramReward() {
+        if (adsgramClaiming) return;
+        adsgramClaiming = true;
+        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
+
+        try {
+            const response = await fetch('/api/claim-bonus', {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
+                body: JSON.stringify({ completed: true, provider: 'adsgram', initData: initDataPayload })
+            });
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+                if (data.user_balance) updateBalanceUI(data.user_balance);
+                applyAdStatus(data.ads);
+                alert(`🎉 +${data.reward_howl} HOWL added to your balance!`);
+            } else {
+                if (data.ads) applyAdStatus(data.ads);
+                alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
+            }
+        } catch (err) {
+            alert('❌ Network Error. Claim failed.');
+        }
+
+        adsgramClaiming = false;
+        mountAdsgramTask(true);   // load the next task (if any are left today)
+    }
+
+    function refreshMidnightTimerState() {
+        const any = (monetagAdLimit > 0 && monetagAdsWatched >= monetagAdLimit) || (adsgramLimit > 0 && adsgramWatched >= adsgramLimit);
+        if (any) {
+            if (!midnightTimerInterval) midnightTimerInterval = setInterval(updateMidnightTimer, 1000);
+            updateMidnightTimer();
+        } else if (midnightTimerInterval) {
+            clearInterval(midnightTimerInterval);
+            midnightTimerInterval = null;
+        }
+    }
+
     function updateMidnightTimer() {
-        if (monetagAdsWatched < 10) return;
         const now = new Date();
         const tomorrow = new Date(now);
-        tomorrow.setUTCHours(24, 0, 0, 0); 
-        
+        tomorrow.setUTCHours(24, 0, 0, 0);
         const diff = tomorrow - now;
-        
+
         if (diff <= 0) {
-            monetagAdsWatched = 0;
-            updateMonetagUI();
+            // a new day started: ask the server for the fresh counters
+            if (Date.now() - lastMidnightSync > 15000) { lastMidnightSync = Date.now(); syncAdStatusFromServer(); }
             return;
         }
 
         const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
         const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
         const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
-        
-        const timerEl = document.getElementById('monetagNextDayTimer');
-        if (timerEl) {
-            timerEl.textContent = `Ads Reset In: ${h}:${m}:${s}`;
-        }
+        ['monetagNextDayTimer', 'adsgramNextDayTimer'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el && el.style.display !== 'none') el.textContent = `Ads Reset In: ${h}:${m}:${s}`;
+        });
     }
 
     function updateMonetagUI() {
+        const card = document.getElementById('monetagCard');
         const limitEl = document.getElementById('monetagLimit');
         const rewardEl = document.getElementById('monetagRewardVal');
         const progressEl = document.getElementById('monetagProgressBar');
@@ -1178,27 +1367,19 @@
 
         let watched = parseInt(monetagAdsWatched) || 0;
         if (watched < 0) watched = 0;
+        const done = monetagAdLimit <= 0 || watched >= monetagAdLimit;
 
-        if (limitEl) limitEl.textContent = `${watched}/10`;
-        
-        if (watched >= 10) {
+        if (card) card.style.display = monetagAdLimit <= 0 ? 'none' : '';
+        if (limitEl) limitEl.textContent = `${watched}/${monetagAdLimit}`;
+
+        if (done) {
             if (rewardEl) rewardEl.textContent = "0";
             if (progressEl) progressEl.style.width = "100%";
-            if (btnEl) {
-                btnEl.style.display = "none";
-            }
-            if (timerEl) {
-                timerEl.style.display = "block";
-                if (!midnightTimerInterval) midnightTimerInterval = setInterval(updateMidnightTimer, 1000);
-                updateMidnightTimer();
-            }
+            if (btnEl) btnEl.style.display = "none";
+            if (timerEl) timerEl.style.display = "block";
         } else {
-            let currentReward = 100 - (watched * 10);
-            if (currentReward < 10) currentReward = 10; 
-            
-            if (rewardEl) rewardEl.textContent = currentReward;
-            if (progressEl) progressEl.style.width = `${(watched / 10) * 100}%`;
-            
+            if (rewardEl) rewardEl.textContent = monetagNextReward;
+            if (progressEl) progressEl.style.width = `${(watched / monetagAdLimit) * 100}%`;
             if (timerEl) timerEl.style.display = "none";
             if (btnEl) {
                 btnEl.style.display = "block";
@@ -1206,8 +1387,8 @@
                 btnEl.style.opacity = "1";
                 btnEl.disabled = false;
             }
-            if (midnightTimerInterval) { clearInterval(midnightTimerInterval); midnightTimerInterval = null; }
         }
+        refreshMidnightTimerState();
     }
 
     function updateCooldownTimers() {
@@ -1217,7 +1398,7 @@
         const monetagCD = document.getElementById('monetagCD');
         const monetagArrow = document.getElementById('monetagArrow');
 
-        if (monetagCard && monetagCD && monetagArrow && monetagAdsWatched < 10) {
+        if (monetagCard && monetagCD && monetagArrow && monetagAdsWatched < monetagAdLimit) {
             if (monetagInFlight || monetagDiff < 5) {
                 const left = Math.max(0, 5 - monetagDiff);
                 monetagCard.style.opacity = '0.7';
@@ -1231,6 +1412,9 @@
             }
         }
     }
+
+    // refresh counters when the user comes back to the app
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) syncAdStatusFromServer(); });
 
     function loadTelegramUser() {
         if (tgUser) {
@@ -1347,8 +1531,8 @@
     }
 
     function startMonetagTask() {
-        if (monetagAdsWatched >= 10) {
-            return alert('✅ Daily limit of 10 ads reached! Come back tomorrow.');
+        if (monetagAdsWatched >= monetagAdLimit) {
+            return alert(`✅ Daily limit of ${monetagAdLimit} ads reached! Come back tomorrow.`);
         }
 
         if (monetagInFlight) return;
@@ -1385,27 +1569,95 @@
             const response = await fetch(bonusEndpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
-                body: JSON.stringify({ completed: true, initData: initDataPayload })
+                body: JSON.stringify({ completed: true, provider: 'monetag', initData: initDataPayload })
             });
             
             const data = await response.json();
 
             if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                // Balance comes straight from the DB in the claim response; fall back to a fresh fetch.
                 if (data.user_balance) updateBalanceUI(data.user_balance); else refreshBalance();
                 alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
-                
-                monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
-                updateMonetagUI();
+
+                if (data.ads) applyAdStatus(data.ads);
+                else { monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1); updateMonetagUI(); }
             } else {
+                if (data.ads) applyAdStatus(data.ads);
                 alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
-                if (data.error && data.error.includes("Daily limit reached")) {
-                    monetagAdsWatched = 10;
+                if (!data.ads && data.error && data.error.includes("Daily limit reached")) {
+                    monetagAdsWatched = monetagAdLimit;
                     updateMonetagUI();
                 }
             }
         } catch (err) { alert(`❌ Network Error. Claim failed.`); }
+    }
+
+    // ================= Admin: ad reward settings =================
+    const AD_KEYS = ['monetag', 'adsgram'];
+
+    function adNum(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; }
+
+    function adPreview(start, step, limit) {
+        const steps = [];
+        let total = 0;
+        for (let i = 0; i < Math.min(limit, 15); i++) {
+            const r = Math.max(0, start - step * i);
+            if (r <= 0) break;
+            steps.push(r); total += r;
+        }
+        if (!steps.length) return 'Off';
+        return steps.join(' → ') + (limit > 15 ? ' …' : '') + `  (max ${total.toLocaleString()} HOWL / user / day)`;
+    }
+
+    function adRefreshPreview() {
+        AD_KEYS.forEach(k => {
+            const el = document.getElementById(`ad-${k}-preview`);
+            if (!el) return;
+            const s = parseInt(adNum(`ad-${k}-start`)), st = parseInt(adNum(`ad-${k}-step`)), l = parseInt(adNum(`ad-${k}-limit`));
+            el.textContent = (isNaN(s) || isNaN(st) || isNaN(l)) ? '—' : adPreview(s, st, l);
+        });
+    }
+
+    async function adminLoadAdConfig() {
+        try {
+            const initData = window.Telegram?.WebApp?.initData || '';
+            const res = await fetch('/api/admin', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData, action: 'get_ad_config' })
+            });
+            const data = await res.json();
+            if (!data.success) return;
+            AD_KEYS.forEach(k => {
+                ['start', 'step', 'limit'].forEach(f => {
+                    const el = document.getElementById(`ad-${k}-${f}`);
+                    if (el && data.config[k]) el.value = data.config[k][f];
+                });
+            });
+            adRefreshPreview();
+        } catch (e) {}
+    }
+
+    async function adminSaveAdConfig() {
+        const config = {};
+        AD_KEYS.forEach(k => {
+            config[k] = { start: adNum(`ad-${k}-start`), step: adNum(`ad-${k}-step`), limit: adNum(`ad-${k}-limit`) };
+        });
+        if (!confirm('Save these ad reward settings? They apply to everyone immediately.')) return;
+
+        triggerHaptic('medium');
+        const btn = document.getElementById('ad-settings-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+        try {
+            const initData = window.Telegram?.WebApp?.initData || '';
+            const res = await fetch('/api/admin', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData, action: 'set_ad_config', config })
+            });
+            const data = await res.json();
+            if (data.success) { alert('✅ ' + data.message); adminLoadAdConfig(); }
+            else alert('❌ ' + (data.error || 'Could not save settings.'));
+        } catch (e) { alert('Network error while saving settings.'); }
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Ad Settings'; }
     }
 
     async function adminLookupUser() {
@@ -1592,4 +1844,4 @@
     }
 </script>
 </body>
-        </html>
+  </html>
