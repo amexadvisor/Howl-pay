@@ -6,35 +6,19 @@ import {
   creditHold,
   reduceHold,
   debitHowlUpTo,
-  releaseDueHolds
+  releaseDueHolds,
+  releaseAllDueHolds
 } from '../lib/balance.js';
+import { notifyTimewall } from '../lib/notify.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const TIMEWALL_SECRET_KEY = process.env.TIMEWALL_SECRET_KEY;
-const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
 const HOLD_TYPE = 'TimeWall Survey (On Hold)';
 const REVERSED_TYPE = 'TimeWall Survey (Reversed)';
-
-const fmtHowl = (usd) => Math.round(usd / HOWL_USD_RATE).toLocaleString('en-US');
-const fmtUsd = (usd) => '$' + (+usd).toFixed(4);
-
-// Telegram message to the user (never lets a failure break the postback)
-async function notifyUser(userId, text) {
-  if (!BOT_TOKEN) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: userId, text, disable_web_page_preview: true })
-    });
-  } catch (e) {
-    console.error('[timewall notify]', e.message);
-  }
-}
 
 function safeEqual(a, b) {
   const x = Buffer.from(String(a));
@@ -51,6 +35,21 @@ export default async function handler(req, res) {
 
   const data = req.method === 'POST' ? (req.body || {}) : req.query;
 
+  // ---- Daily auto-approval (Vercel Cron): releases every hold older than HOLD_DAYS and notifies the users ----
+  // No secret needed: it only releases holds that are already due, which is exactly what should happen anyway.
+  if (req.method === 'GET' && data.cron) {
+    if (!String(req.headers['user-agent'] || '').startsWith('vercel-cron')) {
+      return res.status(403).json({ success: false, error: 'Forbidden' });
+    }
+    if (!supabase) return res.status(500).json({ success: false, error: 'No database' });
+    try {
+      const out = await releaseAllDueHolds(supabase);
+      return res.status(200).json({ success: true, ...out });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: e.message });
+    }
+  }
+
   if (req.method === 'GET' && !data.userid && !data.uid) {
     return res.status(200).json({ status: 'TimeWall Gateway is online' });
   }
@@ -58,7 +57,7 @@ export default async function handler(req, res) {
   const userId = data.userid || data.uid;
   const rawRevenue = data.revenue || data.reward || data.amount || '0';
   const rawCurrencyAmount = data.currencyAmount || data.currency || rawRevenue;
-  let rewardAmount = parseFloat(rawCurrencyAmount) || 0;
+  let rewardAmount = parseFloat(rawCurrencyAmount) || 0;      // TimeWall sends this amount in HOWL
   const transactionId = data.txid || data.oid || data.transId;
   const txStatus = String(data.type || data.status || '1');
   const receivedHash = data.hash;
@@ -82,10 +81,11 @@ export default async function handler(req, res) {
 
   const uid = String(userId);
   const txid = String(transactionId);
-  const usd = Math.abs(rewardAmount);
+  const howlAmount = Math.abs(rewardAmount);                  // HOWL
+  const usd = +(howlAmount * HOWL_USD_RATE).toFixed(8);       // internal / ledger value
 
-  if (usd === 0) return res.status(200).send('OK');
-  if (!supabase) return res.status(500).send('RETRY');   // TimeWall retries non-200 responses
+  if (howlAmount === 0) return res.status(200).send('OK');
+  if (!supabase) return res.status(500).send('RETRY');        // TimeWall retries non-200 responses
 
   try {
     const getRow = async () => {
@@ -99,7 +99,6 @@ export default async function handler(req, res) {
     if (!isReversal) {
       if (await getRow()) return res.status(200).send('OK');             // duplicate postback, already handled
 
-      // make sure the user row exists so the hold can be stored
       const { data: userRow } = await supabase.from('users').select('user_id').eq('user_id', uid).maybeSingle();
       if (!userRow) {
         await supabase.from('users').insert([{
@@ -107,7 +106,7 @@ export default async function handler(req, res) {
         }]);
       }
 
-      // 1) ledger row first (this is what marks the task as handled)
+      // 1) ledger row first (marks the task as handled)
       const { error: insErr } = await supabase.from('transactions').insert([{
         user_id: uid,
         reward_amount: usd,
@@ -117,12 +116,12 @@ export default async function handler(req, res) {
         created_at: new Date().toISOString()
       }]);
       if (insErr) {
-        if (await getRow()) return res.status(200).send('OK');           // parallel retry beat us
+        if (await getRow()) return res.status(200).send('OK');           // a parallel retry beat us
         console.error('[timewall] ledger insert failed:', insErr.message);
         return res.status(500).send('RETRY');
       }
 
-      // 2) put the money on hold
+      // 2) put the reward on hold
       let ok = false;
       try { ok = (await creditHold(supabase, uid, usd)).ok; } catch (e) { console.error('[timewall] hold failed:', e.message); }
       if (!ok) {
@@ -130,22 +129,25 @@ export default async function handler(req, res) {
         return res.status(500).send('RETRY');
       }
 
+      // 3) notify user + channel
+      await notifyTimewall({ userId: uid, kind: 'hold', howl: howlAmount, txid, holdDays: HOLD_DAYS });
+
     /* ============================== REVERSAL ============================ */
     } else {
       const revTxId = `rev_${txid}`;
       const { data: revDup } = await supabase.from('transactions').select('transaction_id')
         .eq('user_id', uid).eq('transaction_id', revTxId).maybeSingle();
-      if (revDup) return res.status(200).send('OK');                     // reversal already processed
+      if (revDup) return res.status(200).send('OK');                     // already processed
 
       let row = await getRow();
       if (row && row.status === 'reversed') return res.status(200).send('OK');
 
-      // Still being released/reversed by another request: ask TimeWall to try again shortly
+      // Being released/reversed by another request right now: ask TimeWall to retry shortly
       if (row && (row.status === 'releasing' || row.status === 'reversing')) {
         return res.status(500).send('RETRY');
       }
 
-      // ---- A) task is still on hold -> reduce the HOLD balance ----
+      // ---- A) still on hold -> reduce the HOLD balance ----
       if (row && row.status === 'hold') {
         const { data: claimed } = await supabase.from('transactions')
           .update({ status: 'reversing' })
@@ -153,10 +155,10 @@ export default async function handler(req, res) {
           .select('reward_amount');
 
         if (claimed && claimed.length > 0) {
-          const amt = Math.abs(parseFloat(claimed[0].reward_amount)) || usd;
+          const amtUsd = Math.abs(parseFloat(claimed[0].reward_amount)) || usd;
 
           let ok = false;
-          try { ok = (await reduceHold(supabase, uid, amt)).ok; } catch (e) { console.error('[timewall] reduce hold failed:', e.message); }
+          try { ok = (await reduceHold(supabase, uid, amtUsd)).ok; } catch (e) { console.error('[timewall] reduce hold failed:', e.message); }
           if (!ok) {
             await supabase.from('transactions').update({ status: 'hold' })
               .eq('user_id', uid).eq('transaction_id', txid).eq('status', 'reversing');
@@ -169,18 +171,14 @@ export default async function handler(req, res) {
 
           await supabase.from('transactions').insert([{
             user_id: uid,
-            reward_amount: -amt,
+            reward_amount: -amtUsd,
             transaction_id: revTxId,
             task_type: 'TimeWall Reversal',
             status: '-1',
             created_at: new Date().toISOString()
           }]);
 
-          await notifyUser(uid,
-            `⚠️ TimeWall reversed one of your completed tasks.\n\n` +
-            `${fmtHowl(amt)} HOWL (${fmtUsd(amt)}) was removed from your pending balance.\n` +
-            `Pending rewards are held for ${HOLD_DAYS} days to allow for this.`);
-
+          await notifyTimewall({ userId: uid, kind: 'reversed_hold', howl: amtUsd / HOWL_USD_RATE, txid, holdDays: HOLD_DAYS });
           return res.status(200).send('OK');
         }
         row = await getRow();   // lost a race: re-read and fall through
@@ -188,16 +186,15 @@ export default async function handler(req, res) {
       }
 
       // ---- B) already released (or an older credit we never held) -> take back from the main balance ----
-      const amt = row ? (Math.abs(parseFloat(row.reward_amount)) || usd) : usd;
-      let taken = 0;
+      const amtUsd = row ? (Math.abs(parseFloat(row.reward_amount)) || usd) : usd;
+      let takenHowl = 0;
       try {
-        const r = await debitHowlUpTo(supabase, uid, amt / HOWL_USD_RATE);
-        taken = (r.meta && r.meta.taken) || 0;
+        const r = await debitHowlUpTo(supabase, uid, amtUsd / HOWL_USD_RATE);
+        takenHowl = (r.meta && r.meta.taken) || 0;
       } catch (e) {
         console.error('[timewall] clawback failed:', e.message);
         return res.status(500).send('RETRY');
       }
-      const takenUsd = taken * HOWL_USD_RATE;
 
       if (row) {
         await supabase.from('transactions')
@@ -206,19 +203,17 @@ export default async function handler(req, res) {
       }
       await supabase.from('transactions').insert([{
         user_id: uid,
-        reward_amount: -amt,
+        reward_amount: -amtUsd,
         transaction_id: revTxId,
         task_type: 'TimeWall Reversal',
         status: '-1',
         created_at: new Date().toISOString()
       }]);
 
-      await notifyUser(uid,
-        `⚠️ TimeWall reversed a task whose reward had already been released.\n\n` +
-        `${fmtHowl(takenUsd)} HOWL (${fmtUsd(takenUsd)}) was deducted from your balance.`);
+      await notifyTimewall({ userId: uid, kind: 'reversed_balance', howl: takenHowl, txid, holdDays: HOLD_DAYS });
     }
 
-    // Opportunistic: pay out any of this user's holds that are now older than HOLD_DAYS
+    // Opportunistic: pay out (and announce) any of this user's holds that are now older than HOLD_DAYS
     try { await releaseDueHolds(supabase, uid); } catch (e) { console.error('[timewall] release error:', e.message); }
 
     return res.status(200).send('OK');
@@ -226,4 +221,4 @@ export default async function handler(req, res) {
     console.error('[timewall] error:', err.message);
     return res.status(500).send('RETRY');
   }
-}
+  }
