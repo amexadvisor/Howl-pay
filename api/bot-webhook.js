@@ -1,1595 +1,260 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>HOWL | Elite Earning</title>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  
-  <!-- Safe Error Telemetry via Backend -->
-  <script>
-    (function() {
-      const reportedErrors = new Map();
-      let lastSentTime = 0;
+import { createClient } from '@supabase/supabase-js';
+import { ethers } from 'ethers';
+import { HOWL_USD_RATE, creditHowl, verifyCallback } from '../lib/balance.js';
 
-      function formatErrorDetail(detail) {
-        if (!detail) return 'No details provided';
-        if (typeof detail === 'string') return detail;
-        if (detail instanceof Error) {
-          return (detail.message || '') + (detail.stack ? '\n\nStack:\n' + detail.stack : '');
-        }
-        try { return JSON.stringify(detail, null, 2); } catch (e) { return String(detail); }
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
+const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
+const BOT_TOKEN = process.env.BOT_TOKEN;
+
+// Give the HOWL back to the user's real balance (same logic as every other endpoint)
+async function refundToBalance(userId, usd) {
+  const howl = Math.round(usd / HOWL_USD_RATE);
+  try {
+    const r = await creditHowl(supabase, userId, howl, { lifetime: false });
+    return !!(r && r.ok);
+  } catch (e) {
+    console.error('Refund failed:', e.message);
+    return false;
+  }
+}
+
+async function answerCb(callbackId, text) {
+  await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ callback_query_id: callbackId, text })
+  });
+}
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(200).end();
+
+  try {
+    const body = req.body;
+
+    if (body.callback_query) {
+      const callbackId = body.callback_query.id;
+      const clickerId = String(body.callback_query.from.id);
+      const data = body.callback_query.data;
+      const messageId = body.callback_query.message.message_id;
+
+      // SECURITY: Only process your specific admin button clicks
+      if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
+        return res.status(200).json({ success: true }); 
       }
 
-      function sendErrorToBackend(category, detail) {
-        try {
-          const formattedDetail = formatErrorDetail(detail);
-          const signature = category + ':' + formattedDetail.slice(0, 120);
-          const now = Date.now();
+      const action = data.startsWith('NR_') ? 'NR' : data.split('_')[0]; 
+      const timestampId = data.split('_')[1];
 
-          if (reportedErrors.has(signature) && (now - reportedErrors.get(signature)) < 15000) return;
-          
-          if (now - lastSentTime < 800) {
-            setTimeout(function() { sendErrorToBackend(category, detail); }, 1000);
-            return;
+      // SECURITY: the button must carry a signature only this server can create.
+      // A forged request that merely claims to be the admin has no valid signature.
+      const cbParts = data.split('_');
+      const cbSig = cbParts[cbParts.length - 1];
+      if (cbParts.length < 3 || !/^\d{10,15}$/.test(String(timestampId)) || !verifyCallback(action, timestampId, cbSig, BOT_TOKEN)) {
+          await answerCb(callbackId, "Invalid or outdated button.");
+          return res.status(200).json({ success: true });
+      }
+
+      // Retrieve pending withdrawal transaction data
+      const { data: txRow } = await supabase.from('transactions')
+          .select('*').like('transaction_id', 'W_' + timestampId + '_%').single();
+
+      if (!txRow || txRow.status !== 'pending') {
+          await answerCb(callbackId, "Already processed or invalid.");
+          return res.status(200).json({ success: true });
+      }
+
+      // ATOMIC CLAIM: only one click can move the request out of 'pending'.
+      // Prevents double refunds / double payouts on a double tap.
+      const { data: claimed } = await supabase.from('transactions')
+          .update({ status: 'processing' })
+          .eq('transaction_id', txRow.transaction_id)
+          .eq('status', 'pending')
+          .select('transaction_id');
+
+      if (!claimed || claimed.length === 0) {
+          await answerCb(callbackId, "Already processed or invalid.");
+          return res.status(200).json({ success: true });
+      }
+
+      const userId = txRow.user_id;
+      
+      const rawTaskType = String(txRow.task_type || '');
+      const addressPart = rawTaskType.includes(':') ? rawTaskType.split(':')[1] : rawTaskType;
+      const address = addressPart.replace(/\s+/g, '').trim();
+
+      const usdtDeducted = Math.abs(parseFloat(txRow.reward_amount));
+      const payoutUsdt = usdtDeducted - 0.01;
+
+      // Fetch User's First Name for the public notification
+      let firstName = "User";
+      const { data: userRecord } = await supabase.from('users').select('name').eq('user_id', userId).maybeSingle();
+      if (userRecord && userRecord.name) {
+          firstName = userRecord.name.split(' ')[0];
+      }
+
+      if (action === 'R') {
+          // Refund FIRST. If it fails, put the request back to pending so you can retry.
+          const refunded = await refundToBalance(userId, usdtDeducted);
+          if (!refunded) {
+              await supabase.from('transactions').update({ status: 'pending' }).eq('transaction_id', txRow.transaction_id);
+              await answerCb(callbackId, "Refund failed. Nothing changed, try again.");
+              return res.status(200).json({ success: true });
           }
 
-          reportedErrors.set(signature, now);
-          lastSentTime = now;
+          await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
 
-          let userInfo = 'User: Unknown/Guest';
+          await supabase.from('transactions').insert([{
+              user_id: userId,
+              reward_amount: usdtDeducted,
+              transaction_id: 'REF_' + Date.now() + '_' + userId,
+              task_type: 'Withdrawal Refund (Rejected by Admin)',
+              status: '1',
+              created_at: new Date().toISOString()
+          }]);
+          
+          await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
+          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
+
+      } else if (action === 'NR') {
+          await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
+
+          await supabase.from('transactions').insert([{
+              user_id: userId,
+              reward_amount: 0,
+              transaction_id: 'REJ_' + Date.now() + '_' + userId,
+              task_type: 'Withdrawal Rejected (No Refund)',
+              status: '1',
+              created_at: new Date().toISOString()
+          }]);
+          
+          await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.");
+          await notifyUserRaw(userId, "❌ Your withdrawal request was rejected by administration.");
+
+      } else if (action === 'A') {
+          await answerCb(callbackId, "Processing Blockchain Payout...");
+
+          // --- Only the blockchain transfer is inside this try. ---
+          // If it fails, the money was NOT sent, so refunding is safe.
+          let tx;
           try {
-            const u = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user;
-            if (u) userInfo = 'User: ' + u.id + ' (@' + (u.username || 'no_user') + ')';
-          } catch(e) {}
+              const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+              const wallet = new ethers.Wallet(process.env.HOT_WALLET_PRIVATE_KEY, provider);
+              const contract = new ethers.Contract("0x55d398326f99059fF775485246999027B3197955", ["function transfer(address to, uint256 amount) returns (bool)"], wallet);
+              
+              const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
+              tx = await contract.transfer(address, amountInWei);
+          } catch (err) {
+              await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
 
-          const payload = {
-            category: category,
-            userInfo: userInfo,
-            platform: (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.platform) || 'web',
-            url: window.location.href,
-            ua: navigator.userAgent,
-            details: formattedDetail
-          };
+              const refunded = await refundToBalance(userId, usdtDeducted);
+              const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
 
-          fetch('/api/log-error', {
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }).catch(function() {});
-        } catch (err) {}
+              if (refunded) {
+                  await supabase.from('transactions').insert([{
+                      user_id: userId,
+                      reward_amount: usdtDeducted,
+                      transaction_id: 'REF_ERR_' + Date.now() + '_' + userId,
+                      task_type: 'Withdrawal Auto-Refund (Network Error)',
+                      status: '1',
+                      created_at: new Date().toISOString()
+                  }]);
+                  await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
+                  await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
+              } else {
+                  await editAdminMessage(messageId, "🚨 *Blockchain Failed AND auto-refund failed*\nError: " + shortErr + "\n\nUser ID: `" + userId + "`\nRefund manually: $" + usdtDeducted.toFixed(4));
+              }
+              return res.status(200).json({ success: true });
+          }
+
+          // --- Payment is sent. Nothing below may ever trigger a refund. ---
+          try {
+              await supabase.from('transactions').update({ status: 'approved' }).eq('transaction_id', txRow.transaction_id);
+
+              await supabase.from('transactions').insert([{
+                  user_id: userId,
+                  reward_amount: -payoutUsdt,
+                  transaction_id: tx.hash,
+                  task_type: 'USDT Payout (BEP-20)',
+                  status: '1',
+                  created_at: new Date().toISOString()
+              }]);
+              
+              await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
+              
+              // 1. PRIVATE USER MESSAGE (No Name, No App Link)
+              const userHtml = 
+                '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
+                '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> Your funds have been sent successfully!';
+
+              // 2. PUBLIC GROUP MESSAGE (Includes Name and App Link)
+              const groupHtml = 
+                '<tg-emoji emoji-id="6267107057304868214">⚡</tg-emoji> <b>Withdrawal Successful!</b>\n\n' +
+                '<tg-emoji emoji-id="5316989025037334866">👤</tg-emoji> User: <b>' + firstName + '</b>\n' +
+                '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
+                '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
+                '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> App: <a href="https://t.me/howl_paybot/app?startapp=ref_8026237972">HOWL</a>';
+
+              const replyMarkup = {
+                  inline_keyboard: [
+                      [{ 
+                          text: "View on BscScan", 
+                          url: "https://bscscan.com/tx/" + tx.hash,
+                          icon_custom_emoji_id: "5280944517027998187"
+                      }]
+                  ]
+              };
+
+              // SEND TO PRIVATE CHAT (USER)
+              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      chat_id: userId,
+                      text: userHtml,
+                      parse_mode: 'HTML',
+                      disable_web_page_preview: true,
+                      reply_markup: replyMarkup
+                  })
+              });
+
+              // SEND TO PUBLIC PAYOUT CHANNEL (@howlpayout)
+              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                      chat_id: '@howlpayout',
+                      text: groupHtml,
+                      parse_mode: 'HTML',
+                      disable_web_page_preview: true,
+                      reply_markup: replyMarkup
+                  })
+              });
+          } catch (postErr) {
+              console.error('Post-payment step failed (payout already sent):', postErr.message, 'tx:', tx && tx.hash);
+          }
       }
-
-      window.reportDebugError = sendErrorToBackend;
-      
-      window.addEventListener('error', function(event) {
-        sendErrorToBackend('Uncaught Exception', { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno, stack: event.error ? event.error.stack : null });
-      });
-      window.addEventListener('unhandledrejection', function(event) { 
-        sendErrorToBackend('Unhandled Promise Rejection', event.reason); 
-      });
-      
-      const originalConsoleError = console.error;
-      console.error = function() {
-        originalConsoleError.apply(console, arguments);
-        try {
-          const args = Array.prototype.slice.call(arguments);
-          const str = args.map(function(a) { return (typeof a === 'object' ? JSON.stringify(a) : String(a)); }).join(' ');
-          if (str.indexOf('api.telegram.org') !== -1 || str.indexOf('HOWL Frontend Error') !== -1) return;
-          sendErrorToBackend('Console Error', str);
-        } catch (e) {}
-      };
-    })();
-  </script>
-
-  <!-- Monetag Rewarded Ads SDK -->
-  <script src='//libtl.com/sdk.js' data-zone='11935325' data-sdk='show_11935325'></script>
-  
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <!-- Live balance sync (polling + stale-response protection) -->
-  <!-- Hardware fingerprint + persistent device vault (Telegram Secure/Device storage, local storage, IndexedDB, cookie) -->
-  <script src="https://openfpcdn.io/fingerprintjs/v4" async></script>
-  <script src="/device-vault.js"></script>
-  <script src="/balance-client.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
-
-  <style>
-    :root {
-      /* Deep Midnight Wolf Theme */
-      --bg-dark: #030614;
-      --card-bg-light: rgba(30, 45, 85, 0.6);
-      --text-main: #ffffff;
-      --text-muted: #8aa4c4;
-      
-      --accent-main: #5eb3ff; /* Electric Moonlight Blue */
-      --accent-dim: rgba(94, 179, 255, 0.15);
-      --accent-orange: #f59e0b;
-      --accent-red: #ef4444;
-      
-      --border-soft: rgba(94, 179, 255, 0.2);
-      --border-highlight: rgba(255, 255, 255, 0.15);
-      
-      --radius-xl: 20px;
-      --radius-lg: 14px;
-      --radius-pill: 50px;
     }
+    return res.status(200).json({ success: true });
+  } catch (err) {
+    return res.status(200).end();
+  }
+}
 
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
-    html, body {
-      margin: 0; padding: 0; height: 100vh; width: 100vw;
-      background-color: var(--bg-dark);
-      color: var(--text-main); font-family: 'Inter', sans-serif; 
-      overflow: hidden; overscroll-behavior-y: none;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* Live Animated Night Background */
-    .night-sky-bg {
-      position: fixed; inset: 0; z-index: 0; pointer-events: none;
-      background: linear-gradient(180deg, #02040f 0%, #0a1128 40%, #02040f 100%);
-    }
-    .stars {
-      position: absolute; inset: 0; opacity: 0.5;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 40px 70px, #a6c8ff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 50px 160px, #fff, rgba(0,0,0,0)),
-        radial-gradient(2px 2px at 90px 40px, #e0e7ff, rgba(0,0,0,0));
-      background-repeat: repeat; background-size: 200px 200px;
-      animation: twinkle 4s infinite alternate;
-    }
-    @keyframes twinkle { 0% { opacity: 0.3; } 100% { opacity: 0.7; } }
-    
-    .moon-glow {
-      position: absolute; top: 12%; left: 50%; transform: translateX(-50%);
-      width: 140px; height: 140px; background: #e0e7ff; border-radius: 50%;
-      box-shadow: 0 0 60px #a6c8ff, 0 0 120px #5eb3ff, inset -15px -15px 30px rgba(0,0,0,0.15);
-      animation: pulseMoon 5s infinite alternate;
-    }
-    @keyframes pulseMoon { 
-      0% { box-shadow: 0 0 60px #a6c8ff, 0 0 120px rgba(94,179,255,0.6), inset -15px -15px 30px rgba(0,0,0,0.15); } 
-      100% { box-shadow: 0 0 80px #a6c8ff, 0 0 160px rgba(94,179,255,0.9), inset -15px -15px 30px rgba(0,0,0,0.15); } 
-    }
-
-    .wolf-art {
-      position: absolute; bottom: -5px; left: 50%; transform: translateX(-50%);
-      width: 100%; max-width: 480px; height: 35vh;
-    }
-    
-    /* Main Content Wrapper - Glassmorphism */
-    .container { 
-      position: relative; width: 100%; height: 100%; max-width: 480px; margin: 0 auto; 
-      display: flex; flex-direction: column; z-index: 1; 
-      backdrop-filter: blur(2px); background: rgba(2, 4, 15, 0.4);
-    }
-    main { flex-grow: 1; overflow-y: auto; padding: 16px 16px 110px 16px; position: relative; scroll-behavior: smooth; }
-    main::-webkit-scrollbar { display: none; } 
-    .view { display: none; }
-    .view.active { display: block; animation: fadeIn 0.4s ease forwards; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
-
-    /* New Glass Cards */
-    .glass-card {
-      background: rgba(15, 22, 45, 0.65);
-      backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border-soft);
-      border-radius: var(--radius-xl);
-      padding: 18px; margin-bottom: 12px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      position: relative; overflow: hidden;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .clickable:active .glass-card { transform: scale(0.98); background: rgba(20, 30, 60, 0.8); }
-
-    .top-bar-modern { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 4px; }
-    .user-greeting { display: flex; align-items: center; gap: 12px; }
-    .user-avatar-new { width: 44px; height: 44px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; color: var(--accent-main); overflow: hidden; box-shadow: 0 0 15px rgba(94, 179, 255, 0.3); }
-    .user-avatar-new img { width: 100%; height: 100%; object-fit: cover; }
-    .greeting-text .welcome-text { font-size: 10px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; }
-    .greeting-text .user-name-new { font-size: 16px; font-weight: 800; color: #fff; margin-top: 2px; }
-
-    .balance-card-new { display: flex; justify-content: space-between; align-items: center; padding: 22px; }
-    .balance-label { font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; text-transform: uppercase; }
-    .balance-amount-new { font-size: 42px; font-weight: 900; letter-spacing: -1px; margin: 0 0 12px 0; color: var(--accent-main); text-shadow: 0 0 25px rgba(94, 179, 255, 0.5); }
-    .balance-pills { display: flex; gap: 8px; flex-wrap: wrap; }
-    .pill { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 11px; font-weight: 800; border-radius: 50px; }
-    .pill-leaf { background: var(--accent-dim); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); }
-    .pill-usd { background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft); }
-    .pill-hold { background: rgba(245,158,11,0.12); color: var(--accent-orange); border: 1px solid rgba(245,158,11,0.3); }
-
-    .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
-    .action-btn { display: flex; justify-content: center; align-items: center; gap: 10px; font-size: 14px; font-weight: 800; color: #fff; padding: 18px; border-radius: var(--radius-xl); background: var(--card-bg-light); border: 1px solid var(--border-soft); cursor: pointer; transition: 0.2s;}
-    .action-btn:active { background: var(--accent-main); color: #000; }
-    .action-btn i { color: var(--accent-main); font-size: 16px; }
-    .action-btn:active i { color: #000; }
-
-    .task-row { display: flex; align-items: center; cursor: pointer; }
-    .task-icon { font-size: 20px; margin-right: 16px; width: 36px; height: 36px; border-radius: 10px; background: rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: center; text-align: center; }
-    .task-text { flex-grow: 1; }
-    .task-text h4 { margin: 0 0 4px 0; font-size: 15px; font-weight: 700; color: #fff; }
-    .task-text p { margin: 0; font-size: 12px; color: var(--text-muted); }
-
-    .section-header-row { display: flex; justify-content: space-between; align-items: center; padding: 20px 4px 12px 4px; font-size: 11px; font-weight: 800; letter-spacing: 1.5px; color: var(--text-muted); text-transform: uppercase; }
-    .section-header-row .left { display: flex; align-items: center; gap: 8px; color: var(--accent-main); }
-    .section-header-row .dot { width: 6px; height: 6px; background: var(--accent-main); border-radius: 50%; box-shadow: 0 0 10px var(--accent-main); }
-    
-    .watch-card { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px; }
-    .watch-top { width: 100%; display: flex; justify-content: space-between; font-size: 11px; font-weight: 800; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
-    .eye-container { width: 70px; height: 70px; margin: 0 auto 12px auto; filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
-    .watch-reward { display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 28px; font-weight: 900; color: var(--accent-main); margin-bottom: 12px; text-shadow: 0 0 15px rgba(94, 179, 255, 0.4); }
-    .watch-btn { width: 100%; background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; padding: 12px; border-radius: 12px; font-size: 13px; font-weight: 800; letter-spacing: 1px; cursor: pointer; transition: all 0.2s; }
-    .watch-btn:active { background: var(--accent-main); color: #000; box-shadow: 0 0 20px rgba(94, 179, 255, 0.4); }
-    .watch-btn:disabled { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent; box-shadow: none; cursor: not-allowed; }
-
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
-    .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
-    .nav-item i { font-size: 20px; margin-bottom: 6px; }
-    .nav-item.active { color: var(--accent-main); }
-    .nav-item.center-btn { position: relative; }
-    .center-icon-wrap { width: 64px; height: 64px; background: #050714; border-radius: 50%; display: flex; align-items: center; justify-content: center; position: absolute; top: -35px; border: 4px solid rgba(255,255,255,0.05); }
-    .center-inner { width: 100%; height: 100%; background: var(--accent-main); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #000; font-size: 24px; box-shadow: 0 0 25px rgba(94, 179, 255, 0.5); }
-
-    .offerwall-iframe-container { width: 100%; height: 70vh; background: rgba(0,0,0,0.5); border-radius: var(--radius-xl); border: 1px solid var(--border-soft); overflow: hidden; margin-top: 10px; }
-    .offerwall-iframe-container iframe { width: 100%; height: 100%; border: none; }
-    
-    .data-item { background: rgba(15, 22, 45, 0.6); backdrop-filter: blur(10px); border-radius: var(--radius-lg); padding: 16px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; border: 1px solid var(--border-soft); }
-    .data-icon { width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-right: 14px; flex-shrink: 0; background: var(--card-bg-light); color:var(--accent-main);}
-    .data-info h4 { margin: 0 0 4px 0; font-size: 14px; font-weight: 600; }
-    .data-info p { margin: 0; font-size: 12px; color: var(--text-muted); }
-    .data-val { font-size: 15px; font-weight: 700; color: var(--accent-main); }
-
-    .full-screen-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(10px); z-index: 10000; display: flex; align-items: center; justify-content: center; opacity: 0; visibility: hidden; transition: 0.3s; padding: 20px; }
-    .full-screen-modal.active { opacity: 1; visibility: visible; }
-    .modal-content { background: rgba(15, 22, 45, 0.95); backdrop-filter: blur(20px); width: 100%; max-width: 400px; border-radius: var(--radius-xl); border: 1px solid var(--border-soft); padding: 24px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-    .modal-content h2 { font-size: 20px; font-weight: 800; margin: 0 0 16px 0; color: #fff;}
-    .modal-content p { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: left; }
-    .modal-btn { background: var(--accent-main); color: #000; width: 100%; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; border: none; font-size: 15px; cursor: pointer; }
-
-    .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-main); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
-  </style>
-</head>
-<body>
-
-  <!-- Live Animated Background -->
-  <div class="night-sky-bg">
-    <div class="stars"></div>
-    <div class="moon-glow"></div>
-    <div class="wolf-art">
-      <!-- High Quality SVG Silhouette of Wolf Howling on a Mountain -->
-      <svg viewBox="0 0 800 400" width="100%" height="100%" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
-        <path d="M0,400 L0,350 Q100,320 200,340 T400,280 Q450,260 480,210 Q485,190 495,195 Q500,185 510,180 C515,160 530,130 550,110 L545,100 C540,95 535,90 535,85 C550,80 560,85 570,95 C580,85 585,75 590,65 L595,70 C600,60 610,65 615,75 C625,90 620,110 615,130 Q630,150 640,180 Q660,240 700,280 T800,350 L800,400 Z" fill="#02040f" />
-      </svg>
-    </div>
-  </div>
-
-  <!-- Splash Screen -->
-  <div id="splash-screen" style="position: fixed; inset: 0; background: #030614; z-index: 99999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s;">
-    <div style="position: relative; display: flex; align-items: center; justify-content: center; margin-bottom: 30px;">
-      <div id="splash-wolf-emoji" style="width: 110px; height: 110px; filter: drop-shadow(0 0 25px rgba(94,179,255,0.5));"></div>
-    </div>
-    <h1 style="font-size: 34px; font-weight: 900; margin: 0 0 8px 0; color: #fff; letter-spacing: 2px;">HOWL</h1>
-    <p style="color: var(--accent-main); font-weight: 700; letter-spacing: 3px; font-size: 13px; margin-bottom: 24px;">ELITE EARNING</p>
-    <button id="audio-trigger-btn" onclick="playHowlAudio()" style="background: rgba(94, 179, 255, 0.15); border: 1px solid var(--accent-main); color: #fff; padding: 12px 24px; border-radius: var(--radius-pill); font-size: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-      <i class="fa-solid fa-volume-high" style="color: var(--accent-main);"></i> TAP TO ENTER
-    </button>
-  </div>
-
-  <!-- Mandatory Channel Gate -->
-  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
-    <div style="text-align: center; margin: 40px 0 30px 0;">
-      <div style="width: 64px; height: 64px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color: var(--accent-main); box-shadow: 0 0 20px rgba(94,179,255,0.3);">
-        <i class="fa-solid fa-lock"></i>
-      </div>
-      <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 8px 0;">Unlock App</h2>
-      <p style="color: var(--text-muted); font-size: 14px;">Join our official channels to continue.</p>
-    </div>
-    <div class="channel-list">
-      <a href="https://t.me/howlnotification" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
-        <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-bell" style="color:var(--accent-main)"></i></div>
-          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL Notifications</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Official Updates</p></div>
-        </div>
-        <div id="status-howlnotification" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
-      <a href="https://t.me/howlnews" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
-        <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-newspaper" style="color:var(--accent-main)"></i></div>
-          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL News</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Ecosystem News</p></div>
-        </div>
-        <div id="status-howlnews" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
-      <a href="https://t.me/howl_community" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
-        <div style="display:flex; gap:12px; align-items:center;">
-          <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-users" style="color:var(--accent-main)"></i></div>
-          <div><h4 style="margin:0; font-size:14px; font-weight:700;">HOWL Community</h4><p style="margin:2px 0 0; font-size:12px; color:var(--text-muted)">Global Chat</p></div>
-        </div>
-        <div id="status-howl_community" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
-      </a>
-    </div>
-  </div>
-
-  <!-- TOS Modal -->
-  <div id="tosModal" class="full-screen-modal">
-    <div class="modal-content">
-      <h2 style="color:var(--accent-orange)"><i class="fa-solid fa-triangle-exclamation"></i> Rules</h2>
-      <p>1. No VPNs, Proxies, or Emulators.<br><br>2. Multiple accounts will trigger an automatic, unappealable ban.<br><br>3. Rewards sync directly to your Bot Wallet.</p>
-      <button class="modal-btn" onclick="document.getElementById('tosModal').classList.remove('active'); triggerHaptic('light');">I Understand</button>
-    </div>
-  </div>
-
-  <!-- Multi-Account Ban Screen -->
-  <div id="ban-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
-    <div id="ban-anim" style="width: 140px; height: 140px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(239,68,68,0.5));"></div>
-    <div id="ban-badge" style="display:inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--accent-red); padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
-      Multi-Account Prohibited
-    </div>
-    <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff;">Access Suspended</h2>
-    <p id="ban-reason-text" style="color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0 0 24px 0; max-width: 340px;">
-      Multiple accounts have been detected on this physical device. Only one account per device is permitted.
-    </p>
-    <div class="glass-card" style="text-align: left; margin-bottom: 24px; max-width: 340px; width: 100%;">
-      <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 6px;">
-        <i class="fa-solid fa-circle-info" style="color: var(--accent-main);"></i> How to resolve:
-      </div>
-      <div id="ban-help-text" style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
-        Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.
-      </div>
-    </div>
-    <button onclick="if(window.Telegram&&Telegram.WebApp&&Telegram.WebApp.close){Telegram.WebApp.close();}else{window.close();}" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 14px 28px; border-radius: 50px; font-weight: 700; font-size: 14px; cursor: pointer; max-width: 340px; width: 100%;">
-      Close App
-    </button>
-  </div>
-
-  <!-- Admin Entry Mode Selection Modal -->
-  <div id="admin-entry-modal" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.92); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); z-index: 999999; display: none; align-items: center; justify-content: center; padding: 20px;">
-    <div class="glass-card" style="max-width: 360px; width: 100%; text-align: center;">
-      <div style="width: 64px; height: 64px; border-radius: 20px; background: var(--accent-dim); border: 1px solid rgba(94, 179, 255, 0.4); display: flex; align-items: center; justify-content: center; font-size: 28px; color: var(--accent-main); margin: 0 auto 16px;">
-        <i class="fa-solid fa-shield-halved"></i>
-      </div>
-      <div style="display: inline-block; background: var(--accent-dim); color: var(--accent-main); border: 1px solid rgba(94, 179, 255, 0.3); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; padding: 4px 14px; border-radius: 50px; margin-bottom: 12px;">
-        Admin Session Verified
-      </div>
-      <h3 style="font-size: 20px; font-weight: 800; margin: 0 0 8px 0; color: #fff;">Choose Session Mode</h3>
-      <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0 0 24px 0;">
-        Welcome back, Administrator. Please choose how you want to enter HOWL:
-      </p>
-      <div style="display: flex; flex-direction: column; gap: 12px;">
-        <button onclick="enterAsUser()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255,255,255,0.06); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: var(--radius-lg); font-weight: 700; font-size: 14px; cursor: pointer;">
-          <i class="fa-regular fa-user" style="color: var(--accent-main); font-size: 16px;"></i> <span>Enter as User</span>
-        </button>
-        <button onclick="enterAsAdmin()" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--accent-main); border: none; color: #000; padding: 14px; border-radius: var(--radius-lg); font-weight: 800; font-size: 14px; cursor: pointer;">
-          <i class="fa-solid fa-shield-halved" style="font-size: 16px;"></i> <span>Enter Admin Panel</span>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <div class="container">
-    <main id="main-content">
-      
-      <!-- HOME VIEW -->
-      <div id="home-view" class="view active">
-        <div class="top-bar-modern">
-          <div class="user-greeting">
-            <div class="user-avatar-new" id="profile-pic">U</div>
-            <div class="greeting-text">
-              <span class="welcome-text">WELCOME BACK</span>
-              <div class="user-name-new" id="username">Loading...</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="clickable">
-          <div class="glass-card balance-card-new">
-            <div class="balance-left">
-              <div class="balance-label">TOTAL BALANCE</div>
-              <div class="balance-amount-new" id="dash-howl-balance">
-                <span id="user-howl-val">0</span>
-              </div>
-              <div class="balance-pills">
-                <span class="pill pill-leaf"><i class="fa-solid fa-paw"></i> HOWL</span>
-                <span class="pill pill-usd"><i class="fa-solid fa-circle" style="font-size:6px;"></i> $<span id="user-usd-val">0.0000</span></span>
-                <span class="pill pill-hold" id="hold-pill" title="Offerwall rewards are held for 7 days before they join your balance"><i class="fa-solid fa-hourglass-half" style="font-size:9px;"></i> <span id="user-hold-val">0</span> HOLD</span>
-              </div>
-            </div>
-            <div class="balance-right">
-              <div id="wolf-emoji" style="width: 75px; height: 75px; filter: drop-shadow(0 0 15px rgba(94, 179, 255, 0.4));"></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="action-grid">
-          <div class="clickable" onclick="showView('tasks-view')">
-            <div class="glass-card action-btn" style="margin-bottom:0; padding: 16px;">
-              <i class="fa-solid fa-bolt"></i> EARN
-            </div>
-          </div>
-          <div class="clickable" onclick="showView('withdraw-view')">
-            <div class="glass-card action-btn" style="margin-bottom:0; padding: 16px;">
-              <i class="fa-solid fa-download"></i> WITHDRAW
-            </div>
-          </div>
-        </div>
-
-        <div class="clickable" onclick="openLeaderboard('home-view')">
-          <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
-            <div class="task-text">
-              <h4>Top Earners Leaderboard</h4>
-              <p>See global rankings & community earners</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-
-        <div class="clickable" onclick="showView('tasks-view')">
-          <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-star" style="color: #f59e0b;"></i></div>
-            <div class="task-text">
-              <h4>Quick Tasks</h4>
-              <p>One task at a time — links, sites, surveys</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-
-        <!-- Watch & Earn Section -->
-        <div class="section-header-row">
-          <div class="left"><span class="dot"></span> WATCH & EARN</div>
-        </div>
-        
-        <!-- Standardized Monetag Rewarded Ad -->
-        <div class="glass-card watch-card" id="monetagCard">
-          <div class="watch-top">
-            <span style="color: #fff; font-weight: 800; letter-spacing: 1px;">AD #1</span> 
-            <span id="monetagLimit" style="color: var(--accent-main); font-size: 13px;">0/10</span>
-          </div>
-          <div id="eye-anim-1" class="eye-container"></div>
-          <div class="watch-reward">
-            <i class="fa-solid fa-paw" style="color: var(--accent-main);"></i> 
-            <span id="monetagRewardVal">100</span>
-          </div>
-          <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 16px; overflow: hidden;">
-            <div id="monetagProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
-          </div>
-          <div id="monetagNextDayTimer" style="display: none; font-size: 13px; font-weight: 800; color: var(--accent-orange); margin-bottom: 14px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
-          <span id="monetagCD" style="font-size:11px; color:var(--accent-orange); display:none; margin-bottom:10px; font-weight:800; letter-spacing: 1px;"></span>
-          <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
-        </div>
-      </div>
-
-      <!-- WITHDRAW VIEW -->
-      <div id="withdraw-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-          <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
-          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Withdraw USDT (BEP-20)</h2>
-        </div>
-
-        <div class="glass-card">
-          <div style="margin-bottom: 14px;">
-            <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">BEP-20 Wallet Address</label>
-            <input type="text" id="wd-address" placeholder="0x..." style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; font-family: monospace; font-size: 12px; margin-top: 6px; outline: none;">
-          </div>
-          <div style="margin-bottom: 16px;">
-            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">Amount (HOWL)</label>
-              <span style="font-size: 10px; font-weight: 700; color: var(--accent-orange);">Min: 1,500</span>
-            </div>
-            <input type="number" id="wd-amount" placeholder="0" oninput="calcWithdrawal()" style="width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); color: #fff; padding: 14px; border-radius: 12px; font-size: 15px; font-weight: 700; margin-top: 6px; outline: none;">
-          </div>
-          <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--border-soft); border-radius: 12px; padding: 16px; margin-bottom: 16px; font-size: 13px; font-weight: 600; color: var(--text-muted);">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-              <span>Exchange Value</span>
-              <span id="wd-usd-val" style="color: #fff;">$0.0000</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
-              <span>Network Fee</span>
-              <span style="color: var(--accent-red);">-$0.0100</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 10px; font-size: 15px; font-weight: 800; color: #fff;">
-              <span>You Receive</span>
-              <span id="wd-receive-val" style="color: var(--accent-main);">$0.0000</span>
-            </div>
-          </div>
-          <button id="wd-btn" onclick="requestWithdrawal()" style="width: 100%; background: var(--accent-main); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: 0.2s;">
-            Submit Withdrawal Request
-          </button>
-        </div>
-      </div>
-
-      <!-- TASKS VIEW (TimeWall Only) -->
-      <div id="tasks-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
-          <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
-          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Quick Tasks</h2>
-        </div>
-        <div class="offerwall-iframe-container">
-          <iframe id="timewall-iframe" src=""></iframe>
-        </div>
-      </div>
-      
-      <!-- FRIENDS VIEW -->
-      <div id="team-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Friends</h2>
-        <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 20px;">Invite friends to earn 750 HOWL + 10% USDT lifetime commission.</p>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 16px;">
-          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
-            <div style="color:var(--accent-main); font-weight:900; font-size:16px; margin-bottom:4px;">+250</div>
-            <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">On Join</div>
-          </div>
-          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
-            <div style="color:var(--accent-orange); font-weight:900; font-size:16px; margin-bottom:4px;">+500</div>
-            <div style="font-size:10px; color:#fff; font-weight:700;">HOWL Coins</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">On 10 Ads</div>
-          </div>
-          <div class="glass-card" style="padding:16px 8px; text-align:center; margin-bottom:0;">
-            <div style="color:#a855f7; font-weight:900; font-size:16px; margin-bottom:4px;">10%</div>
-            <div style="font-size:10px; color:#fff; font-weight:700;">USDT Split</div>
-            <div style="font-size:9px; color:var(--text-muted); margin-top:4px;">Lifetime</div>
-          </div>
-        </div>
-
-        <div class="glass-card" style="margin-bottom: 16px;">
-          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 16px 0;"><i class="fa-solid fa-chart-pie" style="color:var(--accent-main)"></i> Your Referral Stats</h3>
-          <div style="display: flex; gap: 8px;">
-            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
-              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">FRIENDS</div>
-              <div id="ref-friends-count" style="color:var(--accent-main); font-weight:800; font-size:16px;">0</div>
-            </div>
-            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
-              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">HOWL</div>
-              <div id="ref-howl-earned" style="color:var(--accent-orange); font-weight:800; font-size:14px;">0 HOWL</div>
-            </div>
-            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
-              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">USDT</div>
-              <div id="ref-usdt-earned" style="color:#a855f7; font-weight:800; font-size:14px;">$0.0000</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="glass-card">
-          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 10px 0;"><i class="fa-solid fa-link" style="color:var(--accent-main)"></i> Your Referral Link</h3>
-          <div style="font-size:12px; color:var(--text-muted); margin-bottom: 12px;">Share with friends to automatically credit your rewards.</div>
-          <div style="display:flex; gap:10px;">
-            <input type="text" id="ref-link-input" readonly value="Loading..." style="flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:var(--text-main); padding:14px; border-radius:12px; outline:none; font-family:monospace; font-size:12px;">
-            <button onclick="copyRefLink()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; border-radius:12px; padding:0 18px; cursor:pointer; transition: 0.2s;"><i class="fa-regular fa-copy"></i></button>
-          </div>
-          <button onclick="shareApp()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:16px; border-radius:var(--radius-lg); font-weight:800; font-size:14px; margin-top:16px; display:flex; justify-content:center; align-items:center; gap:8px; cursor:pointer;"><i class="fa-brands fa-telegram"></i> Share via Telegram</button>
-        </div>
-      </div>
-
-      <!-- PROFILE VIEW -->
-      <div id="profile-view" class="view">
-        <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 16px 0;">Profile</h2>
-        
-        <div id="admin-profile-item" class="clickable" style="display: none;" onclick="enterAsAdmin()">
-          <div class="glass-card task-row" style="background: rgba(94, 179, 255, 0.15); border-color: rgba(94, 179, 255, 0.4);">
-            <div class="task-icon" style="background: transparent;"><i class="fa-solid fa-shield-halved" style="color:var(--accent-main); font-size: 24px;"></i></div>
-            <div class="task-text">
-              <h4 style="color:var(--accent-main);">Admin Control Panel</h4>
-              <p style="color: rgba(255,255,255,0.7);">Manage user bans & security</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color:var(--accent-main)"></i>
-          </div>
-        </div>
-
-        <div class="clickable" onclick="openLeaderboard('profile-view')">
-          <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-trophy" style="color: #eab308;"></i></div>
-            <div class="task-text">
-              <h4>Leaderboard</h4>
-              <p>Top earners & community rankings</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-
-        <div class="clickable" onclick="showView('history-view')">
-          <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-arrow-right-arrow-left" style="color:#a855f7;"></i></div>
-            <div class="task-text">
-              <h4>Transaction History</h4>
-              <p>Earnings, withdrawals & expenses</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-
-        <div class="clickable" onclick="document.getElementById('tosModal').classList.add('active'); triggerHaptic('light');">
-          <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-shield-halved" style="color:var(--accent-orange)"></i></div>
-            <div class="task-text">
-              <h4>Platform Rules</h4>
-              <p>Anti-fraud & compliance</p>
-            </div>
-            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- HISTORY SUB-VIEW -->
-      <div id="history-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-          <button onclick="showView('profile-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
-          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Transaction Ledger</h2>
-        </div>
-        <div id="history-list"></div>
-      </div>
-
-      <!-- LEADERBOARD SUB-VIEW -->
-      <div id="leaderboard-view" class="view">
-        <div style="display:flex; align-items:center; gap:16px; margin-bottom:24px;">
-          <button onclick="goBackFromLeaderboard()" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
-          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Top Earners</h2>
-        </div>
-        <div id="leaderboard-list"></div>
-      </div>
-
-      <!-- ADMIN CONTROL PANEL VIEW -->
-      <div id="admin-view" class="view">
-        <div style="display:flex; align-items:center; justify-content: space-between; margin-bottom:24px;">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <div style="width: 42px; height: 42px; border-radius: 14px; background: var(--accent-dim); color: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 20px; border: 1px solid rgba(94, 179, 255, 0.3);">
-              <i class="fa-solid fa-shield-halved"></i>
-            </div>
-            <div>
-              <h2 style="font-size: 18px; font-weight: 800; margin:0;">Admin Panel</h2>
-              <p style="font-size: 11px; color: var(--text-muted); margin:2px 0 0 0;">User Moderation & Security</p>
-            </div>
-          </div>
-          <button onclick="enterAsUser()" style="background: rgba(255,255,255,0.08); border: 1px solid var(--border-soft); color: #fff; padding: 10px 16px; border-radius: 50px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: 0.2s;">
-            <i class="fa-solid fa-arrow-right-from-bracket"></i> Exit Mode
-          </button>
-        </div>
-
-        <div class="glass-card">
-          <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
-            Lookup User by Telegram ID
-          </label>
-          <div style="display: flex; gap: 8px;">
-            <input type="text" id="admin-user-input" placeholder="e.g. 6563880391" style="flex: 1; background: rgba(0,0,0,0.3); border: 1px solid var(--border-soft); border-radius: 12px; padding: 14px; color: #fff; font-size: 14px; outline: none;">
-            <button id="admin-search-btn" onclick="adminLookupUser()" style="background: var(--accent-main); border: none; color: #000; padding: 0 20px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; display: flex; align-items: center; gap: 8px;">
-              <i class="fa-solid fa-magnifying-glass"></i> Search
-            </button>
-          </div>
-          <div id="admin-lookup-loader" style="display: none; text-align: center; padding: 20px 0;">
-            <div class="loader-spinner" style="margin: 0 auto;"></div>
-          </div>
-        </div>
-
-        <div id="admin-user-result" style="display: none; margin-top: 16px;"></div>
-      </div>
-
-    </main>
-
-    <!-- Bottom Navigation -->
-    <nav class="bottom-nav" id="bottom-nav">
-      <button class="nav-item active" onclick="showView('home-view')">
-        <i class="fa-solid fa-house"></i> Home
-      </button>
-      <button class="nav-item" onclick="showView('tasks-view')">
-        <i class="fa-solid fa-bolt"></i> Earn
-      </button>
-      
-      <button class="nav-item center-btn" onclick="showView('home-view');">
-        <div class="center-icon-wrap">
-           <div class="center-inner" id="nav-wolf-lottie" style="padding: 12px;"></div>
-        </div>
-        <span style="margin-top: 24px;">Play</span>
-      </button>
-      
-      <button class="nav-item" onclick="showView('team-view')">
-        <i class="fa-solid fa-share-nodes"></i> Friends
-      </button>
-      <button class="nav-item" onclick="showView('profile-view')">
-        <i class="fa-regular fa-user"></i> Me
-      </button>
-    </nav>
-  </div>
-
-<script>
-    let tgUser = null;
-    let currentUserId = 'guest_user';
-    let currentHowlBalance = 0;
-    
-    // Monetag variables
-    let monetagInFlight = false;
-    let monetagLastRun = 0;
-    let monetagAdsWatched = 0;
-    let monetagNextReward = 100;
-    
-    let gateCheckInterval = null;
-    let isAdminUser = false;
-    let midnightTimerInterval = null;
-
-    const howlAudio = new Audio('assets/howl.mp3');
-    howlAudio.volume = 1.0;
-
-    function playHowlAudio() {
-        howlAudio.play().then(() => {
-            const btn = document.getElementById('audio-trigger-btn');
-            if (btn) btn.style.display = 'none';
-        }).catch(e => console.log("Audio play error", e));
-    }
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const webhookUrl = urlParams.get('webhook');
-    const BOT_USERNAME = "howl_paybot"; 
-
-    // Escapes text before it is placed into innerHTML (names, ids, ledger text are user-controlled)
-    function escHtml(s) {
-        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    }
-
-    function triggerHaptic(style = 'light') {
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.impactOccurred(style);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        initApp();
-        
-        howlAudio.play().then(() => {
-            const btn = document.getElementById('audio-trigger-btn');
-            if (btn) btn.style.display = 'none';
-        }).catch(err => {});
-
-        if (typeof lottie !== 'undefined') {
-            lottie.loadAnimation({ container: document.getElementById('splash-wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
-            lottie.loadAnimation({ container: document.getElementById('wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
-            lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
-            lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
-        }
-
-        setInterval(updateCooldownTimers, 1000);
-        setTimeout(() => { 
-            const splash = document.getElementById('splash-screen');
-            splash.style.opacity = '0';
-            setTimeout(() => splash.style.display = 'none', 500);
-        }, 7000);
+async function editAdminMessage(messageId, newText) {
+    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/editMessageText', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: '8026237972', message_id: messageId, text: newText, parse_mode: 'Markdown', disable_web_page_preview: true })
     });
-
-    // Device identity now comes from /device-vault.js (window.HowlDevice)
-
-    function checkAdminStatus(data) {
-        if (!data) return;
-        if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) {
-            isAdminUser = true;
-            const adminItem = document.getElementById('admin-profile-item');
-            if (adminItem) adminItem.style.display = 'block';
-
-            if (!sessionStorage.getItem('howl_admin_mode_chosen')) {
-                const modal = document.getElementById('admin-entry-modal');
-                if (modal) modal.style.display = 'flex';
-            }
-        }
-    }
-
-    function enterAsUser() {
-        triggerHaptic('light');
-        sessionStorage.setItem('howl_admin_mode_chosen', 'user');
-        const modal = document.getElementById('admin-entry-modal');
-        if (modal) modal.style.display = 'none';
-
-        const main = document.getElementById('main-content');
-        if (main) main.style.display = 'block';
-        const nav = document.getElementById('bottom-nav');
-        if (nav) nav.style.display = 'flex';
-
-        showView('home-view');
-    }
-
-    function enterAsAdmin() {
-        triggerHaptic('medium');
-        sessionStorage.setItem('howl_admin_mode_chosen', 'admin');
-        const modal = document.getElementById('admin-entry-modal');
-        if (modal) modal.style.display = 'none';
-
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.style.display = 'none';
-        const gate = document.getElementById('channel-gate');
-        if (gate) gate.style.display = 'none';
-        if (gateCheckInterval) { clearInterval(gateCheckInterval); gateCheckInterval = null; }
-
-        const main = document.getElementById('main-content');
-        if (main) main.style.display = 'block';
-        const nav = document.getElementById('bottom-nav');
-        if (nav) nav.style.display = 'none';
-
-        showView('admin-view');
-    }
-
-    const BAN_VIEWS = {
-        manual: {
-            badge: 'Account Suspended',
-            reason: 'Your account has been suspended by an administrator.',
-            help: 'If you believe this is a mistake, please contact the HOWL team through our official channels.'
-        },
-        device: {
-            badge: 'Multi-Account Prohibited',
-            reason: 'Multiple accounts have been detected on this physical device. Only one account per device is permitted.',
-            help: 'Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.'
-        }
-    };
-    let banAnimLoaded = false;
-
-    // Plays assets/ban.json (Lottie) inside the ban screen; falls back to an emoji if it can't load
-    function showBanAnimation() {
-        const box = document.getElementById('ban-anim');
-        if (!box || banAnimLoaded) return;
-        banAnimLoaded = true;
-        const fallback = () => { box.textContent = '🚫'; box.style.fontSize = '90px'; box.style.lineHeight = '140px'; };
-        try {
-            if (typeof lottie === 'undefined') return fallback();
-            const anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: true, path: '/assets/ban.json' });
-            anim.addEventListener('data_failed', fallback);
-        } catch (e) { fallback(); }
-    }
-
-    function triggerBanScreen(reason) {
-        if (isAdminUser || (tgUser && String(tgUser.id) === '8026237972')) return;
-
-        if (gateCheckInterval) { clearInterval(gateCheckInterval); gateCheckInterval = null; }
-        try { howlAudio.pause(); } catch(e) {}
-
-        const view = /administrator/i.test(reason || '') ? BAN_VIEWS.manual : BAN_VIEWS.device;
-
-        const splash = document.getElementById('splash-screen');
-        if (splash) splash.style.display = 'none';
-        const gate = document.getElementById('channel-gate');
-        if (gate) gate.style.display = 'none';
-        const main = document.getElementById('main-content');
-        if (main) main.style.display = 'none';
-        const nav = document.getElementById('bottom-nav');
-        if (nav) nav.style.display = 'none';
-
-        const banScreen = document.getElementById('ban-screen');
-        if (banScreen) {
-            banScreen.style.display = 'flex';
-            const badge = document.getElementById('ban-badge');
-            if (badge) badge.textContent = view.badge;
-            const reasonEl = document.getElementById('ban-reason-text');
-            if (reasonEl) reasonEl.textContent = reason || view.reason;
-            const helpEl = document.getElementById('ban-help-text');
-            if (helpEl) helpEl.textContent = view.help;
-            showBanAnimation();
-        }
-    }
-
-    // Used when the server says the account is fine again (e.g. admin unbanned it)
-    function hideBanScreen() {
-        const banScreen = document.getElementById('ban-screen');
-        if (!banScreen || banScreen.style.display !== 'flex') return;
-        banScreen.style.display = 'none';
-        const main = document.getElementById('main-content');
-        if (main) main.style.display = 'block';
-        const nav = document.getElementById('bottom-nav');
-        if (nav) nav.style.display = 'flex';
-        if (!gateCheckInterval) gateCheckInterval = setInterval(verifyChannelMembership, 2000);
-    }
-
-    // If this device already remembers a ban for this account, show it immediately (before any network call)
-    async function applyLocalBan() {
-        try {
-            if (!window.HowlDevice || !tgUser) return;
-            const ban = await window.HowlDevice.getBan(tgUser.id);
-            if (ban) triggerBanScreen(ban.r);
-        } catch (e) {}
-    }
-
-    let syncInFlight = false;
-
-    // Hidden diagnostics: tap your avatar 7 times (top-left) to see what this device remembers
-    (function () {
-        let taps = 0, timer = null;
-        document.addEventListener('click', function (e) {
-            if (!e.target.closest || !e.target.closest('#profile-pic')) return;
-            taps++; clearTimeout(timer); timer = setTimeout(() => { taps = 0; }, 3000);
-            if (taps >= 7) { taps = 0; showDeviceDebug(); }
-        });
-    })();
-
-    async function showDeviceDebug() {
-        const short = (v) => v ? String(v).slice(0, 12) : '-';
-        try {
-            if (!window.HowlDevice) return alert('device-vault.js NOT loaded');
-            const id = tgUser ? tgUser.id : 0;
-            const d = await window.HowlDevice.debug(id);
-            const c = await window.HowlDevice.collect(id);
-            const row = (o) => ['secure','device','local','idb','cookie'].map(k => k + '=' + short(o[k])).join(' ');
-            const lv = window.__lastVerify || {};
-            alert(
-                'Account: ' + d.tg + '\n' +
-                'Telegram ' + d.tgVersion + ' / ' + d.platform + '\n' +
-                'DeviceStorage: ' + d.deviceStorage + ' | SecureStorage: ' + d.secureStorage + '\n' +
-                'FingerprintJS: ' + d.fingerprintJS + ' | hw: ' + short(c.hw) + '\n\n' +
-                'Device ID: ' + short(c.deviceId) + '\n' + row(d.did) + '\n\n' +
-                'Owner (first account): ' + c.ownerId + '\n' + row(d.owner) + '\n\n' +
-                'Other account on device: ' + c.isLocalMulti + '\n' +
-                'Last verify: ' + (lv.banned ? 'BANNED' : lv.success ? 'OK' : (lv.error || 'no response'))
-            );
-        } catch (e) { alert('debug failed: ' + e.message); }
-    }
-
-    async function syncUserProfile() {
-        if (syncInFlight) return;
-        if (!window.Telegram || !Telegram.WebApp || !Telegram.WebApp.initData) return;
-        const u = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
-        if (!u) return;
-
-        syncInFlight = true;
-        try {
-            const startParam = (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || urlParams.get('startapp') || '';
-
-            // Reads every store (Secure/Device/local/IndexedDB/cookie), heals the ones that were cleared,
-            // and returns { fingerprint, hw, ownerId, isLocalMulti }
-            let device = null;
-            try { device = window.HowlDevice ? await window.HowlDevice.collect(u.id, { ignoreOwners: ['8026237972'] }) : null; } catch (e) {}
-
-            await executeSyncRequest({
-                initData: Telegram.WebApp.initData,
-                startParam: startParam,
-                fingerprint: device ? device.fingerprint : null,
-                hwFingerprint: device ? device.hw : null,
-                ownerId: device ? device.ownerId : null,
-                isLocalMulti: device ? device.isLocalMulti : false
-            }, u.id);
-        } finally {
-            syncInFlight = false;
-        }
-    }
-
-    function executeSyncRequest(payload, tgId) {
-        return fetch('/api/verify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        })
-        .then(async r => {
-            const data = await r.json().catch(() => null);
-            if (!data) return;
-            window.__lastVerify = { banned: !!data.banned, success: !!data.success, error: data.error || data.message || null };
-
-            if (data.banned) {
-                const reason = data.message || data.ban_reason;
-                if (window.HowlDevice) window.HowlDevice.setBan(tgId, reason);   // remember the ban on this device
-                triggerBanScreen(reason);
-                return;
-            }
-            if (data.success) {
-                if (window.HowlDevice) window.HowlDevice.clearBan(tgId);          // admin unbanned / no longer flagged
-                hideBanScreen();
-            }
-
-            if (data.user_balance) updateBalanceUI(data.user_balance);
-            if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
-            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus(data);
-        }).catch(e => {});
-    }
-
-    function updateReferralStatsUI(stats) {
-        if (!stats) return;
-        const countEl = document.getElementById('ref-friends-count');
-        if (countEl) countEl.textContent = (stats.friends_count || 0).toLocaleString();
-        const howlEl = document.getElementById('ref-howl-earned');
-        const howlAmt = parseFloat(stats.total_howl || 0);
-        if (howlEl) howlEl.textContent = `${howlAmt.toLocaleString()} HOWL`;
-        const usdtEl = document.getElementById('ref-usdt-earned');
-        if (usdtEl) {
-            const usdtVal = (stats.total_usdt !== undefined && parseFloat(stats.total_usdt) > 0)
-                ? parseFloat(stats.total_usdt)
-                : (howlAmt * 0.00002);
-            usdtEl.textContent = `$${usdtVal.toFixed(4)}`;
-        }
-    }
-
-    let currentUsdBalance = 0;
-
-    // Fallback only. balance-client.js replaces this with the live, animated,
-    // stale-proof renderer as soon as the page loads.
-    function updateBalanceUI(b) {
-        if (!b) return;
-        currentHowlBalance = Math.round(b.total_howl || 0);
-        currentUsdBalance = parseFloat(b.total_usd || 0);
-        const howlVal = document.getElementById('user-howl-val');
-        if (howlVal) howlVal.textContent = currentHowlBalance.toLocaleString();
-        const usdVal = document.getElementById('user-usd-val');
-        if (usdVal) usdVal.textContent = currentUsdBalance.toFixed(4);
-    }
-
-    function initApp() {
-        try {
-            if (window.Telegram && Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                Telegram.WebApp.setHeaderColor('#02040f');
-                if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
-                    tgUser = Telegram.WebApp.initDataUnsafe.user;
-                    if (String(tgUser.id) === '8026237972') checkAdminStatus({ is_admin: true });
-                }
-                applyLocalBan();
-                syncUserProfile();
-            }
-        } catch (e) {}
-
-        currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
-        generateRefLink();
-        loadTelegramUser();
-        verifyChannelMembership();
-        gateCheckInterval = setInterval(verifyChannelMembership, 2000); 
-    }
-
-    async function verifyChannelMembership() {
-        if (currentUserId === 'guest_user') return; 
-        try {
-            const response = await fetch(`/api/check-channels?userId=${currentUserId}`);
-            const data = await response.json();
-            
-            if (data.results) {
-                data.results.forEach(channel => {
-                    const statusBadge = document.getElementById(`status-${channel.key}`);
-                    if (statusBadge) {
-                        if (channel.joined) {
-                            statusBadge.style.color = "var(--accent-main)";
-                            statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> Joined';
-                        } else {
-                            statusBadge.style.color = "var(--text-muted)";
-                            statusBadge.innerHTML = 'Join <i class="fa-solid fa-arrow-right"></i>';
-                        }
-                    }
-                });
-            }
-
-            if (data.allJoined) {
-                clearInterval(gateCheckInterval);
-                const gate = document.getElementById('channel-gate');
-                gate.style.opacity = '0';
-                setTimeout(() => { gate.style.display = 'none'; }, 400);
-                setupOfferwallIframes();
-                generateRefLink();
-                syncAdStatusFromServer();
-            }
-        } catch (error) {}
-    }
-
-    async function syncAdStatusFromServer() {
-        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
-        if (!initDataPayload) return;
-
-        try {
-            const response = await fetch('/api/claim-bonus', {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
-                body: JSON.stringify({ check_status: true, initData: initDataPayload })
-            });
-            const data = await response.json();
-            if (data.success) {
-                if (data.user_balance) updateBalanceUI(data.user_balance);
-                monetagAdsWatched = data.ads_watched || 0;
-                updateMonetagUI();
-            }
-        } catch (e) {
-            console.log("Status sync failed", e);
-        }
-    }
-
-    function setupOfferwallIframes() {
-        const timewallIframe = document.getElementById('timewall-iframe');
-        if (timewallIframe) timewallIframe.src = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${currentUserId}`;
-    }
-
-    function generateRefLink() {
-        const refInput = document.getElementById('ref-link-input');
-        if (refInput && currentUserId && currentUserId !== 'guest_user') {
-            refInput.value = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
-        }
-    }
-
-    function copyRefLink() {
-        triggerHaptic('light');
-        const refInput = document.getElementById('ref-link-input');
-        const link = refInput ? refInput.value : `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(link).then(() => alert("Copied!")).catch(() => { refInput.select(); document.execCommand("copy"); alert("Copied!"); });
-        else { refInput.select(); document.execCommand("copy"); alert("Copied!"); }
-    }
-
-    function shareApp() {
-        triggerHaptic('medium');
-        const referralLink = `https://t.me/${BOT_USERNAME}/app?startapp=ref_${currentUserId}`;
-        const text = `Join HOWL, complete simple tasks & earn USDT directly to your bot!`;
-        const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent(text)}`;
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(shareUrl);
-        else window.open(shareUrl, '_blank');
-    }
-
-    let lastViewBeforeLeaderboard = 'home-view';
-    function openLeaderboard(sourceView) {
-        lastViewBeforeLeaderboard = sourceView || 'home-view';
-        showView('leaderboard-view');
-    }
-    function goBackFromLeaderboard() {
-        showView(lastViewBeforeLeaderboard || 'home-view');
-    }
-
-    function showView(viewId) {
-        triggerHaptic('light');
-        document.querySelectorAll('.view').forEach(view => view.classList.remove('active'));
-        const targetView = document.getElementById(viewId);
-        if (targetView) targetView.classList.add('active');
-        
-        document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
-        const nav = document.getElementById('bottom-nav');
-        if (viewId === 'admin-view') { if (nav) nav.style.display = 'none'; } else { if (nav) nav.style.display = 'flex'; }
-
-        if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); }
-        if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
-        if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); }
-        if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
-        if(viewId === 'leaderboard-view') {
-            if (lastViewBeforeLeaderboard === 'profile-view') {
-                document.querySelectorAll('.nav-item')[4].classList.add('active');
-            } else {
-                document.querySelectorAll('.nav-item')[0].classList.add('active');
-            }
-        }
-        
-        if (viewId === 'history-view') renderHistory();
-        if (viewId === 'leaderboard-view') fetchLeaderboard();
-        document.getElementById('main-content').scrollTop = 0;
-    }
-
-    function updateMidnightTimer() {
-        if (monetagAdsWatched < 10) return;
-        const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setUTCHours(24, 0, 0, 0); 
-        
-        const diff = tomorrow - now;
-        
-        if (diff <= 0) {
-            monetagAdsWatched = 0;
-            updateMonetagUI();
-            return;
-        }
-
-        const h = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
-        const m = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
-        const s = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
-        
-        const timerEl = document.getElementById('monetagNextDayTimer');
-        if (timerEl) {
-            timerEl.textContent = `Ads Reset In: ${h}:${m}:${s}`;
-        }
-    }
-
-    function updateMonetagUI() {
-        const limitEl = document.getElementById('monetagLimit');
-        const rewardEl = document.getElementById('monetagRewardVal');
-        const progressEl = document.getElementById('monetagProgressBar');
-        const btnEl = document.getElementById('monetagArrow');
-        const timerEl = document.getElementById('monetagNextDayTimer');
-
-        let watched = parseInt(monetagAdsWatched) || 0;
-        if (watched < 0) watched = 0;
-
-        if (limitEl) limitEl.textContent = `${watched}/10`;
-        
-        if (watched >= 10) {
-            if (rewardEl) rewardEl.textContent = "0";
-            if (progressEl) progressEl.style.width = "100%";
-            if (btnEl) {
-                btnEl.style.display = "none";
-            }
-            if (timerEl) {
-                timerEl.style.display = "block";
-                if (!midnightTimerInterval) midnightTimerInterval = setInterval(updateMidnightTimer, 1000);
-                updateMidnightTimer();
-            }
-        } else {
-            let currentReward = 100 - (watched * 10);
-            if (currentReward < 10) currentReward = 10; 
-            
-            if (rewardEl) rewardEl.textContent = currentReward;
-            if (progressEl) progressEl.style.width = `${(watched / 10) * 100}%`;
-            
-            if (timerEl) timerEl.style.display = "none";
-            if (btnEl) {
-                btnEl.style.display = "block";
-                btnEl.textContent = "WATCH";
-                btnEl.style.opacity = "1";
-                btnEl.disabled = false;
-            }
-            if (midnightTimerInterval) { clearInterval(midnightTimerInterval); midnightTimerInterval = null; }
-        }
-    }
-
-    function updateCooldownTimers() {
-        const now = Date.now();
-        const monetagDiff = Math.floor((now - monetagLastRun) / 1000);
-        const monetagCard = document.getElementById('monetagCard');
-        const monetagCD = document.getElementById('monetagCD');
-        const monetagArrow = document.getElementById('monetagArrow');
-
-        if (monetagCard && monetagCD && monetagArrow && monetagAdsWatched < 10) {
-            if (monetagInFlight || monetagDiff < 5) {
-                const left = Math.max(0, 5 - monetagDiff);
-                monetagCard.style.opacity = '0.7';
-                monetagCD.style.display = 'block';
-                monetagCD.textContent = monetagInFlight ? 'WAITING FOR AD...' : `COOLDOWN: ${left}s`;
-                monetagArrow.style.display = 'none';
-            } else {
-                monetagCard.style.opacity = '1';
-                monetagCD.style.display = 'none';
-                monetagArrow.style.display = 'block';
-            }
-        }
-    }
-
-    function loadTelegramUser() {
-        if (tgUser) {
-            const fullName = tgUser.first_name + (tgUser.last_name ? ' ' + tgUser.last_name : '');
-            document.getElementById('username').textContent = fullName;
-            if (tgUser.photo_url) {
-                document.getElementById('profile-pic').innerHTML = `<img src="${tgUser.photo_url}" alt="Avatar">`;
-            } else {
-                document.getElementById('profile-pic').textContent = fullName.charAt(0);
-            }
-        }
-    }
-
-    function calcWithdrawal() {
-        const amt = parseInt(document.getElementById('wd-amount').value) || 0;
-        const usd = amt * 0.00002;
-        document.getElementById('wd-usd-val').innerText = '$' + usd.toFixed(4);
-        const receive = usd - 0.01;
-        document.getElementById('wd-receive-val').innerText = '$' + (receive > 0 ? receive.toFixed(4) : '0.0000');
-    }
-
-    async function requestWithdrawal() {
-        triggerHaptic('medium');
-        const address = document.getElementById('wd-address').value.trim();
-        const amount = parseInt(document.getElementById('wd-amount').value);
-
-        const btn = document.getElementById('wd-btn');
-        btn.disabled = true;
-        btn.innerText = "Processing Request...";
-
-        try {
-            const initData = window.Telegram?.WebApp?.initData || "";
-            const res = await fetch('/api/withdraw', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ initData, address, amount })
-            });
-            const data = await res.json();
-            // Server always returns the authoritative balance after a debit / refund
-            if (data.user_balance) updateBalanceUI(data.user_balance);
-            if (data.success) {
-                alert("✅ Request sent for Admin approval!");
-                document.getElementById('wd-amount').value = '';
-                document.getElementById('wd-address').value = '';
-                calcWithdrawal();
-            } else {
-                alert("❌ " + data.message);
-            }
-        } catch(e) {
-            alert("Network error.");
-        }
-        btn.disabled = false;
-        btn.innerText = "Submit Withdrawal Request";
-    }
-
-    async function renderHistory() {
-        const historyList = document.getElementById('history-list');
-        if (!historyList) return;
-        historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
-        try {
-            const response = await fetch(`/api/history?userId=${currentUserId}`);
-            const data = await response.json();
-            if (!data || data.length === 0) {
-                historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">No transactions found.</div>`;
-                return;
-            }
-            historyList.innerHTML = data.map(item => {
-                const isDeduction = item.reward_amount < 0 || (item.task_type && item.task_type.includes('BEP20'));
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${escHtml(item.task_type || 'Reward')}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (String(item.task_type || '').startsWith('TimeWall') ? (item.reward_amount < 0 ? '-' : '+') + Math.round(Math.abs(item.reward_amount) / 0.00002).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4))}</div></div>`;
-            }).join('');
-        } catch (err) { historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load ledger.</div>`; }
-    }
-
-    async function fetchLeaderboard() {
-        const leaderboardList = document.getElementById('leaderboard-list');
-        if (!leaderboardList) return;
-        leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
-        try {
-            const response = await fetch('/api/leaderboard');
-            const sortedEarners = await response.json();
-            if (!sortedEarners || sortedEarners.length === 0) {
-                leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">No top earners found.</div>`;
-                return;
-            }
-            leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
-                let avatarHtml = earner.photo_url ? `<img src="${escHtml(earner.photo_url)}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#000; font-weight:bold;">${(earner.name || 'U').charAt(0)}</span>`;
-                let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
-                
-                let rankBadge = `#${index + 1}`;
-                let rankColor = 'var(--text-muted)';
-                if (index === 0) { rankBadge = '<i class="fa-solid fa-crown" style="color:#eab308; font-size:16px;"></i>'; rankColor = '#eab308'; }
-                else if (index === 1) { rankBadge = '<i class="fa-solid fa-medal" style="color:#94a3b8; font-size:15px;"></i>'; rankColor = '#94a3b8'; }
-                else if (index === 2) { rankBadge = '<i class="fa-solid fa-medal" style="color:#d97706; font-size:15px;"></i>'; rankColor = '#d97706'; }
-
-                const totalUsd = (typeof earner.total === 'number') ? earner.total : parseFloat(earner.total || 0);
-
-                return `
-                <div class="data-item" style="border: 1px solid ${index === 0 ? 'rgba(234,179,8,0.3)' : 'var(--border-soft)'};">
-                    <div style="display:flex; align-items:center; gap:12px;">
-                        <div class="data-icon" style="background:transparent; width:28px; height:28px; margin-right:0; color:${rankColor}; font-weight:800; font-size:14px;">${rankBadge}</div>
-                        <div style="width:40px; height:40px; border-radius:12px; background:var(--accent-main); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div>
-                        <div>
-                            <h4 style="margin:0; font-size:14px; font-weight:700;">${escHtml(earner.name)}</h4>
-                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">ID: ${escHtml(maskedId)}</p>
-                        </div>
-                    </div>
-                    <div style="text-align:right;">
-                        <div class="data-val" style="font-size:14px;">+$${totalUsd.toFixed(4)}</div>
-                        ${earner.total_howl ? `<div style="font-size:10px; color:var(--accent-orange); font-weight:700;">${Number(earner.total_howl).toLocaleString()} HOWL</div>` : ''}
-                    </div>
-                </div>`;
-            }).join('');
-        } catch (err) { leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load leaderboard.</div>`; }
-    }
-
-    function startMonetagTask() {
-        if (monetagAdsWatched >= 10) {
-            return alert('✅ Daily limit of 10 ads reached! Come back tomorrow.');
-        }
-
-        if (monetagInFlight) return;
-        const now = Date.now();
-        if (now - monetagLastRun < 5000) {
-            const left = Math.ceil((5000 - (now - monetagLastRun)) / 1000);
-            return alert(`⏳ Cooldown active! Wait ${left}s.`);
-        }
-        
-        if (typeof show_11935325 === 'function') {
-            monetagInFlight = true;
-            updateCooldownTimers();
-            show_11935325().then(() => {
-                monetagLastRun = Date.now();
-                monetagInFlight = false;
-                
-                sendRewardWebhook();
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.impactOccurred('medium');
-            }).catch(e => {
-                monetagLastRun = Date.now();
-                monetagInFlight = false;
-                alert('No ads available right now. Please try again later.');
-            });
-        } else {
-            alert('Ad network is still loading or blocked by your browser. Please try again in a few seconds.');
-        }
-    }
-
-    async function sendRewardWebhook() {
-        const bonusEndpoint = webhookUrl || '/api/claim-bonus';
-        const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
-
-        try {
-            const response = await fetch(bonusEndpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
-                body: JSON.stringify({ completed: true, initData: initDataPayload })
-            });
-            
-            const data = await response.json();
-
-            if (response.ok && data.success) {
-                if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
-                // Balance comes straight from the DB in the claim response; fall back to a fresh fetch.
-                if (data.user_balance) updateBalanceUI(data.user_balance); else refreshBalance();
-                alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
-                
-                monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1);
-                updateMonetagUI();
-            } else {
-                alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
-                if (data.error && data.error.includes("Daily limit reached")) {
-                    monetagAdsWatched = 10;
-                    updateMonetagUI();
-                }
-            }
-        } catch (err) { alert(`❌ Network Error. Claim failed.`); }
-    }
-
-    async function adminLookupUser() {
-        const input = document.getElementById('admin-user-input');
-        const targetId = input ? input.value.trim() : '';
-        if (!targetId) return alert('Please enter a Telegram User ID');
-
-        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        const num = (n) => Math.round(parseFloat(n) || 0).toLocaleString();
-        const usd = (n) => '$' + (parseFloat(n) || 0).toFixed(4);
-        const date = (d) => d ? new Date(d).toLocaleDateString() : 'N/A';
-        const dateTime = (d) => d ? new Date(d).toLocaleString() : 'N/A';
-        const stat = (label, value, color) => `<div style="background: rgba(0,0,0,0.3); border-radius: 10px; padding: 10px;"><div style="color: var(--text-muted); margin-bottom: 2px;">${label}</div><div style="font-weight: 800; font-size: 14px; color: ${color || '#fff'}; word-break: break-word;">${value}</div></div>`;
-        const grid = (items) => `<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">${items.join('')}</div>`;
-        const section = (title, icon) => `<div style="font-size: 11px; font-weight: 800; letter-spacing: 1px; color: var(--text-muted); text-transform: uppercase; margin: 18px 0 8px;"><i class="fa-solid ${icon}" style="color: var(--accent-main); margin-right: 6px;"></i>${title}</div>`;
-
-        triggerHaptic('light');
-        const loader = document.getElementById('admin-lookup-loader');
-        const resultCard = document.getElementById('admin-user-result');
-        if (loader) loader.style.display = 'block';
-        if (resultCard) resultCard.style.display = 'none';
-
-        try {
-            const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ initData: initData, action: 'lookup', targetUserId: targetId })
-            });
-
-            const data = await res.json();
-            if (loader) loader.style.display = 'none';
-
-            if (!data.success) { alert(`Error: ${data.error || 'Failed to lookup user'}`); return; }
-
-            if (!data.found) {
-                if (resultCard) {
-                    resultCard.style.display = 'block';
-                    resultCard.innerHTML = `
-                    <div class="glass-card" style="text-align: center;">
-                        <i class="fa-solid fa-user-xmark" style="font-size: 32px; color: var(--text-muted); margin-bottom: 10px; opacity: 0.5;"></i>
-                        <h4 style="margin: 0 0 6px 0;">User Not Found</h4>
-                        <p style="font-size: 13px; color: var(--text-muted); margin: 0;">No account registered with ID <code>${esc(targetId)}</code></p>
-                    </div>`;
-                }
-                return;
-            }
-
-            const u = data.user;
-            const r = data.referrals || {};
-            const a = data.activity || {};
-            const w = data.withdrawals || {};
-            const badge = (bg, color, border, text) => `<span style="background: ${bg}; color: ${color}; border: 1px solid ${border}; padding: 3px 10px; border-radius: 50px; font-size: 11px; font-weight: 800;">${text}</span>`;
-            let statusBadge = badge('rgba(94,179,255,0.15)', 'var(--accent-main)', 'rgba(94,179,255,0.3)', 'ACTIVE');
-            if (data.status === 'banned_manual' || data.is_manually_banned) statusBadge = badge('rgba(239,68,68,0.15)', 'var(--accent-red)', 'rgba(239,68,68,0.3)', 'BANNED (MANUAL)');
-            else if (data.status === 'banned_multiaccount') statusBadge = badge('rgba(245,158,11,0.15)', 'var(--accent-orange)', 'rgba(245,158,11,0.3)', 'DEVICE COLLISION');
-            else if (data.status === 'unbanned_override') statusBadge = badge('rgba(94,179,255,0.15)', 'var(--accent-main)', 'rgba(94,179,255,0.3)', 'UNBANNED OVERRIDE');
-            else if (data.status === 'admin_protected') statusBadge = badge('rgba(168,85,247,0.15)', '#a855f7', 'rgba(168,85,247,0.3)', 'ADMIN');
-
-            let collisionHtml = '';
-            if (data.device_collisions && data.device_collisions.length > 0) {
-                collisionHtml = `
-                <div style="background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; padding: 10px; margin-top: 14px; font-size: 12px;">
-                    <div style="font-weight: 700; color: var(--accent-orange); margin-bottom: 4px;">Colliding Accounts (Same Device):</div>
-                    ${data.device_collisions.map(c => `<div>• ID: <code>${esc(c.user_id)}</code> (${esc(c.name || 'No name')})</div>`).join('')}
-                </div>`;
-            }
-
-            const referrerText = r.referrer ? `${esc(r.referrer.name || 'User')} (<code>${esc(r.referrer.user_id)}</code>)` : (u.referred_by ? `<code>${esc(u.referred_by)}</code>` : 'None');
-            const activeLabel = (r.total > (r.active_sample_size || 0)) ? `${num(r.active)} <span style="font-size:10px;color:var(--text-muted);font-weight:600;">of latest ${num(r.active_sample_size)}</span>` : num(r.active);
-
-            const recentRefs = (r.recent && r.recent.length)
-                ? r.recent.map(x => `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;"><span>${esc(x.name || 'User')} <code style="color:var(--text-muted)">${esc(x.user_id)}</code></span><span style="color:var(--text-muted)">${date(x.created_at)}</span></div>`).join('')
-                : '<div style="font-size:12px;color:var(--text-muted);">No referrals yet.</div>';
-
-            const recentTx = (data.recent_transactions && data.recent_transactions.length)
-                ? data.recent_transactions.map(t => {
-                    const isHowl = String(t.task_type || '').includes('HOWL');
-                    const amt = parseFloat(t.reward_amount) || 0;
-                    const val = isHowl ? `${amt >= 0 ? '+' : ''}${num(amt)} HOWL` : `${amt >= 0 ? '+' : '-'}$${Math.abs(amt).toFixed(4)}`;
-                    const color = amt < 0 ? 'var(--accent-orange)' : 'var(--accent-main)';
-                    return `<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;"><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(String(t.task_type || '').slice(0, 34))}<br><span style="color:var(--text-muted);font-size:10px;">${dateTime(t.created_at)}${t.status && t.status !== '1' ? ' • ' + esc(t.status) : ''}</span></span><span style="font-weight:800;color:${color};white-space:nowrap;">${val}</span></div>`;
-                }).join('')
-                : '<div style="font-size:12px;color:var(--text-muted);">No transactions.</div>';
-
-            resultCard.style.display = 'block';
-            resultCard.innerHTML = `
-            <div class="glass-card">
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px;">
-                    <div style="display: flex; align-items: center; gap: 12px; min-width: 0;">
-                        <div style="width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--accent-main); display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; overflow: hidden; color: #000;">
-                            ${u.photo_url ? `<img src="${esc(u.photo_url)}" style="width:100%;height:100%;object-fit:cover;">` : esc(u.name ? u.name.charAt(0) : '?')}
-                        </div>
-                        <div style="min-width: 0;">
-                            <h3 style="font-size: 16px; font-weight: 800; margin: 0; overflow: hidden; text-overflow: ellipsis;">${esc(u.name || 'Telegram User')}</h3>
-                            <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0 0;">ID: <code>${esc(u.user_id)}</code></p>
-                        </div>
-                    </div>
-                    <div>${statusBadge}</div>
-                </div>
-
-                ${section('Balance', 'fa-wallet')}
-                ${grid([
-                    stat('Total Balance', `${num(u.total_howl)} HWL`, 'var(--accent-main)'),
-                    stat('USD Value', usd(u.total_usd), '#a855f7'),
-                    stat('HOWL Coins', num(u.coins)),
-                    stat('USD Earnings', usd(u.balance)),
-                    stat('On Hold (7d)', `${num(u.hold_howl)} HWL`, 'var(--accent-orange)'),
-                    stat('Lifetime HOWL', num(u.lifetime_howl)),
-                    stat('Commissions Earned', usd(u.total_earned))
-                ])}
-
-                ${section('Referrals', 'fa-user-group')}
-                ${grid([
-                    stat('Total Referrals', num(r.total), 'var(--accent-main)'),
-                    stat('Active (watched ads)', activeLabel),
-                    stat('Referral HOWL', `${num(r.howl_earned)} HOWL`, 'var(--accent-orange)'),
-                    stat('Referral USDT', usd(r.usdt_earned), '#a855f7'),
-                    stat('Total Referral Value', usd(r.total_usd_earned), 'var(--accent-main)'),
-                    stat('Commission Payments', num(r.commission_count)),
-                    stat('Signup Bonuses', num(r.signup_bonuses)),
-                    stat('10-Ad Milestones', num(r.milestones)),
-                    `<div style="grid-column: 1 / -1;">${stat('Referred By', referrerText)}</div>`
-                ])}
-                <div style="margin-top: 10px;">${recentRefs}</div>
-
-                ${section('Activity', 'fa-chart-line')}
-                ${grid([
-                    stat('Ads Today', `${num(a.ads_today)} / ${a.ads_daily_limit || 10}`),
-                    stat('Total Ads Watched', num(a.ads_total)),
-                    stat('Device ID', esc(u.fingerprint ? String(u.fingerprint).slice(0, 18) : '—')),
-                    stat('Joined', date(u.created_at)),
-                    stat('Last Seen', dateTime(u.last_seen))
-                ])}
-
-                ${section('Withdrawals', 'fa-money-bill-transfer')}
-                ${grid([
-                    stat('Requests', num(w.requests)),
-                    stat('Rejected / Failed', num(w.rejected)),
-                    stat('Pending', usd(w.pending_usd), 'var(--accent-orange)'),
-                    stat('Paid Out', usd(w.paid_usd), 'var(--accent-main)')
-                ])}
-
-                ${section('Recent Transactions', 'fa-list')}
-                <div>${recentTx}</div>
-
-                ${collisionHtml}
-                <div style="display: flex; gap: 10px; margin-top: 16px;">
-                    <button onclick="adminExecuteAction('ban', '${esc(u.user_id)}')" style="flex: 1; background: rgba(239,68,68,0.15); border: 1px solid rgba(239,68,68,0.4); color: var(--accent-red); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <i class="fa-solid fa-ban"></i> Ban
-                    </button>
-                    <button onclick="adminExecuteAction('unban', '${esc(u.user_id)}')" style="flex: 1; background: rgba(94, 179, 255, 0.15); border: 1px solid rgba(94, 179, 255, 0.4); color: var(--accent-main); padding: 12px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <i class="fa-solid fa-unlock"></i> Unban
-                    </button>
-                </div>
-            </div>`;
-        } catch (err) {
-            if (loader) loader.style.display = 'none';
-            alert('Failed to connect to admin API.');
-        }
-    }
-
-    async function adminExecuteAction(action, targetId) {
-        const verb = action === 'ban' ? 'BAN' : 'UNBAN';
-        if (!confirm(`Are you sure you want to ${verb} user ${targetId}?`)) return;
-
-        triggerHaptic('medium');
-        try {
-            const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ initData: initData, action: action, targetUserId: targetId })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                alert(`✅ ${data.message}`);
-                adminLookupUser(); 
-            } else {
-                alert(`❌ Action failed: ${data.error || 'Unknown error'}`);
-            }
-        } catch (err) { alert('Network error while processing admin action.'); }
-    }
-</script>
-</body>
-</html>
+}
+
+async function notifyUserRaw(userId, text) {
+    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: userId, text: text, disable_web_page_preview: true })
+    });
+}
