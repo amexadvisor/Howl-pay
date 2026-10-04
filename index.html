@@ -88,6 +88,9 @@
   
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <!-- Live balance sync (polling + stale-response protection) -->
+  <!-- Hardware fingerprint + persistent device vault (Telegram Secure/Device storage, local storage, IndexedDB, cookie) -->
+  <script src="https://openfpcdn.io/fingerprintjs/v4" async></script>
+  <script src="/device-vault.js"></script>
   <script src="/balance-client.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
 
@@ -319,8 +322,8 @@
 
   <!-- Multi-Account Ban Screen -->
   <div id="ban-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
-    <div id="ban-anim" style="width: 100px; height: 100px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(239,68,68,0.5));"></div>
-    <div style="display:inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--accent-red); padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
+    <div id="ban-anim" style="width: 140px; height: 140px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(239,68,68,0.5));"></div>
+    <div id="ban-badge" style="display:inline-block; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: var(--accent-red); padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">
       Multi-Account Prohibited
     </div>
     <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 10px 0; color: #ffffff;">Access Suspended</h2>
@@ -331,7 +334,7 @@
       <div style="font-size: 12px; font-weight: 700; color: #fff; margin-bottom: 6px;">
         <i class="fa-solid fa-circle-info" style="color: var(--accent-main);"></i> How to resolve:
       </div>
-      <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
+      <div id="ban-help-text" style="font-size: 12px; color: var(--text-muted); line-height: 1.5;">
         Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.
       </div>
     </div>
@@ -736,7 +739,6 @@
             lottie.loadAnimation({ container: document.getElementById('wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
-            lottie.loadAnimation({ container: document.getElementById('ban-anim'), renderer: 'svg', loop: true, autoplay: true, path: 'assets/ban.json' });
         }
 
         setInterval(updateCooldownTimers, 1000);
@@ -747,22 +749,7 @@
         }, 7000);
     });
 
-    function getDeviceFingerprint() {
-        try {
-            let deviceId = localStorage.getItem('howl_device_uuid');
-            if (!deviceId) {
-                const match = document.cookie.match(/(?:^|; )howl_device_uuid=([^;]*)/);
-                if (match && match[1]) deviceId = decodeURIComponent(match[1]);
-            }
-            if (!deviceId) {
-                deviceId = 'dev_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-                try { localStorage.setItem('howl_device_uuid', deviceId); } catch(e) {}
-            }
-            return `hw_${deviceId}`;
-        } catch (err) {
-            return 'dev_' + Math.random().toString(36).substring(2, 12);
-        }
-    }
+    // Device identity now comes from /device-vault.js (window.HowlDevice)
 
     function checkAdminStatus(data) {
         if (!data) return;
@@ -812,11 +799,40 @@
         showView('admin-view');
     }
 
+    const BAN_VIEWS = {
+        manual: {
+            badge: 'Account Suspended',
+            reason: 'Your account has been suspended by an administrator.',
+            help: 'If you believe this is a mistake, please contact the HOWL team through our official channels.'
+        },
+        device: {
+            badge: 'Multi-Account Prohibited',
+            reason: 'Multiple accounts have been detected on this physical device. Only one account per device is permitted.',
+            help: 'Your original account on this device remains active. Please switch back to your primary Telegram account to continue using HOWL.'
+        }
+    };
+    let banAnimLoaded = false;
+
+    // Plays assets/ban.json (Lottie) inside the ban screen; falls back to an emoji if it can't load
+    function showBanAnimation() {
+        const box = document.getElementById('ban-anim');
+        if (!box || banAnimLoaded) return;
+        banAnimLoaded = true;
+        const fallback = () => { box.textContent = '🚫'; box.style.fontSize = '90px'; box.style.lineHeight = '140px'; };
+        try {
+            if (typeof lottie === 'undefined') return fallback();
+            const anim = lottie.loadAnimation({ container: box, renderer: 'svg', loop: true, autoplay: true, path: '/assets/ban.json' });
+            anim.addEventListener('data_failed', fallback);
+        } catch (e) { fallback(); }
+    }
+
     function triggerBanScreen(reason) {
         if (isAdminUser || (tgUser && String(tgUser.id) === '8026237972')) return;
 
         if (gateCheckInterval) { clearInterval(gateCheckInterval); gateCheckInterval = null; }
         try { howlAudio.pause(); } catch(e) {}
+
+        const view = /administrator/i.test(reason || '') ? BAN_VIEWS.manual : BAN_VIEWS.device;
 
         const splash = document.getElementById('splash-screen');
         if (splash) splash.style.display = 'none';
@@ -830,49 +846,69 @@
         const banScreen = document.getElementById('ban-screen');
         if (banScreen) {
             banScreen.style.display = 'flex';
+            const badge = document.getElementById('ban-badge');
+            if (badge) badge.textContent = view.badge;
             const reasonEl = document.getElementById('ban-reason-text');
-            if (reasonEl && reason) reasonEl.textContent = reason;
+            if (reasonEl) reasonEl.textContent = reason || view.reason;
+            const helpEl = document.getElementById('ban-help-text');
+            if (helpEl) helpEl.textContent = view.help;
+            showBanAnimation();
         }
     }
 
-    function syncUserProfile() {
+    // Used when the server says the account is fine again (e.g. admin unbanned it)
+    function hideBanScreen() {
+        const banScreen = document.getElementById('ban-screen');
+        if (!banScreen || banScreen.style.display !== 'flex') return;
+        banScreen.style.display = 'none';
+        const main = document.getElementById('main-content');
+        if (main) main.style.display = 'block';
+        const nav = document.getElementById('bottom-nav');
+        if (nav) nav.style.display = 'flex';
+        if (!gateCheckInterval) gateCheckInterval = setInterval(verifyChannelMembership, 2000);
+    }
+
+    // If this device already remembers a ban for this account, show it immediately (before any network call)
+    async function applyLocalBan() {
+        try {
+            if (!window.HowlDevice || !tgUser) return;
+            const ban = await window.HowlDevice.getBan(tgUser.id);
+            if (ban) triggerBanScreen(ban.r);
+        } catch (e) {}
+    }
+
+    let syncInFlight = false;
+
+    async function syncUserProfile() {
+        if (syncInFlight) return;
         if (!window.Telegram || !Telegram.WebApp || !Telegram.WebApp.initData) return;
-        const startParam = (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || urlParams.get('startapp') || '';
-        const deviceFp = getDeviceFingerprint();
-        const currentTgId = String(Telegram.WebApp.initDataUnsafe.user.id);
-        
-        let isLocalMulti = false;
-        const storedUser = localStorage.getItem('howl_verified_user');
-        
-        if (storedUser && storedUser !== currentTgId) {
-            isLocalMulti = true;
-        } else if (!storedUser) {
-            localStorage.setItem('howl_verified_user', currentTgId);
-        }
+        const u = Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user;
+        if (!u) return;
 
-        const payload = { 
-            initData: Telegram.WebApp.initData, 
-            fingerprint: deviceFp, 
-            startParam: startParam,
-            isLocalMulti: isLocalMulti
-        };
+        syncInFlight = true;
+        try {
+            const startParam = (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.start_param) || urlParams.get('startapp') || '';
 
-        if (window.Telegram.WebApp.CloudStorage) {
-            window.Telegram.WebApp.CloudStorage.getItem('howl_verified_user', (err, val) => {
-                if (!err && val && val !== currentTgId) {
-                    payload.isLocalMulti = true;
-                } else if (!val) {
-                    window.Telegram.WebApp.CloudStorage.setItem('howl_verified_user', currentTgId);
-                }
-                executeSyncRequest(payload);
-            });
-        } else {
-            executeSyncRequest(payload);
+            // Reads every store (Secure/Device/local/IndexedDB/cookie), heals the ones that were cleared,
+            // and returns { fingerprint, hw, ownerId, isLocalMulti }
+            let device = null;
+            try { device = window.HowlDevice ? await window.HowlDevice.collect(u.id) : null; } catch (e) {}
+
+            await executeSyncRequest({
+                initData: Telegram.WebApp.initData,
+                startParam: startParam,
+                fingerprint: device ? device.fingerprint : null,
+                hwFingerprint: device ? device.hw : null,
+                ownerId: device ? device.ownerId : null,
+                isLocalMulti: device ? device.isLocalMulti : false
+            }, u.id);
+        } finally {
+            syncInFlight = false;
         }
     }
 
-    function executeSyncRequest(payload) {
-        fetch('/api/verify', {
+    function executeSyncRequest(payload, tgId) {
+        return fetch('/api/verify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -880,8 +916,18 @@
         .then(async r => {
             const data = await r.json().catch(() => null);
             if (!data) return;
-            if (data.banned) { triggerBanScreen(data.message || data.ban_reason); return; }
-            
+
+            if (data.banned) {
+                const reason = data.message || data.ban_reason;
+                if (window.HowlDevice) window.HowlDevice.setBan(tgId, reason);   // remember the ban on this device
+                triggerBanScreen(reason);
+                return;
+            }
+            if (data.success) {
+                if (window.HowlDevice) window.HowlDevice.clearBan(tgId);          // admin unbanned / no longer flagged
+                hideBanScreen();
+            }
+
             if (data.user_balance) updateBalanceUI(data.user_balance);
             if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
             if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus(data);
@@ -928,6 +974,7 @@
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
                     if (String(tgUser.id) === '8026237972') checkAdminStatus({ is_admin: true });
                 }
+                applyLocalBan();
                 syncUserProfile();
             }
         } catch (e) {}
@@ -1503,4 +1550,4 @@
     }
 </script>
 </body>
-            </html>
+        </html>
