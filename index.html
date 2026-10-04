@@ -393,7 +393,7 @@
               <div class="balance-pills">
                 <span class="pill pill-leaf"><i class="fa-solid fa-paw"></i> HOWL</span>
                 <span class="pill pill-usd"><i class="fa-solid fa-circle" style="font-size:6px;"></i> $<span id="user-usd-val">0.0000</span></span>
-                <span class="pill pill-hold" id="hold-pill" title="Offerwall rewards are held for 7 days before they join your balance"><i class="fa-solid fa-hourglass-half" style="font-size:9px;"></i> $<span id="user-hold-val">0.0000</span> HOLD</span>
+                <span class="pill pill-hold" id="hold-pill" title="Offerwall rewards are held for 7 days before they join your balance"><i class="fa-solid fa-hourglass-half" style="font-size:9px;"></i> <span id="user-hold-val">0</span> HOLD</span>
               </div>
             </div>
             <div class="balance-right">
@@ -1294,7 +1294,7 @@
             }
             historyList.innerHTML = data.map(item => {
                 const isDeduction = item.reward_amount < 0 || (item.task_type && item.task_type.includes('BEP20'));
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4)}</div></div>`;
+                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (String(item.task_type || '').startsWith('TimeWall') ? (item.reward_amount < 0 ? '-' : '+') + Math.round(Math.abs(item.reward_amount) / 0.00002).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4))}</div></div>`;
             }).join('');
         } catch (err) { historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load ledger.</div>`; }
     }
@@ -1587,4 +1587,4 @@
     }
 </script>
 </body>
-  </html>
+    </html>
