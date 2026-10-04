@@ -36,6 +36,85 @@ function isOlderAccount(current, other) {
   return false;
 }
 
+const DEVICE_LOG = 'SYSTEM_DEVICE_LOG';
+const HW_IP_WINDOW_HOURS = 48;   // hardware-only matches must share a network prefix seen within this window
+
+// Coarse network prefix: IPv4 /16, IPv6 /32. Survives airplane-mode IP changes on the same carrier.
+function ipPrefix(ip) {
+  if (!ip) return null;
+  if (ip.includes(':')) return 'v6:' + ip.split(':').slice(0, 2).join(':').toLowerCase();
+  const p = ip.split('.');
+  return p.length === 4 ? 'v4:' + p[0] + '.' + p[1] : null;
+}
+
+// Permanently remember which device keys an account has used (idempotent)
+async function recordDeviceKeys(userId, keys) {
+  try {
+    if (!keys.length) return;
+    const { data: existing } = await supabase.from('transactions').select('status')
+      .eq('user_id', userId).eq('task_type', DEVICE_LOG).in('status', keys);
+    const have = new Set((existing || []).map(r => r.status));
+    const rows = keys.filter(k => !have.has(k)).map((k, i) => ({
+      user_id: userId,
+      reward_amount: 0,
+      transaction_id: `devlog_${userId}_${Date.now()}_${i}_${Math.random().toString(36).slice(2, 6)}`,
+      task_type: DEVICE_LOG,
+      status: k,
+      created_at: new Date().toISOString()
+    }));
+    if (rows.length) await supabase.from('transactions').insert(rows);
+  } catch (e) {
+    console.error('[Device Log Error]', e.message);
+  }
+}
+
+// Find the oldest OTHER account that shares this device.
+//   strong signals : our stored device id, legacy users.fingerprint, local "owner" marker
+//   soft signal    : hardware fingerprint (can collide on identical phone models), so it only
+//                    counts when that account was also seen on the same network prefix recently
+async function findDevicePrimary({ userIdStr, fingerprint, hw, ownerId, clientIp }) {
+  const adminList = `(${ADMIN_IDS.join(',')})`;
+  const strong = new Set();
+  const soft = new Set();
+
+  if (fingerprint) {
+    const { data } = await supabase.from('users').select('user_id')
+      .eq('fingerprint', fingerprint).neq('user_id', userIdStr).not('user_id', 'in', adminList).limit(20);
+    (data || []).forEach(r => strong.add(String(r.user_id)));
+  }
+
+  const keys = [];
+  if (fingerprint) keys.push('did:' + fingerprint);
+  if (hw) keys.push('hw:' + hw);
+  if (keys.length) {
+    const { data } = await supabase.from('transactions').select('user_id, status')
+      .eq('task_type', DEVICE_LOG).in('status', keys)
+      .neq('user_id', userIdStr).not('user_id', 'in', adminList).limit(50);
+    (data || []).forEach(r => (String(r.status).startsWith('did:') ? strong : soft).add(String(r.user_id)));
+  }
+
+  if (ownerId && String(ownerId) !== userIdStr && !ADMIN_IDS.includes(String(ownerId))) {
+    strong.add(String(ownerId));   // must exist in DB to count (checked below)
+  }
+
+  const confirmedSoft = [];
+  const prefix = ipPrefix(clientIp);
+  if (soft.size && prefix) {
+    const since = new Date(Date.now() - HW_IP_WINDOW_HOURS * 3600 * 1000).toISOString();
+    const { data: ipRows } = await supabase.from('transactions').select('user_id, status')
+      .eq('task_type', 'SYSTEM_IP_LOG').in('user_id', [...soft]).gt('created_at', since).limit(300);
+    (ipRows || []).forEach(r => { if (ipPrefix(r.status) === prefix) confirmedSoft.push(String(r.user_id)); });
+  }
+
+  const ids = [...new Set([...strong, ...confirmedSoft])];
+  if (!ids.length) return null;
+
+  const { data: accounts } = await supabase.from('users').select('user_id, created_at, fingerprint').in('user_id', ids);
+  if (!accounts || !accounts.length) return null;
+  accounts.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  return { ...accounts[0], via: strong.has(String(accounts[0].user_id)) ? 'device' : 'hardware' };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -45,7 +124,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
 
-  const { initData, fingerprint, startParam } = req.body || {};
+  const { initData, fingerprint, hwFingerprint, startParam, ownerId } = req.body || {};
   const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
 
   if (!initData) return res.status(200).json({ success: false, error: 'Missing Telegram initData' });
@@ -67,6 +146,10 @@ export default async function handler(req, res) {
     const IP_WINDOW_MINUTES = 20;
     const ipWindowThreshold = new Date(Date.now() - IP_WINDOW_MINUTES * 60 * 1000).toISOString();
     const clientFingerprint = typeof fingerprint === 'string' ? fingerprint.trim() : null;
+    const clientHw = typeof hwFingerprint === 'string' && hwFingerprint.trim() ? hwFingerprint.trim().slice(0, 64) : null;
+    const deviceKeys = [];
+    if (clientFingerprint) deviceKeys.push('did:' + clientFingerprint.slice(0, 128));
+    if (clientHw) deviceKeys.push('hw:' + clientHw);
 
     const { data: existingUser } = await supabase
       .from('users')
@@ -93,23 +176,12 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: false, banned: true, ban_reason: msg, message: msg });
       }
 
-      // 2. Multi-account device & IP verification (skipped if admin explicitly unbanned)
+      // 2. Multi-account detection (device id + hardware + local owner marker, then 20-min IP window)
       if (latestBanStatus !== 'UNBANNED') {
-        let primaryAccount = null;
+        let primaryAccount = await findDevicePrimary({
+          userIdStr, fingerprint: clientFingerprint, hw: clientHw, ownerId, clientIp
+        });
         let isIpMatch = false;
-
-        if (clientFingerprint) {
-          const { data: deviceMatch } = await supabase
-            .from('users')
-            .select('user_id, created_at')
-            .eq('fingerprint', clientFingerprint)
-            .neq('user_id', userIdStr)
-            .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
-            .order('created_at', { ascending: true })
-            .limit(1)
-            .maybeSingle();
-          if (deviceMatch) primaryAccount = deviceMatch;
-        }
 
         if (!primaryAccount && clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
           const { data: recentIpTxs } = await supabase
@@ -135,14 +207,16 @@ export default async function handler(req, res) {
             const reason = isIpMatch
               ? 'Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted.'
               : 'Multiple accounts detected on this device. Only your original account is permitted.';
-            console.log(`[Anti-Fraud] Ban triggered: Device/IP owned by ${primaryAccount.user_id}, blocked ${userIdStr} (IP match: ${isIpMatch})`);
+            console.log(`[Anti-Fraud] Ban: ${userIdStr} blocked (primary ${primaryAccount.user_id}, via ${isIpMatch ? 'ip' : primaryAccount.via})`);
 
+            await recordDeviceKeys(userIdStr, deviceKeys);
             try {
               await supabase.from('users').upsert({
                 user_id: userIdStr,
                 name: fullName,
                 photo_url: photoUrl,
-                fingerprint: clientFingerprint,
+                // copy the primary's fingerprint so claim-bonus.js keeps blocking this account too
+                fingerprint: primaryAccount.fingerprint || clientFingerprint,
                 last_seen: new Date().toISOString()
               }, { onConflict: 'user_id' });
             } catch (e) {}
@@ -230,6 +304,8 @@ export default async function handler(req, res) {
       await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
     }
 
+    if (!isAdmin) await recordDeviceKeys(userIdStr, deviceKeys);
+
     // IP session log (at most once every 10 minutes)
     if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
       try {
@@ -296,4 +372,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }
-      }
+    }
