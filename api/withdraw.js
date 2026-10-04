@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { HOWL_USD_RATE, verifyInitData, debitHowl, creditHowl } from '../lib/balance.js';
+import { HOWL_USD_RATE, verifyInitData, debitHowl, creditHowl, releaseDueHolds } from '../lib/balance.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -80,6 +80,9 @@ export default async function handler(req, res) {
 
   try {
     // 1) Atomically take the HOWL out of the user's balance (fails if insufficient)
+    // Matured offerwall holds count as spendable
+    try { await releaseDueHolds(supabase, targetUserId); } catch (e) { console.error('[withdraw] release error:', e.message); }
+
     const debit = await debitHowl(supabase, targetUserId, reqAmount);
     if (!debit.ok) {
       const have = debit.balance ? debit.balance.total_howl : 0;
@@ -138,4 +141,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
-                                                          }
+}
