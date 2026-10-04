@@ -55,6 +55,14 @@
     if (id < applied) return;       // stale response, drop it
     applied = id;
     animateTo(Math.round(b.total_howl || 0), parseFloat(b.total_usd || 0));
+
+    // Pending (on-hold) offerwall rewards
+    const hp = document.getElementById('hold-pill');
+    const hv = document.getElementById('user-hold-val');
+    if (hp && hv) {
+      hv.textContent = (parseFloat(b.hold_usd || 0)).toFixed(4);
+      hp.title = Math.round(b.hold_howl || 0).toLocaleString() + ' HOWL on hold. Offerwall rewards are held for 7 days before they join your balance.';
+    }
   }
 
   async function refreshBalance() {
