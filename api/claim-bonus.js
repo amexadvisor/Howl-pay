@@ -52,9 +52,10 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Account suspended by administrator.' });
       }
 
+      const adminOverride = !!(adminBanRows && adminBanRows[0] && adminBanRows[0].status === 'UNBANNED');
       const { data: currentAccount } = await supabase.from('users')
         .select('user_id, fingerprint, created_at').eq('user_id', targetUserIdStr).maybeSingle();
-      if (currentAccount && currentAccount.fingerprint) {
+      if (!adminOverride && currentAccount && currentAccount.fingerprint) {
         const { data: primaryAccount } = await supabase.from('users')
           .select('user_id, created_at')
           .eq('fingerprint', currentAccount.fingerprint)
@@ -187,4 +188,4 @@ export default async function handler(req, res) {
   } catch (dbErr) {
     return res.status(500).json({ error: 'Database error: ' + dbErr.message });
   }
-      }
+                }
