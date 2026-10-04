@@ -34,6 +34,34 @@ export default async function handler(req, res) {
   if (!verified) return res.status(403).json({ success: false, message: 'Forbidden: Invalid Telegram signature' });
   const targetUserId = String(verified.user.id);
 
+  // Banned or duplicate-device accounts cannot withdraw (admin Unban overrides)
+  try {
+    if (targetUserId !== '8026237972') {
+      const { data: banRows } = await supabase.from('transactions').select('status')
+        .eq('user_id', targetUserId).eq('task_type', 'ADMIN_BAN')
+        .order('created_at', { ascending: false }).limit(1);
+      const banStatus = banRows && banRows[0] ? banRows[0].status : null;
+      if (banStatus === 'BANNED') {
+        return res.status(403).json({ success: false, message: 'Account suspended by administrator.' });
+      }
+      if (banStatus !== 'UNBANNED') {
+        const { data: me } = await supabase.from('users')
+          .select('user_id, fingerprint, created_at').eq('user_id', targetUserId).maybeSingle();
+        if (me && me.fingerprint) {
+          const { data: primary } = await supabase.from('users')
+            .select('user_id, created_at').eq('fingerprint', me.fingerprint)
+            .neq('user_id', targetUserId).not('user_id', 'in', '(8026237972)')
+            .order('created_at', { ascending: true }).limit(1).maybeSingle();
+          if (primary && new Date(me.created_at) >= new Date(primary.created_at)) {
+            return res.status(403).json({ success: false, message: 'Account suspended due to multi-account policy.' });
+          }
+        }
+      }
+    }
+  } catch (banErr) {
+    return res.status(500).json({ success: false, message: 'Security check failed. Please try again.' });
+  }
+
   const reqAmount = parseInt(amount, 10);
   const cleanAddress = typeof address === 'string' ? address.trim() : '';
 
@@ -110,4 +138,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
-  }
+    }
