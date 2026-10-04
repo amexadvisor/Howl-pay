@@ -226,4 +226,4 @@ export default async function handler(req, res) {
     console.error('[timewall] error:', err.message);
     return res.status(500).send('RETRY');
   }
-      }
+}
