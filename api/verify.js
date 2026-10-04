@@ -73,13 +73,14 @@ async function recordDeviceKeys(userId, keys) {
 //   soft signal    : hardware fingerprint (can collide on identical phone models), so it only
 //                    counts when that account was also seen on the same network prefix recently
 async function findDevicePrimary({ userIdStr, fingerprint, hw, ownerId, clientIp }) {
-  const adminList = `(${ADMIN_IDS.join(',')})`;
+  // NOTE: admin accounts are allowed to be the PRIMARY (original) account on a device.
+  // They are still never banned themselves (checked in the handler).
   const strong = new Set();
   const soft = new Set();
 
   if (fingerprint) {
     const { data } = await supabase.from('users').select('user_id')
-      .eq('fingerprint', fingerprint).neq('user_id', userIdStr).not('user_id', 'in', adminList).limit(20);
+      .eq('fingerprint', fingerprint).neq('user_id', userIdStr).limit(20);
     (data || []).forEach(r => strong.add(String(r.user_id)));
   }
 
@@ -89,11 +90,11 @@ async function findDevicePrimary({ userIdStr, fingerprint, hw, ownerId, clientIp
   if (keys.length) {
     const { data } = await supabase.from('transactions').select('user_id, status')
       .eq('task_type', DEVICE_LOG).in('status', keys)
-      .neq('user_id', userIdStr).not('user_id', 'in', adminList).limit(50);
+      .neq('user_id', userIdStr).limit(50);
     (data || []).forEach(r => (String(r.status).startsWith('did:') ? strong : soft).add(String(r.user_id)));
   }
 
-  if (ownerId && String(ownerId) !== userIdStr && !ADMIN_IDS.includes(String(ownerId))) {
+  if (ownerId && String(ownerId) !== userIdStr) {
     strong.add(String(ownerId));   // must exist in DB to count (checked below)
   }
 
@@ -112,6 +113,9 @@ async function findDevicePrimary({ userIdStr, fingerprint, hw, ownerId, clientIp
   const { data: accounts } = await supabase.from('users').select('user_id, created_at, fingerprint').in('user_id', ids);
   if (!accounts || !accounts.length) return null;
   accounts.sort((a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0));
+  // An admin account on the device is always treated as the original account
+  const adminAcc = accounts.find(a => ADMIN_IDS.includes(String(a.user_id)));
+  if (adminAcc) accounts.unshift(adminAcc);
   return { ...accounts[0], via: strong.has(String(accounts[0].user_id)) ? 'device' : 'hardware' };
 }
 
@@ -202,7 +206,8 @@ export default async function handler(req, res) {
         }
 
         if (primaryAccount) {
-          const isCurrentOlder = isOlderAccount(existingUser, primaryAccount);
+          // original account wins; an admin primary always wins regardless of creation date
+          const isCurrentOlder = isOlderAccount(existingUser, primaryAccount) && !ADMIN_IDS.includes(String(primaryAccount.user_id));
           if (!isCurrentOlder) {
             const reason = isIpMatch
               ? 'Multiple accounts detected from this network/device within the cooldown window (20 mins). Only your original account is permitted.'
@@ -304,7 +309,7 @@ export default async function handler(req, res) {
       await supabase.from('users').update(updatePayload).eq('user_id', userIdStr);
     }
 
-    if (!isAdmin) await recordDeviceKeys(userIdStr, deviceKeys);
+    await recordDeviceKeys(userIdStr, deviceKeys);   // admins too, so their device can be matched
 
     // IP session log (at most once every 10 minutes)
     if (clientIp && clientIp !== '127.0.0.1' && clientIp !== 'localhost') {
