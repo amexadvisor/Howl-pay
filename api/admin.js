@@ -178,6 +178,8 @@ export default async function handler(req, res) {
           total_usd: bal.total_usd,
           coins: bal.coins,
           balance: bal.usdt_earnings,
+          hold_howl: bal.hold_howl,
+          hold_usd: bal.hold_usd,
           // lifetime counters
           lifetime_howl: parseFloat(user.total_howl) || 0,
           total_earned: parseFloat(user.total_earned) || 0,
@@ -271,4 +273,4 @@ export default async function handler(req, res) {
     console.error('[Admin Action Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-    }
+}
