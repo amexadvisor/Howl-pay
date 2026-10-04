@@ -60,8 +60,8 @@
     const hp = document.getElementById('hold-pill');
     const hv = document.getElementById('user-hold-val');
     if (hp && hv) {
-      hv.textContent = (parseFloat(b.hold_usd || 0)).toFixed(4);
-      hp.title = Math.round(b.hold_howl || 0).toLocaleString() + ' HOWL on hold. Offerwall rewards are held for 7 days before they join your balance.';
+      hv.textContent = Math.round(b.hold_howl || 0).toLocaleString();
+      hp.title = 'HOWL on hold. Offerwall rewards are held for 7 days before they join your balance.';
     }
   }
 
