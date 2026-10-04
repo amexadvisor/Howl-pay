@@ -722,6 +722,11 @@
     const webhookUrl = urlParams.get('webhook');
     const BOT_USERNAME = "howl_paybot"; 
 
+    // Escapes text before it is placed into innerHTML (names, ids, ledger text are user-controlled)
+    function escHtml(s) {
+        return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    }
+
     function triggerHaptic(style = 'light') {
         if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
             Telegram.WebApp.HapticFeedback.impactOccurred(style);
@@ -1294,7 +1299,7 @@
             }
             historyList.innerHTML = data.map(item => {
                 const isDeduction = item.reward_amount < 0 || (item.task_type && item.task_type.includes('BEP20'));
-                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${item.task_type || 'Reward'}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (String(item.task_type || '').startsWith('TimeWall') ? (item.reward_amount < 0 ? '-' : '+') + Math.round(Math.abs(item.reward_amount) / 0.00002).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4))}</div></div>`;
+                return `<div class="data-item"><div style="display:flex; gap:14px;"><div class="data-icon" style="${isDeduction ? 'background: rgba(245,158,11,0.15); color: #f59e0b;' : ''}"><i class="fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}"></i></div><div><h4>${escHtml(item.task_type || 'Reward')}</h4><p>${new Date(item.created_at).toLocaleDateString()}</p></div></div><div class="data-val" style="color:${isDeduction ? '#f59e0b' : 'var(--accent-main)'}">${item.task_type && item.task_type.includes('HOWL') ? '+' + Math.round(item.reward_amount).toLocaleString() + ' HOWL' : (String(item.task_type || '').startsWith('TimeWall') ? (item.reward_amount < 0 ? '-' : '+') + Math.round(Math.abs(item.reward_amount) / 0.00002).toLocaleString() + ' HOWL' : (isDeduction ? '' : '+') + '$' + Math.abs(item.reward_amount).toFixed(4))}</div></div>`;
             }).join('');
         } catch (err) { historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">Failed to load ledger.</div>`; }
     }
@@ -1311,7 +1316,7 @@
                 return;
             }
             leaderboardList.innerHTML = sortedEarners.map((earner, index) => {
-                let avatarHtml = earner.photo_url ? `<img src="${earner.photo_url}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#000; font-weight:bold;">${(earner.name || 'U').charAt(0)}</span>`;
+                let avatarHtml = earner.photo_url ? `<img src="${escHtml(earner.photo_url)}" style="width:100%; height:100%; object-fit:cover;">` : `<span style="color:#000; font-weight:bold;">${(earner.name || 'U').charAt(0)}</span>`;
                 let maskedId = earner.userId.length > 6 ? earner.userId.substring(0, 4) + '***' + earner.userId.slice(-2) : earner.userId;
                 
                 let rankBadge = `#${index + 1}`;
@@ -1328,8 +1333,8 @@
                         <div class="data-icon" style="background:transparent; width:28px; height:28px; margin-right:0; color:${rankColor}; font-weight:800; font-size:14px;">${rankBadge}</div>
                         <div style="width:40px; height:40px; border-radius:12px; background:var(--accent-main); display:flex; align-items:center; justify-content:center; overflow:hidden; flex-shrink:0;">${avatarHtml}</div>
                         <div>
-                            <h4 style="margin:0; font-size:14px; font-weight:700;">${earner.name}</h4>
-                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">ID: ${maskedId}</p>
+                            <h4 style="margin:0; font-size:14px; font-weight:700;">${escHtml(earner.name)}</h4>
+                            <p style="margin:2px 0 0; font-size:11px; color:var(--text-muted);">ID: ${escHtml(maskedId)}</p>
                         </div>
                     </div>
                     <div style="text-align:right;">
@@ -1587,4 +1592,4 @@
     }
 </script>
 </body>
-    </html>
+        </html>
