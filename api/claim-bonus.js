@@ -60,11 +60,10 @@ export default async function handler(req, res) {
           .select('user_id, created_at')
           .eq('fingerprint', currentAccount.fingerprint)
           .neq('user_id', targetUserIdStr)
-          .not('user_id', 'in', `(${ADMIN_IDS.join(',')})`)
           .order('created_at', { ascending: true })
           .limit(1).maybeSingle();
 
-        if (primaryAccount && (new Date(currentAccount.created_at) >= new Date(primaryAccount.created_at))) {
+        if (primaryAccount && (ADMIN_IDS.includes(String(primaryAccount.user_id)) || new Date(currentAccount.created_at) >= new Date(primaryAccount.created_at))) {
           return res.status(403).json({ error: 'Account suspended due to multi-account policy.' });
         }
       }
@@ -188,4 +187,4 @@ export default async function handler(req, res) {
   } catch (dbErr) {
     return res.status(500).json({ error: 'Database error: ' + dbErr.message });
   }
-                }
+}
