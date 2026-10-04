@@ -50,9 +50,9 @@ export default async function handler(req, res) {
         if (me && me.fingerprint) {
           const { data: primary } = await supabase.from('users')
             .select('user_id, created_at').eq('fingerprint', me.fingerprint)
-            .neq('user_id', targetUserId).not('user_id', 'in', '(8026237972)')
+            .neq('user_id', targetUserId)
             .order('created_at', { ascending: true }).limit(1).maybeSingle();
-          if (primary && new Date(me.created_at) >= new Date(primary.created_at)) {
+          if (primary && (String(primary.user_id) === '8026237972' || new Date(me.created_at) >= new Date(primary.created_at))) {
             return res.status(403).json({ success: false, message: 'Account suspended due to multi-account policy.' });
           }
         }
@@ -138,4 +138,4 @@ export default async function handler(req, res) {
   } catch (err) {
     return res.status(500).json({ success: false, message: 'Server error: ' + err.message });
   }
-    }
+                                                          }
