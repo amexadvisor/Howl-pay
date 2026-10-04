@@ -219,4 +219,4 @@ export default async function handler(req, res) {
   } catch (dbErr) {
     return res.status(500).json({ error: 'Database error: ' + dbErr.message });
   }
-    }
+      }
