@@ -5,7 +5,24 @@ import { HOWL_USD_RATE, creditHowl, verifyCallback } from '../lib/balance.js';
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
-const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim(); // Trimmed to prevent \r\n fetch crashes
+const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
+const ADMIN_CHAT_ID = '8026237972';
+
+// Intercepts errors and forwards them to the Admin Telegram
+async function sendAdminLog(context, err) {
+  try {
+    const errorDetail = err instanceof Error ? (err.stack || err.message) : String(err);
+    const logText = `🚨 *Vercel Log:* \`${context}\`\n\n\`\`\`\n${errorDetail.substring(0, 3800)}\n\`\`\``;
+    
+    await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/sendMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, text: logText, parse_mode: 'Markdown' })
+    });
+  } catch (e) {
+    console.error('[Admin Log Dispatch Failed]:', e);
+  }
+}
 
 async function refundToBalance(userId, usd) {
   const howl = Math.round(usd / HOWL_USD_RATE);
@@ -14,25 +31,26 @@ async function refundToBalance(userId, usd) {
     return !!(r && r.ok);
   } catch (e) {
     console.error('[Refund Error]:', e.message);
+    await sendAdminLog('refundToBalance() Exception', e);
     return false;
   }
 }
 
 async function answerCb(callbackId, text) {
   try {
-    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/answerCallbackQuery', {
+    await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/answerCallbackQuery', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ callback_query_id: callbackId, text })
     });
   } catch (err) {
     console.error('[AnswerCb Error]:', err.message);
+    await sendAdminLog('answerCb() Network Failure', err);
   }
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(200).end();
 
-  // Safely parse body if raw string is provided by the environment
   let body = req.body;
   if (typeof body === 'string') {
     try { body = JSON.parse(body); } catch (e) { return res.status(200).end(); }
@@ -45,7 +63,7 @@ export default async function handler(req, res) {
       const data = body.callback_query.data;
       const messageId = body.callback_query.message.message_id;
 
-      if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
+      if (clickerId !== ADMIN_CHAT_ID || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
         return res.status(200).json({ success: true }); 
       }
 
@@ -54,9 +72,9 @@ export default async function handler(req, res) {
       const cbParts = data.split('_');
       const cbSig = cbParts[cbParts.length - 1];
 
-      // Catch missing exports from lib/balance.js before they crash the webhook
       if (typeof verifyCallback !== 'function') {
-        await answerCb(callbackId, "Server Error: verifyCallback missing from lib/balance.js");
+        await answerCb(callbackId, "Server Error: verifyCallback missing.");
+        await sendAdminLog('Module Import Error', "verifyCallback is undefined in lib/balance.js");
         return res.status(200).json({ success: true });
       }
 
@@ -68,16 +86,24 @@ export default async function handler(req, res) {
       const { data: txRow, error: fetchErr } = await supabase.from('transactions')
           .select('*').like('transaction_id', 'W_' + timestampId + '_%').maybeSingle();
 
-      if (fetchErr || !txRow || txRow.status !== 'pending') {
+      if (fetchErr) {
+          await sendAdminLog('Supabase Fetch Error (Transaction)', fetchErr);
+          await answerCb(callbackId, "Database fetch error.");
+          return res.status(200).json({ success: true });
+      }
+
+      if (!txRow || txRow.status !== 'pending') {
           await answerCb(callbackId, "Already processed or invalid.");
           return res.status(200).json({ success: true });
       }
 
-      const { data: claimed } = await supabase.from('transactions')
+      const { data: claimed, error: updateErr } = await supabase.from('transactions')
           .update({ status: 'processing' })
           .eq('transaction_id', txRow.transaction_id)
           .eq('status', 'pending')
           .select('transaction_id');
+
+      if (updateErr) await sendAdminLog('Supabase Update Error (Processing Claim)', updateErr);
 
       if (!claimed || claimed.length === 0) {
           await answerCb(callbackId, "Already processed or invalid.");
@@ -100,7 +126,6 @@ export default async function handler(req, res) {
 
       if (action === 'R') {
           await answerCb(callbackId, "Processing Refund..."); 
-
           const refunded = await refundToBalance(userId, usdtDeducted);
           if (!refunded) {
               await supabase.from('transactions').update({ status: 'pending' }).eq('transaction_id', txRow.transaction_id);
@@ -109,7 +134,6 @@ export default async function handler(req, res) {
           }
 
           await supabase.from('transactions').update({ status: 'rejected' }).eq('transaction_id', txRow.transaction_id);
-
           await supabase.from('transactions').insert([{
               user_id: userId, reward_amount: usdtDeducted,
               transaction_id: 'REF_' + Date.now() + '_' + userId,
@@ -122,9 +146,7 @@ export default async function handler(req, res) {
 
       } else if (action === 'NR') {
           await answerCb(callbackId, "Rejecting Request (No Refund)..."); 
-
           await supabase.from('transactions').update({ status: 'rejected_norefund' }).eq('transaction_id', txRow.transaction_id);
-
           await supabase.from('transactions').insert([{
               user_id: userId, reward_amount: 0,
               transaction_id: 'REJ_' + Date.now() + '_' + userId,
@@ -137,18 +159,16 @@ export default async function handler(req, res) {
 
       } else if (action === 'A') {
           await answerCb(callbackId, "Processing Blockchain Payout...");
-
           let tx;
           try {
-              const provider = new ethers.JsonRpcProvider("https://bsc-dataseed.binance.org/");
+              const provider = new ethers.JsonRpcProvider("[https://bsc-dataseed.binance.org/](https://bsc-dataseed.binance.org/)");
               const wallet = new ethers.Wallet(process.env.HOT_WALLET_PRIVATE_KEY, provider);
               const contract = new ethers.Contract("0x55d398326f99059fF775485246999027B3197955", ["function transfer(address to, uint256 amount) returns (bool)"], wallet);
-              
               const amountInWei = ethers.parseUnits(payoutUsdt.toFixed(4), 18);
               tx = await contract.transfer(address, amountInWei);
           } catch (err) {
+              await sendAdminLog('Ethers.js / Blockchain Transaction Failure', err);
               await supabase.from('transactions').update({ status: 'blockchain_failed' }).eq('transaction_id', txRow.transaction_id);
-
               const refunded = await refundToBalance(userId, usdtDeducted);
               const shortErr = err.message ? err.message.substring(0, 40) : "Unknown error";
 
@@ -169,7 +189,6 @@ export default async function handler(req, res) {
 
           try {
               await supabase.from('transactions').update({ status: 'approved' }).eq('transaction_id', txRow.transaction_id);
-
               await supabase.from('transactions').insert([{
                   user_id: userId, reward_amount: -payoutUsdt,
                   transaction_id: tx.hash, task_type: 'USDT Payout (BEP-20)',
@@ -191,20 +210,20 @@ export default async function handler(req, res) {
                 '<tg-emoji emoji-id="5409048419211682843">💵</tg-emoji> Amount: <b>$' + payoutUsdt.toFixed(4) + ' USDT</b> (after $0.01 fee)\n' +
                 '<tg-emoji emoji-id="5280944517027998187">🪙</tg-emoji> Gateway: <b>USDT BEP20</b>\n' +
                 '<tg-emoji emoji-id="5445221832074483553">📦</tg-emoji> Address: <code>' + address + '</code>\n\n' +
-                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> App: <a href="https://t.me/howl_paybot/app?startapp=ref_8026237972">HOWL</a>';
+                '<tg-emoji emoji-id="5188481279963715781">🚀</tg-emoji> App: <a href="[https://t.me/howl_paybot/app?startapp=ref_8026237972](https://t.me/howl_paybot/app?startapp=ref_8026237972)">HOWL</a>';
 
-              const replyMarkup = { inline_keyboard: [[{ text: "View on BscScan", url: "https://bscscan.com/tx/" + tx.hash }]] };
+              const replyMarkup = { inline_keyboard: [[{ text: "View on BscScan", url: "[https://bscscan.com/tx/](https://bscscan.com/tx/)" + tx.hash }]] };
 
-              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+              await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ chat_id: userId, text: userHtml, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup })
               });
-
-              await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+              await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/sendMessage', {
                   method: 'POST', headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ chat_id: '@howlpayout', text: groupHtml, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup })
               });
           } catch (postErr) {
+              await sendAdminLog('Post-Payment Messaging Error', postErr);
               console.error('Post-payment step failed:', postErr.message);
           }
       }
@@ -212,20 +231,25 @@ export default async function handler(req, res) {
     return res.status(200).json({ success: true });
   } catch (err) {
     console.error('[Webhook Uncaught Error]:', err);
+    await sendAdminLog('Fatal Webhook Crash', err);
     return res.status(200).end();
   }
 }
 
 async function editAdminMessage(messageId, newText) {
-    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/editMessageText', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: '8026237972', message_id: messageId, text: newText, parse_mode: 'Markdown', disable_web_page_preview: true })
-    });
+    try {
+        await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/editMessageText', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: ADMIN_CHAT_ID, message_id: messageId, text: newText, parse_mode: 'Markdown', disable_web_page_preview: true })
+        });
+    } catch(e) { await sendAdminLog('editAdminMessage Failed', e); }
 }
 
 async function notifyUserRaw(userId, text) {
-    await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: userId, text: text, disable_web_page_preview: true })
-    });
+    try {
+        await fetch('[https://api.telegram.org/bot](https://api.telegram.org/bot)' + BOT_TOKEN + '/sendMessage', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ chat_id: userId, text: text, disable_web_page_preview: true })
+        });
+    } catch(e) { await sendAdminLog('notifyUserRaw Failed', e); }
 }
