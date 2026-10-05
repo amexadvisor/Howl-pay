@@ -225,6 +225,14 @@
     .watch-btn:active { background: var(--accent-main); color: #000; box-shadow: 0 0 20px rgba(94, 179, 255, 0.4); }
     .watch-btn:disabled { background: rgba(255,255,255,0.05); color: var(--text-muted); border-color: transparent; box-shadow: none; cursor: not-allowed; }
 
+    /* Monetag (left) + AdsGram reward (right), side by side */
+    .adsr-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; align-items: stretch; }
+    .adsr-row > .glass-card { margin-bottom: 0; padding: 16px 12px; min-width: 0; }
+    .adsr-row > #monetagCard { grid-column: 1; }
+    .adsr-row > #adsrCard { grid-column: 2; }
+    .adsr-row .watch-btn { margin-top: auto; }
+    .adsr-icon { width: 70px; height: 70px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center; font-size: 38px; color: var(--accent-main); filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
+
     /* AdsGram task component */
     .adsgram-task {
       --adsgram-task-font-size: 14px; --adsgram-task-icon-size: 40px; --adsgram-task-icon-title-gap: 12px;
@@ -456,6 +464,7 @@
           <div class="left"><span class="dot"></span> WATCH & EARN</div>
         </div>
         
+        <div class="adsr-row">
         <!-- Standardized Monetag Rewarded Ad -->
         <div class="glass-card watch-card" id="monetagCard">
           <div class="watch-top">
@@ -473,6 +482,26 @@
           <div id="monetagNextDayTimer" style="display: none; font-size: 13px; font-weight: 800; color: var(--accent-orange); margin-bottom: 14px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
           <span id="monetagCD" style="font-size:11px; color:var(--accent-orange); display:none; margin-bottom:10px; font-weight:800; letter-spacing: 1px;"></span>
           <button class="watch-btn" id="monetagArrow" onclick="startMonetagTask()">WATCH</button>
+        </div>
+
+
+        <!-- AdsGram Reward block (RIGHT of Monetag) - rewards are credited by AdsGram's server callback -->
+        <div class="glass-card watch-card" id="adsrCard">
+          <div class="watch-top">
+            <span style="color: #fff; font-weight: 800; letter-spacing: 1px;">ADSGRAM</span>
+            <span id="adsrLimit" style="color: var(--accent-main); font-size: 13px;">0/5</span>
+          </div>
+          <div class="adsr-icon"><i class="fa-solid fa-gift"></i></div>
+          <div class="watch-reward">
+            <i class="fa-solid fa-paw" style="color: var(--accent-main);"></i>
+            <span id="adsrRewardVal">180</span>
+          </div>
+          <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 16px; overflow: hidden;">
+            <div id="adsrProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
+          </div>
+          <div id="adsrTimer" style="display: none; font-size: 14px; font-weight: 800; color: var(--accent-orange); margin-bottom: 12px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
+          <button class="watch-btn" id="adsrBtn" onclick="startAdsgramReward()">WATCH</button>
+        </div>
         </div>
 
         <!-- AdsGram Task Ads -->
@@ -703,6 +732,19 @@
           <button id="ad-settings-save" onclick="adminSaveAdConfig()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Ad Settings</button>
         </div>
 
+        <div class="glass-card" id="adsr-settings-card">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 4px 0;"><i class="fa-solid fa-gift" style="color:var(--accent-main)"></i> AdsGram Reward Block</h3>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">Ad N in a cycle pays Start − Reduction × (N − 1). After the last ad of a cycle the block locks for the cooldown. Ads per cycle 0 turns it off. Changes apply to everyone immediately.</p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">START (HOWL)<input type="number" id="adsr-start" min="1" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">REDUCE BY<input type="number" id="adsr-step" min="0" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">ADS PER CYCLE<input type="number" id="adsr-limit" min="0" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">COOLDOWN (HOURS)<input type="number" id="adsr-cooldown" min="0.1" step="0.25" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          </div>
+          <div id="adsr-preview" style="font-size:11px; color:var(--accent-main); margin:8px 0 16px 0; word-break:break-word;">—</div>
+          <button id="adsr-save" onclick="adsrAdminSave()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Reward Block Settings</button>
+        </div>
+
         <div class="glass-card">
           <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
             Lookup User by Telegram ID
@@ -860,6 +902,7 @@
 
         showView('admin-view');
         adminLoadAdConfig();
+        adsrAdminLoad();
     }
 
     const BAN_VIEWS = {
@@ -1842,6 +1885,165 @@
             }
         } catch (err) { alert('Network error while processing admin action.'); }
     }
+
+    // ================= AdsGram reward block (block 51923) =================
+    // The Mini App only SHOWS the ad. The reward is credited by AdsGram's server callback to
+    // /api/adsgram-reward, so nothing here can be spoofed to get paid.
+    const ADSR_BLOCK_ID = '51923';
+    let adsrCtrl = null, adsrBusy = false, adsrTickId = null, adsrEndsAt = 0, adsrLastAt = 0;
+
+    function adsrController() {
+        if (!adsrCtrl && window.Adsgram) {
+            try { adsrCtrl = window.Adsgram.init({ blockId: ADSR_BLOCK_ID }); } catch (e) {}
+        }
+        return adsrCtrl;
+    }
+
+    function adsrRender(s) {
+        adsrLastAt = s.last_at || 0;
+        const limitEl = document.getElementById('adsrLimit');
+        const rewardEl = document.getElementById('adsrRewardVal');
+        const barEl = document.getElementById('adsrProgressBar');
+        const btn = document.getElementById('adsrBtn');
+        const timer = document.getElementById('adsrTimer');
+        if (!limitEl || !btn || !timer) return;
+
+        limitEl.textContent = `${s.watched}/${s.limit}`;
+        if (rewardEl) rewardEl.textContent = s.locked ? s.start : (s.next_reward || s.start);
+        if (barEl) barEl.style.width = `${Math.min(100, (s.watched / Math.max(1, s.limit)) * 100)}%`;
+
+        clearInterval(adsrTickId);
+        if (!s.enabled) {
+            btn.disabled = true; btn.textContent = 'UNAVAILABLE'; timer.style.display = 'none';
+            return;
+        }
+        if (s.locked) {
+            adsrEndsAt = Date.now() + s.seconds_left * 1000;
+            btn.disabled = true; btn.textContent = 'COOLDOWN'; timer.style.display = 'block';
+            const tick = () => {
+                const left = Math.max(0, Math.ceil((adsrEndsAt - Date.now()) / 1000));
+                const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), sec = left % 60;
+                timer.innerHTML = '<i class="fa-regular fa-clock"></i> ' + [h, m, sec].map(v => String(v).padStart(2, '0')).join(':');
+                if (left <= 0) { clearInterval(adsrTickId); adsrSync(); }
+            };
+            tick();
+            adsrTickId = setInterval(tick, 1000);
+        } else {
+            timer.style.display = 'none';
+            btn.disabled = adsrBusy;
+            if (!adsrBusy) btn.textContent = 'WATCH';
+        }
+    }
+
+    async function adsrSync() {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        if (!initData) return null;
+        try {
+            const res = await fetch('/api/adsgram-reward', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData }), cache: 'no-store'
+            });
+            const data = await res.json();
+            if (data && data.success) { adsrRender(data.reward); return data.reward; }
+        } catch (e) {}
+        return null;
+    }
+
+    // After the ad, wait for AdsGram's server callback to credit the reward (up to ~15 s)
+    async function adsrWaitForCredit(before) {
+        for (let i = 0; i < 10; i++) {
+            await new Promise(r => setTimeout(r, 1500));
+            const s = await adsrSync();
+            if (s && s.last_at !== before) { triggerHaptic('medium'); return true; }
+        }
+        return false;
+    }
+
+    async function startAdsgramReward() {
+        if (adsrBusy) return;
+        const ctrl = adsrController();
+        if (!ctrl) { alert('Ads are not ready yet. Try again in a moment.'); return; }
+        adsrBusy = true;
+        const btn = document.getElementById('adsrBtn');
+        if (btn) { btn.disabled = true; btn.textContent = 'LOADING...'; }
+        const before = adsrLastAt;
+        try {
+            await ctrl.show();                       // resolves only when the ad was watched to the end
+            if (btn) btn.textContent = 'CREDITING...';
+            await adsrWaitForCredit(before);
+        } catch (e) {
+            if (e && e.error) alert(e.description || 'No ad available right now. Try again later.');
+        }
+        adsrBusy = false;
+        await adsrSync();
+        if (typeof refreshBalance === 'function') refreshBalance();
+    }
+
+    // ---- Admin: reward block settings ----
+    function adsrAdminRead() {
+        const v = (id) => Number((document.getElementById(id) || {}).value);
+        return { start: v('adsr-start'), step: v('adsr-step'), limit: v('adsr-limit'), cooldown_hours: v('adsr-cooldown') };
+    }
+
+    function adsrAdminPreview() {
+        const el = document.getElementById('adsr-preview');
+        if (!el) return;
+        const c = adsrAdminRead();
+        const out = []; let total = 0;
+        for (let i = 0; i < Math.min(c.limit, 20); i++) {
+            const r = Math.max(0, Math.floor(c.start - c.step * i));
+            out.push(r); total += r;
+        }
+        el.textContent = c.limit > 0
+            ? `${out.join(' → ')} HOWL (total ${total.toLocaleString()}) · then ${c.cooldown_hours}h cooldown`
+            : 'Reward block is OFF';
+    }
+
+    async function adsrAdminCall(action, config) {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const res = await fetch('/api/admin', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData, action, config })
+        });
+        return res.json();
+    }
+
+    async function adsrAdminLoad() {
+        try {
+            const data = await adsrAdminCall('get_ad_config');
+            if (!data.success || !data.config || !data.config.adsreward) return;
+            const c = data.config.adsreward;
+            document.getElementById('adsr-start').value = c.start;
+            document.getElementById('adsr-step').value = c.step;
+            document.getElementById('adsr-limit').value = c.limit;
+            document.getElementById('adsr-cooldown').value = c.cooldown_min / 60;
+            adsrAdminPreview();
+        } catch (e) {}
+    }
+
+    async function adsrAdminSave() {
+        if (!confirm('Save these reward block settings? They apply to everyone immediately.')) return;
+        triggerHaptic('medium');
+        const btn = document.getElementById('adsr-save');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+        try {
+            const data = await adsrAdminCall('set_ad_config', { adsreward: adsrAdminRead() });
+            if (data.success) { alert('✅ ' + data.message); adsrAdminLoad(); }
+            else alert('❌ ' + (data.error || 'Could not save settings.'));
+        } catch (e) { alert('Network error while saving settings.'); }
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Reward Block Settings'; }
+    }
+
+    // First status load (waits until Telegram has provided initData)
+    (function adsrBoot() {
+        let tries = 0;
+        const t = setInterval(async () => {
+            tries++;
+            const s = await adsrSync();
+            if (s || tries > 10) clearInterval(t);
+        }, 1500);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) adsrSync(); });
+    })();
 </script>
 </body>
   </html>
