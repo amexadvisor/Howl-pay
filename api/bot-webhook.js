@@ -7,7 +7,7 @@ const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.e
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const BOT_TOKEN = process.env.BOT_TOKEN;
 
-// Give the HOWL back to the user's real balance (same logic as every other endpoint)
+// Give the HOWL back to the  user's real balance (same logic as every other endpoint)
 async function refundToBalance(userId, usd) {
   const howl = Math.round(usd / HOWL_USD_RATE);
   try {
