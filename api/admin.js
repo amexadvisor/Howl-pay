@@ -228,7 +228,9 @@ export default async function handler(req, res) {
     }
 
     if (action === 'set_ad_config') {
-      const v = validateAdConfig(adConfigInput);
+      // Providers that are not sent keep their current values, so each admin card can save on its own.
+      const current = await getAdConfig(supabase, { fresh: true });
+      const v = validateAdConfig(adConfigInput, current);
       if (!v.ok) return res.status(400).json({ success: false, error: v.error });
       const saved = await saveAdConfig(supabase, v.config, callerIdStr);
       return res.status(200).json({ success: true, config: saved, message: 'Ad settings saved. They apply immediately.' });
@@ -287,4 +289,4 @@ export default async function handler(req, res) {
     console.error('[Admin Action Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-    }
+       }
