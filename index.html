@@ -233,6 +233,31 @@
     .adsr-row .watch-btn { margin-top: auto; }
     .adsr-icon { width: 70px; height: 70px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center; font-size: 38px; color: var(--accent-main); filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
 
+    /* Quick tasks + referral activity */
+    .lottie-ico { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+    .lottie-ico svg { width: 100% !important; height: 100% !important; }
+    .qt-chip { background: rgba(94,179,255,0.15); color: var(--accent-main); border: 1px solid rgba(94,179,255,0.35); border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 800; white-space: nowrap; }
+    .qt-muted { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin: 0 0 12px 0; }
+    .qt-text-item { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; color: #fff; }
+    .qt-text-item span { flex: 1; word-break: break-word; }
+    .qt-copy { background: var(--card-bg-light); border: 1px solid var(--border-soft); color: #fff; border-radius: 10px; padding: 8px 12px; cursor: pointer; font-size: 12px; }
+    .qt-btn { flex: 1; background: var(--accent-main); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: 800; font-size: 13px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; }
+    .qt-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .qt-btn-ghost { flex: 0 0 52px; background: var(--card-bg-light); color: #fff; border: 1px solid var(--border-soft); }
+    .qt-timer { font-size: 13px; font-weight: 800; color: var(--accent-orange); margin: 6px 0 4px 0; letter-spacing: 1px; }
+    .qt-done { color: #22c55e; font-weight: 800; font-size: 13px; }
+    .ref-tabs { display: flex; gap: 6px; margin-bottom: 8px; }
+    .ref-tab { flex: 1; background: rgba(0,0,0,0.25); border: 1px solid var(--border-soft); color: var(--text-muted); border-radius: 10px; padding: 8px 4px; font-size: 11px; font-weight: 800; cursor: pointer; }
+    .ref-tab.active { background: rgba(94,179,255,0.15); color: var(--accent-main); border-color: rgba(94,179,255,0.4); }
+    .ref-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-top: 1px solid var(--border-soft); }
+    .ref-avatar { width: 34px; height: 34px; border-radius: 50%; background: rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; color: #fff; flex-shrink: 0; }
+    .ref-info { flex: 1; min-width: 0; }
+    .ref-name { font-size: 13px; font-weight: 700; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .ref-sub { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+    .ref-chip { font-size: 10px; font-weight: 800; padding: 4px 8px; border-radius: 999px; white-space: nowrap; }
+    .ref-chip.on { background: rgba(34,197,94,0.15); color: #22c55e; border: 1px solid rgba(34,197,94,0.35); }
+    .ref-chip.off { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+
     /* AdsGram task component */
     .adsgram-task {
       --adsgram-task-font-size: 14px; --adsgram-task-icon-size: 40px; --adsgram-task-icon-title-gap: 12px;
@@ -448,12 +473,23 @@
           </div>
         </div>
 
-        <div class="clickable" onclick="showView('tasks-view')">
+        <div class="clickable" onclick="showView('quick-view')">
           <div class="glass-card task-row">
-            <div class="task-icon"><i class="fa-solid fa-star" style="color: #f59e0b;"></i></div>
+            <div class="task-icon"><div class="lottie-ico" id="quick-lottie"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i></div></div>
             <div class="task-text">
               <h4>Quick Tasks</h4>
-              <p>One task at a time — links, sites, surveys</p>
+              <p>Comment &amp; bio tasks, fast HOWL rewards</p>
+            </div>
+            <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
+          </div>
+        </div>
+
+        <div class="clickable" onclick="showView('tasks-view')">
+          <div class="glass-card task-row">
+            <div class="task-icon"><div class="lottie-ico" id="offerwall-lottie"><i class="fa-solid fa-earth-africa" style="color: var(--accent-main);"></i></div></div>
+            <div class="task-text">
+              <h4>Offerwall</h4>
+              <p>High paying surveys, micro tasks &amp; more</p>
             </div>
             <i class="fa-solid fa-chevron-right" style="color: var(--text-muted)"></i>
           </div>
@@ -566,13 +602,47 @@
       <div id="tasks-view" class="view">
         <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
           <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
-          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Quick Tasks</h2>
+          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Offerwall</h2>
         </div>
         <div class="offerwall-iframe-container">
           <iframe id="timewall-iframe" src=""></iframe>
         </div>
       </div>
       
+      <!-- QUICK TASKS VIEW -->
+      <div id="quick-view" class="view">
+        <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+          <button onclick="showView('home-view')" style="background:var(--card-bg-light); border:1px solid var(--border-soft); color:#fff; width:40px; height:40px; border-radius:12px; cursor:pointer;"><i class="fa-solid fa-arrow-left"></i></button>
+          <h2 style="font-size: 20px; font-weight: 800; margin:0;">Quick Tasks</h2>
+        </div>
+
+        <div class="glass-card" id="qt-comment-card" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+            <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0;"><i class="fa-regular fa-comments" style="color:var(--accent-main)"></i> Community Comment</h3>
+            <span class="qt-chip" id="qt-comment-reward">+0 HOWL</span>
+          </div>
+          <p class="qt-muted" id="qt-comment-desc"></p>
+          <div id="qt-comment-texts"></div>
+          <div class="qt-timer" id="qt-comment-timer" style="display:none;"></div>
+          <div style="display:flex; gap:10px; margin-top:12px;">
+            <button class="qt-btn" onclick="qtOpenGroup()"><i class="fa-brands fa-telegram"></i> OPEN GROUP</button>
+            <button class="qt-btn qt-btn-ghost" onclick="quickLoad()" title="Refresh"><i class="fa-solid fa-rotate"></i></button>
+          </div>
+        </div>
+
+        <div class="glass-card" id="qt-bio-card" style="display:none;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
+            <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0;"><i class="fa-solid fa-id-card" style="color:var(--accent-main)"></i> Bio Link <span style="font-size:10px; color:var(--text-muted); font-weight:700;">ONE TIME</span></h3>
+            <span class="qt-chip" id="qt-bio-reward">+0 HOWL</span>
+          </div>
+          <p class="qt-muted">Add this line to your Telegram bio (Settings &gt; Edit Profile &gt; Bio), save it, then tap Verify. Bios are limited to 70 characters, so the link has no https://. Your bio must be visible to everybody.</p>
+          <div class="qt-text-item"><span id="qt-bio-text">...</span><button class="qt-copy" onclick="qtCopyBio()"><i class="fa-regular fa-copy"></i></button></div>
+          <button class="qt-btn" id="qt-bio-btn" style="width:100%; flex:none; margin-top:4px;" onclick="qtClaimBio()">VERIFY &amp; CLAIM</button>
+        </div>
+
+        <div class="glass-card" id="qt-empty" style="display:none; text-align:center; color:var(--text-muted); font-size:13px;">No quick tasks are available right now. Check back soon!</div>
+      </div>
+
       <!-- FRIENDS VIEW -->
       <div id="team-view" class="view">
         <h2 style="font-size: 24px; font-weight: 800; margin: 0 0 8px 0;">Friends</h2>
@@ -612,6 +682,32 @@
               <div id="ref-usdt-earned" style="color:#a855f7; font-weight:800; font-size:14px;">$0.0000</div>
             </div>
           </div>
+        </div>
+
+        <div class="glass-card" id="ref-activity-card" style="margin-bottom: 16px;">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 6px 0;"><i class="fa-solid fa-user-check" style="color:var(--accent-main)"></i> Referral Activity</h3>
+          <div class="qt-muted" style="margin-bottom:12px;">Active = watched at least one ad. Inactive = joined but has not watched an ad yet.</div>
+          <div style="display:flex; gap:8px; margin-bottom:12px;">
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">ACTIVE</div>
+              <div id="ref-act-active" style="color:#22c55e; font-weight:800; font-size:16px;">0</div>
+            </div>
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">INACTIVE</div>
+              <div id="ref-act-inactive" style="color:#f59e0b; font-weight:800; font-size:16px;">0</div>
+            </div>
+            <div style="flex:1; background:rgba(0,0,0,0.2); border: 1px solid var(--border-soft); border-radius:12px; padding:12px 6px; text-align:center;">
+              <div style="font-size:9px; color:var(--text-muted); font-weight:700; margin-bottom:6px;">10-AD BONUSES</div>
+              <div id="ref-act-bonus" style="color:var(--accent-main); font-weight:800; font-size:16px;">0</div>
+            </div>
+          </div>
+          <div class="ref-tabs">
+            <button class="ref-tab active" data-f="all" onclick="setRefFilter('all')">ALL</button>
+            <button class="ref-tab" data-f="active" onclick="setRefFilter('active')">ACTIVE</button>
+            <button class="ref-tab" data-f="inactive" onclick="setRefFilter('inactive')">INACTIVE</button>
+          </div>
+          <div id="ref-list"><div class="qt-muted" style="margin:10px 0 0 0;">Loading...</div></div>
+          <div id="ref-more" class="qt-muted" style="display:none; margin:8px 0 0 0;"></div>
         </div>
 
         <div class="glass-card">
@@ -743,6 +839,27 @@
           </div>
           <div id="adsr-preview" style="font-size:11px; color:var(--accent-main); margin:8px 0 16px 0; word-break:break-word;">—</div>
           <button id="adsr-save" onclick="adsrAdminSave()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Reward Block Settings</button>
+        </div>
+
+        <div class="glass-card" id="qt-settings-card">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 4px 0;"><i class="fa-solid fa-bolt" style="color:var(--accent-main)"></i> Quick Tasks</h3>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">Changes apply to everyone immediately.</p>
+
+          <div style="font-size:12px; font-weight:800; color:var(--accent-main); margin-bottom:8px;">COMMUNITY COMMENT TASK</div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#fff; font-weight:700; margin:0 0 12px 0;"><input type="checkbox" id="qt-c-enabled"> Enabled</label>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">REWARD (HOWL)<input type="number" id="qt-c-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">COOLDOWN (HOURS)<input type="number" id="qt-c-cooldown" min="0.1" step="0.25" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          </div>
+          <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-top:8px;">COMMUNITY CHAT ID (e.g. -1001234567890)<input type="text" id="qt-c-chat" placeholder="-100..." style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-top:8px;">GROUP LINK<input type="text" id="qt-c-link" placeholder="https://t.me/howl_community" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+          <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-top:8px;">TEXTS USERS MUST POST (ONE PER LINE, MAX 20)<textarea id="qt-c-texts" rows="5" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none; resize:vertical; font-family:inherit;"></textarea></label>
+
+          <div style="font-size:12px; font-weight:800; color:var(--accent-main); margin:16px 0 8px 0;">BIO LINK TASK (ONE TIME)</div>
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#fff; font-weight:700; margin:0 0 12px 0;"><input type="checkbox" id="qt-b-enabled"> Enabled</label>
+          <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block;">REWARD (HOWL)<input type="number" id="qt-b-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+
+          <button id="qt-save" onclick="qtAdminSave()" style="width:100%; margin-top:16px; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Quick Task Settings</button>
         </div>
 
         <div class="glass-card">
@@ -903,6 +1020,7 @@
         showView('admin-view');
         adminLoadAdConfig();
         adsrAdminLoad();
+        qtAdminLoad();
     }
 
     const BAN_VIEWS = {
@@ -1229,7 +1347,7 @@
 
         if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); }
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
-        if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); }
+        if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); loadReferralList(); }
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
         if(viewId === 'leaderboard-view') {
             if (lastViewBeforeLeaderboard === 'profile-view') {
@@ -1240,6 +1358,7 @@
         }
         
         if (viewId === 'history-view') renderHistory();
+        if (viewId === 'quick-view') quickLoad();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
         document.getElementById('main-content').scrollTop = 0;
     }
@@ -2044,6 +2163,236 @@
         }, 1500);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) adsrSync(); });
     })();
+
+    // ================= Animated icons (Lottie, falls back to the emoji icon if the file is missing) =================
+    function loadIconLottie(id, path) {
+        const el = document.getElementById(id);
+        if (!el || typeof lottie === 'undefined') return;
+        try {
+            const anim = lottie.loadAnimation({ container: el, renderer: 'svg', loop: true, autoplay: true, path });
+            anim.addEventListener('data_ready', () => { el.querySelectorAll('i').forEach(n => n.remove()); });
+        } catch (e) {}
+    }
+    loadIconLottie('quick-lottie', '/assets/thunder.json');
+    loadIconLottie('offerwall-lottie', '/assets/address.json');
+
+    // ================= Quick Tasks (community comment + one-time bio link) =================
+    // Rewards are decided on the server: comments are paid by the group watcher bot, the bio task is verified with Telegram.
+    let qtData = null, qtTickId = null, qtEndsAt = 0;
+
+    async function qtApi(action) {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const res = await fetch('/api/quick-tasks', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData, action }), cache: 'no-store'
+        });
+        return res.json();
+    }
+
+    async function quickLoad() {
+        try {
+            const d = await qtApi('status');
+            if (!d || !d.success) return;
+            const credited = qtData && d.comment.last_at && d.comment.last_at !== qtData.comment.last_at;
+            qtData = d;
+            qtRender(d);
+            if (credited) {
+                triggerHaptic('medium');
+                alert('✅ +' + d.comment.reward.toLocaleString() + ' HOWL credited for your comment!');
+            }
+            if (typeof refreshBalance === 'function') refreshBalance();
+        } catch (e) {}
+    }
+
+    function qtRender(d) {
+        const c = d.comment, b = d.bio;
+        document.getElementById('qt-comment-card').style.display = c.enabled ? 'block' : 'none';
+        document.getElementById('qt-bio-card').style.display = b.enabled ? 'block' : 'none';
+        document.getElementById('qt-empty').style.display = (!c.enabled && !b.enabled) ? 'block' : 'none';
+
+        if (c.enabled) {
+            const hrs = c.cooldown_hours;
+            const cd = hrs >= 1 ? (Math.round(hrs * 10) / 10) + ' h' : Math.round(hrs * 60) + ' min';
+            document.getElementById('qt-comment-reward').textContent = '+' + c.reward.toLocaleString() + ' HOWL';
+            document.getElementById('qt-comment-desc').textContent =
+                'Post one of these texts in our community group. Your reward is credited automatically, once every ' + cd + '.';
+            document.getElementById('qt-comment-texts').innerHTML = c.texts.map((t, i) =>
+                '<div class="qt-text-item"><span>' + escHtml(t) + '</span><button class="qt-copy" onclick="qtCopyText(' + i + ')"><i class="fa-regular fa-copy"></i></button></div>'
+            ).join('');
+
+            clearInterval(qtTickId);
+            const timerEl = document.getElementById('qt-comment-timer');
+            if (c.seconds_left > 0) {
+                qtEndsAt = Date.now() + c.seconds_left * 1000;
+                timerEl.style.display = 'block';
+                const tick = () => {
+                    const left = Math.max(0, Math.ceil((qtEndsAt - Date.now()) / 1000));
+                    const h = Math.floor(left / 3600), m = Math.floor((left % 3600) / 60), s = left % 60;
+                    timerEl.innerHTML = '<i class="fa-regular fa-clock"></i> NEXT REWARD IN ' + [h, m, s].map(v => String(v).padStart(2, '0')).join(':');
+                    if (left <= 0) { clearInterval(qtTickId); quickLoad(); }
+                };
+                tick();
+                qtTickId = setInterval(tick, 1000);
+            } else {
+                timerEl.style.display = 'none';
+            }
+        }
+
+        if (b.enabled) {
+            document.getElementById('qt-bio-reward').textContent = '+' + b.reward.toLocaleString() + ' HOWL';
+            document.getElementById('qt-bio-text').textContent = b.text;
+            const btn = document.getElementById('qt-bio-btn');
+            btn.disabled = !!b.done;
+            btn.innerHTML = b.done ? '<i class="fa-solid fa-circle-check"></i> COMPLETED' : 'VERIFY &amp; CLAIM';
+        }
+    }
+
+    function qtCopy(str) {
+        triggerHaptic('light');
+        const fallback = () => {
+            const ta = document.createElement('textarea');
+            ta.value = str; document.body.appendChild(ta); ta.select();
+            try { document.execCommand('copy'); alert('Copied!'); } catch (e) {}
+            ta.remove();
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(str).then(() => alert('Copied!')).catch(fallback);
+        else fallback();
+    }
+    function qtCopyText(i) { if (qtData && qtData.comment.texts[i] != null) qtCopy(qtData.comment.texts[i]); }
+    function qtCopyBio() { if (qtData) qtCopy(qtData.bio.text); }
+
+    function qtOpenGroup() {
+        triggerHaptic('light');
+        const link = (qtData && qtData.comment.group_link) || 'https://t.me/howl_community';
+        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(link);
+        else window.open(link, '_blank');
+    }
+
+    async function qtClaimBio() {
+        const btn = document.getElementById('qt-bio-btn');
+        if (!btn || btn.disabled) return;
+        triggerHaptic('medium');
+        btn.disabled = true; btn.textContent = 'CHECKING...';
+        try {
+            const d = await qtApi('claim_bio');
+            if (d.success) {
+                triggerHaptic('medium');
+                alert('✅ +' + Number(d.reward).toLocaleString() + ' HOWL added to your balance!');
+            } else {
+                alert('❌ ' + (d.error || 'Could not verify your bio.'));
+                if (d.need_start && d.bot_link) {
+                    if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(d.bot_link);
+                }
+            }
+        } catch (e) { alert('Network error. Try again.'); }
+        await quickLoad();
+    }
+
+    // Coming back from the group: refresh so a fresh comment reward shows up
+    document.addEventListener('visibilitychange', () => {
+        const v = document.getElementById('quick-view');
+        if (!document.hidden && v && v.classList.contains('active')) quickLoad();
+    });
+
+    // ================= Referral activity (Friends view) =================
+    // Same rule as the admin panel: a friend is "active" once they have watched at least one ad.
+    // Data comes from /api/claim-bonus (referral_list mode), so there is no extra endpoint.
+    let refFilter = 'all', refCache = null;
+
+    function qtAgo(ts) {
+        if (!ts) return 'never';
+        const s = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000);
+        if (s < 3600) return Math.max(1, Math.round(s / 60)) + 'm ago';
+        if (s < 86400) return Math.round(s / 3600) + 'h ago';
+        return Math.round(s / 86400) + 'd ago';
+    }
+
+    async function loadReferralList() {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        if (!initData) return;
+        try {
+            const res = await fetch('/api/claim-bonus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
+                body: JSON.stringify({ referral_list: true, initData }), cache: 'no-store'
+            });
+            const d = await res.json();
+            if (d && d.success) { refCache = d; renderReferralList(); }
+        } catch (e) {}
+    }
+
+    function setRefFilter(f) {
+        refFilter = f;
+        triggerHaptic('light');
+        document.querySelectorAll('.ref-tab').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+        renderReferralList();
+    }
+
+    function renderReferralList() {
+        if (!refCache) return;
+        const d = refCache;
+        document.getElementById('ref-act-active').textContent = d.active.toLocaleString();
+        document.getElementById('ref-act-inactive').textContent = d.inactive.toLocaleString();
+        document.getElementById('ref-act-bonus').textContent = d.bonuses.toLocaleString();
+
+        const more = document.getElementById('ref-more');
+        if (d.total > d.listed) { more.style.display = 'block'; more.textContent = 'Showing your latest ' + d.listed + ' of ' + d.total + ' friends.'; }
+        else more.style.display = 'none';
+
+        const rows = d.friends.filter(f => refFilter === 'all' || (refFilter === 'active' ? f.active : !f.active));
+        const box = document.getElementById('ref-list');
+        if (!rows.length) { box.innerHTML = '<div class="qt-muted" style="margin:10px 0 0 0;">No friends here yet.</div>'; return; }
+        box.innerHTML = rows.map(f => {
+            const initial = escHtml((Array.from(String(f.name).trim())[0] || '?').toUpperCase());
+            const sub = f.active
+                ? f.ads + (f.ads === 1 ? ' ad' : ' ads') + ' watched' + (f.bonus_reached ? ' · 10-ad bonus earned' : '')
+                : 'Joined ' + qtAgo(f.joined_at) + ' · has not watched an ad yet';
+            return '<div class="ref-row"><div class="ref-avatar">' + initial + '</div><div class="ref-info"><div class="ref-name">' + escHtml(f.name) +
+                '</div><div class="ref-sub">' + escHtml(sub) + '</div></div><span class="ref-chip ' + (f.active ? 'on' : 'off') + '">' + (f.active ? 'ACTIVE' : 'INACTIVE') + '</span></div>';
+        }).join('');
+    }
+
+    // ================= Admin: quick task settings =================
+    async function qtAdminLoad() {
+        try {
+            const d = await adsrAdminCall('get_quick_tasks');
+            if (!d.success || !d.config) return;
+            const c = d.config.comment, b = d.config.bio, g = (id) => document.getElementById(id);
+            g('qt-c-enabled').checked = !!c.enabled;
+            g('qt-c-reward').value = c.reward;
+            g('qt-c-cooldown').value = c.cooldown_min / 60;
+            g('qt-c-chat').value = c.chat_id || '';
+            g('qt-c-link').value = c.group_link || '';
+            g('qt-c-texts').value = (c.texts || []).join('\n');
+            g('qt-b-enabled').checked = !!b.enabled;
+            g('qt-b-reward').value = b.reward;
+        } catch (e) {}
+    }
+
+    async function qtAdminSave() {
+        if (!confirm('Save these quick task settings? They apply to everyone immediately.')) return;
+        triggerHaptic('medium');
+        const g = (id) => document.getElementById(id);
+        const btn = g('qt-save');
+        btn.disabled = true; btn.textContent = 'Saving...';
+        const cfg = {
+            comment: {
+                enabled: g('qt-c-enabled').checked,
+                reward: Number(g('qt-c-reward').value),
+                cooldown_hours: Number(g('qt-c-cooldown').value),
+                chat_id: g('qt-c-chat').value.trim(),
+                group_link: g('qt-c-link').value.trim(),
+                texts: g('qt-c-texts').value.split('\n')
+            },
+            bio: { enabled: g('qt-b-enabled').checked, reward: Number(g('qt-b-reward').value) }
+        };
+        try {
+            const d = await adsrAdminCall('set_quick_tasks', cfg);
+            if (d.success) { alert('✅ ' + d.message); qtAdminLoad(); }
+            else alert('❌ ' + (d.error || 'Could not save settings.'));
+        } catch (e) { alert('Network error while saving settings.'); }
+        btn.disabled = false; btn.textContent = 'Save Quick Task Settings';
+    }
 </script>
 </body>
-  </html>
+          </html>
