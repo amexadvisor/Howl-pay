@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { HOWL_USD_RATE, verifyInitData, computeBalance } from '../lib/balance.js';
 import { getAdConfig, saveAdConfig, validateAdConfig } from '../lib/adconfig.js';
+import { getQuickTasks, saveQuickTasks, validateQuickTasks } from '../lib/quicktasks.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -236,6 +237,20 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true, config: saved, message: 'Ad settings saved. They apply immediately.' });
     }
 
+    // ---- Quick tasks settings (comment task + bio task) ----
+    if (action === 'get_quick_tasks') {
+      const config = await getQuickTasks(supabase, { fresh: true });
+      return res.status(200).json({ success: true, config });
+    }
+
+    if (action === 'set_quick_tasks') {
+      const current = await getQuickTasks(supabase, { fresh: true });
+      const v = validateQuickTasks(adConfigInput, current);
+      if (!v.ok) return res.status(400).json({ success: false, error: v.error });
+      const saved = await saveQuickTasks(supabase, v.config);
+      return res.status(200).json({ success: true, config: saved, message: 'Quick task settings saved. They apply immediately.' });
+    }
+
     if (action === 'ban') {
       if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing targetUserId.' });
       const targetStr = String(targetUserId).trim();
@@ -289,4 +304,4 @@ export default async function handler(req, res) {
     console.error('[Admin Action Error]', err);
     return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
   }
-       }
+              }
