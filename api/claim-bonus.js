@@ -44,6 +44,56 @@ export default async function handler(req, res) {
     }
   }
 
+  // Referral activity list for the Friends screen (read-only). Same rule the admin panel uses:
+  // a friend is "active" once they have watched at least one Monetag ad.
+  if (req.body && req.body.referral_list) {
+    try {
+      const { count: total } = await supabase.from('users')
+        .select('*', { count: 'exact', head: true }).eq('referred_by', targetUserIdStr);
+
+      const { data: refs } = await supabase.from('users').select('user_id, name, created_at')
+        .eq('referred_by', targetUserIdStr).order('created_at', { ascending: false }).limit(200);
+      const list = refs || [];
+
+      const adCount = {};
+      if (list.length > 0) {
+        const { data: adRows } = await supabase.from('transactions').select('user_id')
+          .in('user_id', list.map((r) => String(r.user_id)))
+          .eq('task_type', AD_PROVIDERS.monetag.taskType).limit(5000);
+        (adRows || []).forEach((r) => {
+          const k = String(r.user_id);
+          adCount[k] = (adCount[k] || 0) + 1;
+        });
+      }
+
+      const friends = list.map((r) => {
+        const id = String(r.user_id);
+        const ads = adCount[id] || 0;
+        return {
+          name: r.name || `User ****${id.slice(-4)}`,
+          joined_at: r.created_at,
+          ads,
+          active: ads > 0,
+          bonus_reached: ads >= 10
+        };
+      });
+      friends.sort((a, b) => Number(b.active) - Number(a.active));   // active first, newest first inside each group
+
+      const active = friends.filter((f) => f.active).length;
+      return res.status(200).json({
+        success: true,
+        total: total || friends.length,
+        listed: friends.length,
+        active,
+        inactive: friends.length - active,
+        bonuses: friends.filter((f) => f.bonus_reached).length,
+        friends
+      });
+    } catch (e) {
+      return res.status(500).json({ success: false, error: 'Could not load referrals.' });
+    }
+  }
+
   try {
     // ---- Ban / multi-account checks (unchanged behaviour) ----
     if (!ADMIN_IDS.includes(targetUserIdStr)) {
@@ -213,10 +263,11 @@ export default async function handler(req, res) {
       reward_howl: rewardHowl,
       reward_usd: rewardUsd,
       ads_watched: position,
+
       ads,
       user_balance: credit.balance   // authoritative balance straight from the DB
     });
   } catch (dbErr) {
     return res.status(500).json({ error: 'Database error: ' + dbErr.message });
   }
-      }
+    }
