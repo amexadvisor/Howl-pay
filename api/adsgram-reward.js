@@ -22,7 +22,7 @@
 import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { HOWL_USD_RATE, verifyInitData, creditHowl, creditUsd } from '../lib/balance.js';
-import { getAdConfig, rewardFor, viewReward, noClickPct, clickWindowSec, REWARD_BLOCK } from '../lib/adconfig.js';
+import { getAdConfig, rewardFor, viewReward, tieredRewardFor, noClickPct, tier1Pct, tier2Pct, clickWindowSec, REWARD_BLOCK } from '../lib/adconfig.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -92,9 +92,13 @@ function publicState(p, s, now = Date.now()) {
     step: p.step,
     cooldown_hours: p.cooldown_min / 60,
     locked,
-    next_reward: off ? 0 : rewardFor(p, s.watched),             // full reward (with click)
-    next_reward_noclick: off ? 0 : viewReward(p, s.watched),    // paid on view alone
+    next_reward: off ? 0 : rewardFor(p, s.watched),             // full reward (all in-ad clicks)
+    next_reward_noclick: off ? 0 : viewReward(p, s.watched),    // paid on view alone (0 clicks)
+    next_reward_tier1: off ? 0 : tieredRewardFor(p, s.watched, 1, 3), // 1 click on 3 ads
+    next_reward_tier2: off ? 0 : tieredRewardFor(p, s.watched, 2, 3), // 2 clicks on 3 ads
     noclick_pct: noClickPct(p),
+    tier1_pct: tier1Pct(p),
+    tier2_pct: tier2Pct(p),
     click_window_sec: clickWindowSec(p),
     seconds_left: locked ? Math.ceil((s.lockedUntil - now) / 1000) : 0,
     last_at: s.lastAt
@@ -178,14 +182,19 @@ async function handleCallback(req, res) {
   return res.status(200).json({ success: true, credited_howl: rewardHowl });
 }
 
-// ---- POST (action 'click'): the Mini App detected that the user opened the ad ----
+// ---- POST (action 'click'): the Mini App detected that the user opened in-ad button(s) ----
 async function handleClick(req, res, verified) {
   const uid = String(verified.user.id);
+  const { clicks: rawClicks, total: rawTotal } = req.body || {};
   const fail = (error) => res.status(200).json({ success: false, error });
 
   const p = (await getAdConfig(supabase)).adsreward;
   if (!p || p.limit <= 0) return fail('disabled');
   if (noClickPct(p) >= 100) return res.status(200).json({ success: true, bonus: 0, reason: 'bonus_off' });
+
+  const total = Math.max(1, Math.min(3, Number(rawTotal) || 1));
+  const clicks = Math.max(0, Math.min(total, Number(rawClicks) || 0));
+  if (clicks <= 0) return res.status(200).json({ success: true, bonus: 0, reason: 'no_clicks' });
 
   const { data: user } = await supabase.from('users').select('user_id, referred_by').eq('user_id', uid).maybeSingle();
   if (!user) return fail('no_user');
@@ -203,15 +212,17 @@ async function handleClick(req, res, verified) {
   if (now - new Date(row.created_at).getTime() > clickWindowSec(p) * 1000) return fail('too_late');
 
   const n = Number(m[3]);
-  const bonusHowl = rewardFor(p, n - 1) - viewReward(p, n - 1);
-  if (bonusHowl <= 0) return res.status(200).json({ success: true, bonus: 0 });
+  const basePaid = viewReward(p, n - 1);
+  const totalEarned = tieredRewardFor(p, n - 1, clicks, total);
+  const bonusHowl = Math.max(0, totalEarned - basePaid);
+  if (bonusHowl <= 0) return res.status(200).json({ success: true, bonus: 0, clicks, total, total_reward: totalEarned });
 
   const bonusTx = `adsrc_${uid}_${m[2]}_${n}`;     // unique per view -> a view can only be bonused once
   const r = await creditOnce(uid, bonusTx, BONUS_TASK, bonusHowl, now);
   if (!r.ok) return r.duplicate ? fail('already_claimed') : res.status(500).json({ success: false });
 
   await payReferral(user.referred_by, r.rewardUsd, bonusTx);
-  return res.status(200).json({ success: true, bonus: bonusHowl });
+  return res.status(200).json({ success: true, bonus: bonusHowl, clicks, total, total_reward: totalEarned });
 }
 
 // ---- POST: status (default) or click bonus ----
