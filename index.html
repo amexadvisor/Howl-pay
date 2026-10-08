@@ -369,6 +369,40 @@
     </div>
   </div>
 
+  <!-- AdsGram Reward Completion Modal -->
+  <div id="adsrCompletedModal" class="full-screen-modal" onclick="if(event.target===this)closeAdsrModal()">
+    <div class="modal-content" style="max-width: 320px; padding: 24px 20px; border-radius: 24px; position: relative; background: rgba(8, 14, 32, 0.96); border: 1px solid rgba(94, 179, 255, 0.25); box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(94, 179, 255, 0.15); text-align: center;">
+      <button onclick="closeAdsrModal()" style="position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 4px; line-height: 1;"><i class="fa-solid fa-xmark"></i></button>
+
+      <div style="display: flex; justify-content: center; align-items: center; margin: 4px auto 14px auto;">
+        <div id="adsr-modal-wolf" style="width: 85px; height: 85px; filter: drop-shadow(0 0 20px rgba(94, 179, 255, 0.6)); display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-paw" style="font-size: 42px; color: var(--accent-main);"></i>
+        </div>
+      </div>
+
+      <h3 style="font-size: 19px; font-weight: 900; margin: 0 0 4px 0; color: #fff; letter-spacing: 0.5px;">Reward Claimed!</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 16px 0;">AdsGram Task Summary</p>
+
+      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 14px 16px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 10px; text-align: left;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+          <span style="color: var(--text-muted);"><i class="fa-solid fa-film" style="color: var(--accent-main); margin-right: 6px;"></i> Ads Watched</span>
+          <span id="adsrModalAdsCount" style="color: #fff; font-weight: 800;">3 Ads</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
+          <span style="color: var(--text-muted);"><i class="fa-solid fa-arrow-pointer" style="color: var(--accent-main); margin-right: 6px;"></i> In-Ad Clicks</span>
+          <span id="adsrModalClicksCount" style="color: #fff; font-weight: 800;">0 / 3 Clicks</span>
+        </div>
+        <div style="height: 1px; background: rgba(255,255,255,0.06); margin: 2px 0;"></div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+          <span style="color: #fff; font-weight: 800;"><i class="fa-solid fa-paw" style="color: var(--accent-main); margin-right: 6px;"></i> Total Reward</span>
+          <span id="adsrModalRewardVal" style="color: var(--accent-main); font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(94, 179, 255, 0.5);">+45 HOWL</span>
+        </div>
+      </div>
+
+      <button class="modal-btn" onclick="closeAdsrModal()" style="border-radius: 14px; padding: 13px; font-size: 14px; font-weight: 800; background: var(--accent-main); color: #000; box-shadow: 0 4px 15px rgba(94, 179, 255, 0.35); cursor: pointer;">AWESOME</button>
+    </div>
+  </div>
+
   <!-- Multi-Account Ban Screen -->
   <div id="ban-screen" style="position: fixed; inset: 0; background: var(--bg-dark); z-index: 999999; display: none; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center;">
     <div id="ban-anim" style="width: 140px; height: 140px; margin-bottom: 20px; filter: drop-shadow(0 0 15px rgba(239,68,68,0.5));"></div>
@@ -966,6 +1000,11 @@
             lottie.loadAnimation({ container: document.getElementById('wolf-emoji'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('nav-wolf-lottie'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
             lottie.loadAnimation({ container: document.getElementById('eye-anim-1'), renderer: 'svg', loop: true, autoplay: true, path: '/assets/Eye.json' });
+            const amw = document.getElementById('adsr-modal-wolf');
+            if (amw) {
+                const a = lottie.loadAnimation({ container: amw, renderer: 'svg', loop: true, autoplay: true, path: '/assets/wolf-emoji.json' });
+                a.addEventListener('data_ready', () => { const f = amw.querySelector('.fa-paw'); if (f) f.remove(); });
+            }
         }
 
         setInterval(updateCooldownTimers, 1000);
@@ -2247,10 +2286,50 @@
         return Math.max(1, Math.min(3, count));
     }
 
+    function showAdsrCompletedModal(adsCount, clicksCount, rewardHowl) {
+        const modal = document.getElementById('adsrCompletedModal');
+        if (!modal) return;
+        const wolfContainer = document.getElementById('adsr-modal-wolf');
+        if (wolfContainer && typeof lottie !== 'undefined' && !wolfContainer.querySelector('svg')) {
+            try {
+                const anim = lottie.loadAnimation({
+                    container: wolfContainer,
+                    renderer: 'svg',
+                    loop: true,
+                    autoplay: true,
+                    path: '/assets/wolf-emoji.json'
+                });
+                anim.addEventListener('data_ready', () => {
+                    const fallback = wolfContainer.querySelector('.fa-paw');
+                    if (fallback) fallback.remove();
+                });
+            } catch (e) {}
+        }
+        const adsEl = document.getElementById('adsrModalAdsCount');
+        const clicksEl = document.getElementById('adsrModalClicksCount');
+        const rewardEl = document.getElementById('adsrModalRewardVal');
+
+        const total = Math.max(1, Math.min(3, Number(adsCount) || 3));
+        const clicks = Math.max(0, Math.min(total, Number(clicksCount) || 0));
+
+        if (adsEl) adsEl.textContent = `${total} ${total === 1 ? 'Ad' : 'Ads'}`;
+        if (clicksEl) clicksEl.textContent = `${clicks} / ${total} ${clicks === 1 ? 'Click' : 'Clicks'}`;
+        if (rewardEl) rewardEl.textContent = `+${Math.max(0, Math.round(rewardHowl || 0))} HOWL`;
+
+        modal.classList.add('active');
+        triggerHaptic('medium');
+    }
+
+    function closeAdsrModal() {
+        const modal = document.getElementById('adsrCompletedModal');
+        if (modal) modal.classList.remove('active');
+        triggerHaptic('light');
+    }
+
     // Asks the server for the click bonus of the latest credited view (the server decides if it is allowed)
     async function adsrSendClick(clicks, total) {
         const initData = window.Telegram?.WebApp?.initData || '';
-        if (!initData) return;
+        if (!initData) return null;
         try {
             const res = await fetch('/api/adsgram-reward', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -2259,12 +2338,13 @@
             });
             const d = await res.json();
             if (d && d.success && d.bonus > 0) {
-                triggerHaptic('medium');
-                alert(`🎉 +${d.bonus} HOWL click bonus added to your balance! (${d.clicks}/${d.total} in-ad clicks)`);
                 if (typeof refreshBalance === 'function') refreshBalance();
             }
+            adsrSync();
+            return d;
         } catch (e) {}
         adsrSync();
+        return null;
     }
 
     async function startAdsgramReward() {
@@ -2276,6 +2356,9 @@
         if (btn) { btn.disabled = true; btn.textContent = 'LOADING...'; }
         const before = adsrLastAt;
 
+        // Base reward that will be credited for 0 clicks
+        const baseViewReward = (adsrState && (adsrState.next_reward_noclick || Math.max(1, Math.floor((adsrState.next_reward || 180) * 0.25)))) || 45;
+
         // A new ad starts a new view: drop the watcher of the previous one
         if (adsrWatcher) { adsrWatcher.stop(); adsrWatcher = null; }
         let credited = false, clickSent = false;
@@ -2285,7 +2368,11 @@
             clickSent = true;
             const total = adsrGetTotalAds(watcher.clicks);
             const finalClicks = Math.min(total, watcher.clicks);
-            await adsrSendClick(finalClicks, total);
+            const res = await adsrSendClick(finalClicks, total);
+            if (res && res.bonus > 0) {
+                const totalRewarded = res.total_reward || (baseViewReward + res.bonus);
+                showAdsrCompletedModal(total, finalClicks, totalRewarded);
+            }
         };
         const watcher = adsrWatcher = adsrWatchClicks(() => { sendClick(); });
 
@@ -2297,7 +2384,24 @@
             if (e && e.error) alert(e.description || 'No ad available right now. Try again later.');
         }
 
-        if (credited && watcher.clicks > 0) await sendClick();
+        if (credited) {
+            const total = adsrGetTotalAds(watcher.clicks);
+            const finalClicks = Math.min(total, watcher.clicks);
+            let totalRewarded = baseViewReward;
+
+            if (finalClicks > 0 && !clickSent) {
+                clickSent = true;
+                const clickRes = await adsrSendClick(finalClicks, total);
+                if (clickRes && clickRes.total_reward) {
+                    totalRewarded = clickRes.total_reward;
+                } else if (clickRes && clickRes.bonus) {
+                    totalRewarded = baseViewReward + clickRes.bonus;
+                }
+            }
+
+            showAdsrCompletedModal(total, finalClicks, totalRewarded);
+        }
+
         adsrBusy = false;
         await adsrSync();
         if (typeof refreshBalance === 'function') refreshBalance();
