@@ -232,6 +232,7 @@
     .adsr-row > #adsrCard { grid-column: 2; }
     .adsr-row .watch-btn { margin-top: auto; }
     .adsr-icon { width: 70px; height: 70px; margin: 0 auto 12px auto; display: flex; align-items: center; justify-content: center; font-size: 38px; color: var(--accent-main); filter: drop-shadow(0 0 10px rgba(94,179,255,0.4)); }
+    .adsr-hint { font-size: 10px; font-weight: 700; color: var(--text-muted); line-height: 1.4; margin: -4px 0 12px 0; }
 
     /* Quick tasks + referral activity */
     .lottie-ico { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
@@ -521,7 +522,7 @@
         </div>
 
 
-        <!-- AdsGram Reward block (RIGHT of Monetag) - rewards are credited by AdsGram's server callback -->
+        <!-- AdsGram Reward block (RIGHT of Monetag) - the view reward is credited by AdsGram's server callback, the click bonus by /api/adsgram-reward -->
         <div class="glass-card watch-card" id="adsrCard">
           <div class="watch-top">
             <span style="color: #fff; font-weight: 800; letter-spacing: 1px;">ADSGRAM</span>
@@ -532,6 +533,7 @@
             <i class="fa-solid fa-paw" style="color: var(--accent-main);"></i>
             <span id="adsrRewardVal">180</span>
           </div>
+          <div id="adsrHint" class="adsr-hint" style="display: none;"></div>
           <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 6px; margin-bottom: 16px; overflow: hidden;">
             <div id="adsrProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
           </div>
@@ -830,12 +832,14 @@
 
         <div class="glass-card" id="adsr-settings-card">
           <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 4px 0;"><i class="fa-solid fa-gift" style="color:var(--accent-main)"></i> AdsGram Reward Block</h3>
-          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">Ad N in a cycle pays Start − Reduction × (N − 1). After the last ad of a cycle the block locks for the cooldown. Ads per cycle 0 turns it off. Changes apply to everyone immediately.</p>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">Ad N in a cycle pays Start − Reduction × (N − 1). After the last ad of a cycle the block locks for the cooldown. Ads per cycle 0 turns it off. "No click pays" is the % paid when the ad view completes; the rest is paid as a click bonus when the app detects the user opened the ad (within the click window). 100 = everything is paid on view and the click bonus is off. Changes apply to everyone immediately.</p>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px;">
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">START (HOWL)<input type="number" id="adsr-start" min="1" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">REDUCE BY<input type="number" id="adsr-step" min="0" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">ADS PER CYCLE<input type="number" id="adsr-limit" min="0" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">COOLDOWN (HOURS)<input type="number" id="adsr-cooldown" min="0.1" step="0.25" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">NO CLICK PAYS (%)<input type="number" id="adsr-noclick" min="1" max="100" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">CLICK WINDOW (SECONDS)<input type="number" id="adsr-clickwin" min="30" max="3600" oninput="adsrAdminPreview()" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;"></label>
           </div>
           <div id="adsr-preview" style="font-size:11px; color:var(--accent-main); margin:8px 0 16px 0; word-break:break-word;">—</div>
           <button id="adsr-save" onclick="adsrAdminSave()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Reward Block Settings</button>
@@ -2006,10 +2010,12 @@
     }
 
     // ================= AdsGram reward block (block 51923) =================
-    // The Mini App only SHOWS the ad. The reward is credited by AdsGram's server callback to
-    // /api/adsgram-reward, so nothing here can be spoofed to get paid.
+    // The VIEW reward is credited by AdsGram's server callback to /api/adsgram-reward (nothing here can be spoofed to get that).
+    // The CLICK bonus is claimed from here, after the app detects that the user opened the ad. AdsGram sends no click
+    // data, so this detection is our own method: it watches for the ad opening a link, or the user leaving the app and coming back.
     const ADSR_BLOCK_ID = '51923';
     let adsrCtrl = null, adsrBusy = false, adsrTickId = null, adsrEndsAt = 0, adsrLastAt = 0;
+    let adsrState = null, adsrWatcher = null;
 
     function adsrController() {
         if (!adsrCtrl && window.Adsgram) {
@@ -2019,9 +2025,11 @@
     }
 
     function adsrRender(s) {
+        adsrState = s;
         adsrLastAt = s.last_at || 0;
         const limitEl = document.getElementById('adsrLimit');
         const rewardEl = document.getElementById('adsrRewardVal');
+        const hintEl = document.getElementById('adsrHint');
         const barEl = document.getElementById('adsrProgressBar');
         const btn = document.getElementById('adsrBtn');
         const timer = document.getElementById('adsrTimer');
@@ -2029,6 +2037,15 @@
 
         limitEl.textContent = `${s.watched}/${s.limit}`;
         if (rewardEl) rewardEl.textContent = s.locked ? s.start : (s.next_reward || s.start);
+        if (hintEl) {
+            const full = s.next_reward || 0, low = s.next_reward_noclick || 0;
+            if (s.enabled && !s.locked && (s.noclick_pct || 100) < 100 && full > low) {
+                hintEl.textContent = `+${full} when you open the ad · +${low} without`;
+                hintEl.style.display = 'block';
+            } else {
+                hintEl.style.display = 'none';
+            }
+        }
         if (barEl) barEl.style.width = `${Math.min(100, (s.watched / Math.max(1, s.limit)) * 100)}%`;
 
         clearInterval(adsrTickId);
@@ -2068,7 +2085,7 @@
         return null;
     }
 
-    // After the ad, wait for AdsGram's server callback to credit the reward (up to ~15 s)
+    // After the ad, wait for AdsGram's server callback to credit the view reward (up to ~15 s)
     async function adsrWaitForCredit(before) {
         for (let i = 0; i < 10; i++) {
             await new Promise(r => setTimeout(r, 1500));
@@ -2076,6 +2093,65 @@
             if (s && s.last_at !== before) { triggerHaptic('medium'); return true; }
         }
         return false;
+    }
+
+    // Detects "the user opened the ad". Signals: the ad calls window.open / Telegram openLink / openTelegramLink,
+    // or the app is deactivated / hidden for 1.5 s+ and then comes back. onClick runs once, on the first signal.
+    function adsrWatchClicks(onClick) {
+        const w = { clicked: false, reasons: [], stop: function () {} };
+        const undo = [];
+        const tg = window.Telegram && window.Telegram.WebApp;
+        const mark = (why) => {
+            if (w.reasons.indexOf(why) < 0) w.reasons.push(why);
+            if (!w.clicked) { w.clicked = true; try { if (onClick) onClick(); } catch (e) {} }
+        };
+
+        const wrap = (obj, name, why) => {
+            try {
+                if (!obj || typeof obj[name] !== 'function') return;
+                const orig = obj[name];
+                obj[name] = function () { mark(why); return orig.apply(this, arguments); };
+                undo.push(() => { try { obj[name] = orig; } catch (e) {} });
+            } catch (e) {}
+        };
+        wrap(window, 'open', 'window.open');
+        if (tg) { wrap(tg, 'openLink', 'openLink'); wrap(tg, 'openTelegramLink', 'openTelegramLink'); }
+
+        let leftAt = 0;
+        const left = () => { if (!leftAt) leftAt = Date.now(); };
+        const back = () => { if (leftAt && Date.now() - leftAt > 1500) mark('left_app'); leftAt = 0; };
+        const onVis = () => { if (document.hidden) left(); else back(); };
+        document.addEventListener('visibilitychange', onVis);
+        undo.push(() => document.removeEventListener('visibilitychange', onVis));
+        if (tg && typeof tg.onEvent === 'function') {
+            try {
+                tg.onEvent('deactivated', left);
+                tg.onEvent('activated', back);
+                undo.push(() => { try { tg.offEvent('deactivated', left); tg.offEvent('activated', back); } catch (e) {} });
+            } catch (e) {}
+        }
+
+        w.stop = () => { undo.splice(0).forEach(fn => fn()); };
+        return w;
+    }
+
+    // Asks the server for the click bonus of the latest credited view (the server decides if it is allowed)
+    async function adsrSendClick() {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        if (!initData) return;
+        try {
+            const res = await fetch('/api/adsgram-reward', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ initData, action: 'click' }), cache: 'no-store'
+            });
+            const d = await res.json();
+            if (d && d.success && d.bonus > 0) {
+                triggerHaptic('medium');
+                alert(`🎉 +${d.bonus} HOWL click bonus added to your balance!`);
+                if (typeof refreshBalance === 'function') refreshBalance();
+            }
+        } catch (e) {}
+        adsrSync();
     }
 
     async function startAdsgramReward() {
@@ -2086,36 +2162,62 @@
         const btn = document.getElementById('adsrBtn');
         if (btn) { btn.disabled = true; btn.textContent = 'LOADING...'; }
         const before = adsrLastAt;
+
+        // A new ad starts a new view: drop the watcher of the previous one
+        if (adsrWatcher) { adsrWatcher.stop(); adsrWatcher = null; }
+        let credited = false, clickSent = false;
+        const sendClick = async () => {
+            if (clickSent || !credited) return;     // the bonus only exists once the view was credited
+            clickSent = true;
+            await adsrSendClick();
+        };
+        const watcher = adsrWatcher = adsrWatchClicks(() => { sendClick(); });
+
         try {
             await ctrl.show();                       // resolves only when the ad was watched to the end
             if (btn) btn.textContent = 'CREDITING...';
-            await adsrWaitForCredit(before);
+            credited = await adsrWaitForCredit(before);
         } catch (e) {
             if (e && e.error) alert(e.description || 'No ad available right now. Try again later.');
         }
+
+        if (credited && watcher.clicked) await sendClick();   // the user opened the ad while it was playing / being credited
         adsrBusy = false;
         await adsrSync();
         if (typeof refreshBalance === 'function') refreshBalance();
+
+        // Keep listening for a late return from the advertiser's page, as long as a bonus can still be claimed
+        const keepMs = ((adsrState && adsrState.click_window_sec) || 300) * 1000;
+        setTimeout(() => { if (adsrWatcher === watcher) { watcher.stop(); adsrWatcher = null; } }, keepMs);
     }
 
     // ---- Admin: reward block settings ----
     function adsrAdminRead() {
         const v = (id) => Number((document.getElementById(id) || {}).value);
-        return { start: v('adsr-start'), step: v('adsr-step'), limit: v('adsr-limit'), cooldown_hours: v('adsr-cooldown') };
+        return {
+            start: v('adsr-start'), step: v('adsr-step'), limit: v('adsr-limit'), cooldown_hours: v('adsr-cooldown'),
+            noclick_pct: v('adsr-noclick'), click_window_sec: v('adsr-clickwin')
+        };
     }
 
     function adsrAdminPreview() {
         const el = document.getElementById('adsr-preview');
         if (!el) return;
         const c = adsrAdminRead();
-        const out = []; let total = 0;
+        const pct = Math.min(100, Math.max(1, Math.round(c.noclick_pct) || 100));
+        const full = [], view = []; let totalFull = 0, totalView = 0;
         for (let i = 0; i < Math.min(c.limit, 20); i++) {
             const r = Math.max(0, Math.floor(c.start - c.step * i));
-            out.push(r); total += r;
+            const lo = r > 0 ? Math.max(1, Math.floor(r * pct / 100)) : 0;
+            full.push(r); view.push(lo); totalFull += r; totalView += lo;
         }
-        el.textContent = c.limit > 0
-            ? `${out.join(' → ')} HOWL (total ${total.toLocaleString()}) · then ${c.cooldown_hours}h cooldown`
-            : 'Reward block is OFF';
+        if (!(c.limit > 0)) { el.textContent = 'Reward block is OFF'; return; }
+        el.textContent =
+            `With click: ${full.join(' → ')} HOWL (total ${totalFull.toLocaleString()})` +
+            (pct < 100
+                ? ` · Without click: ${view.join(' → ')} (total ${totalView.toLocaleString()}) · bonus claimable for ${c.click_window_sec}s after the view`
+                : ' · click bonus OFF (everything is paid on view)') +
+            ` · then ${c.cooldown_hours}h cooldown`;
     }
 
     async function adsrAdminCall(action, config) {
@@ -2136,6 +2238,8 @@
             document.getElementById('adsr-step').value = c.step;
             document.getElementById('adsr-limit').value = c.limit;
             document.getElementById('adsr-cooldown').value = c.cooldown_min / 60;
+            document.getElementById('adsr-noclick').value = (c.noclick_pct != null) ? c.noclick_pct : 100;
+            document.getElementById('adsr-clickwin').value = (c.click_window_sec != null) ? c.click_window_sec : 300;
             adsrAdminPreview();
         } catch (e) {}
     }
@@ -2395,4 +2499,4 @@
     }
 </script>
 </body>
-          </html>
+  </html>
