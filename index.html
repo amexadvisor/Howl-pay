@@ -3044,6 +3044,16 @@
         });
     }
 
+    function ftAlert(msg) {
+        try {
+            if (window.Telegram?.WebApp?.showAlert) {
+                window.Telegram.WebApp.showAlert(msg);
+                return;
+            }
+        } catch (e) {}
+        alert(msg);
+    }
+
     async function ftClaim(taskId) {
         if (ftClaimingId) return;
         const btn = document.getElementById('ft-claim-btn-' + taskId);
@@ -3055,16 +3065,26 @@
         triggerHaptic('medium');
 
         const initData = window.Telegram?.WebApp?.initData || '';
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000);
+
         try {
             const res = await fetch('/api/quick-tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'featured_claim', taskId, initData })
+                body: JSON.stringify({ action: 'featured_claim', taskId, initData }),
+                signal: controller.signal
             });
+            clearTimeout(timeoutId);
             const data = await res.json();
             if (data.success) {
                 triggerHaptic('success');
-                alert(data.message || '🎉 Reward successfully claimed!');
+                if (btn) {
+                    btn.className = 'ft-btn ft-btn-done';
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fa-solid fa-check"></i> DONE';
+                }
+                ftAlert(data.message || '🎉 Reward successfully claimed!');
                 if (typeof refreshBalance === 'function') refreshBalance();
                 
                 localStorage.removeItem('ft_miniapp_' + taskId);
@@ -3081,19 +3101,31 @@
                 }
             } else {
                 triggerHaptic('error');
-                alert('❌ ' + (data.error || 'Could not claim reward.'));
                 if (btn) {
                     btn.disabled = false;
-                    btn.textContent = 'CLAIM';
+                    btn.style.background = '#ef4444';
+                    btn.style.color = '#fff';
+                    btn.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Not Joined';
+                    setTimeout(() => {
+                        if (btn && btn.className !== 'ft-btn ft-btn-done') {
+                            btn.style.background = '';
+                            btn.style.color = '';
+                            btn.textContent = 'CLAIM';
+                        }
+                    }, 2500);
                 }
+                ftAlert(data.error || 'Could not verify membership. Please make sure you joined!');
             }
         } catch (e) {
+            clearTimeout(timeoutId);
             triggerHaptic('error');
-            alert('❌ Network error while claiming task.');
+            const isTimeout = e?.name === 'AbortError';
+            const msg = isTimeout ? 'Verification timed out. Please try again.' : 'Network error while claiming task.';
             if (btn) {
                 btn.disabled = false;
                 btn.textContent = 'CLAIM';
             }
+            ftAlert(msg);
         } finally {
             ftClaimingId = null;
         }

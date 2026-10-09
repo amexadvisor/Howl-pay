@@ -206,7 +206,7 @@ async function handleFeaturedClaim(req, res, uid) {
 
   let txId = '';
   if (task.type === 'channel') {
-    const isMember = await verifyUserInChat(task.chat_id, uid, BOT_TOKEN);
+    const isMember = await verifyUserInChat(task.chat_id, uid, BOT_TOKEN, task.chat_username);
     if (!isMember) {
       return res.status(200).json({
         success: false,
