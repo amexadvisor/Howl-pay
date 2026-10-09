@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 import { HOWL_USD_RATE, verifyInitData, computeBalance } from '../lib/balance.js';
 import { getAdConfig, saveAdConfig, validateAdConfig } from '../lib/adconfig.js';
 import { getQuickTasks, saveQuickTasks, validateQuickTasks } from '../lib/quicktasks.js';
+import { getFeaturedTasks, saveFeaturedTasks, checkTelegramChat } from '../lib/featured-tasks.js';
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
@@ -249,6 +250,101 @@ export default async function handler(req, res) {
       if (!v.ok) return res.status(400).json({ success: false, error: v.error });
       const saved = await saveQuickTasks(supabase, v.config);
       return res.status(200).json({ success: true, config: saved, message: 'Quick task settings saved. They apply immediately.' });
+    }
+
+    // ---- Featured Tasks settings & management ----
+    if (action === 'get_featured_tasks') {
+      const tasks = await getFeaturedTasks(supabase, { fresh: true });
+      return res.status(200).json({ success: true, tasks });
+    }
+
+    if (action === 'check_telegram_chat') {
+      const { chat_identifier } = req.body || {};
+      const check = await checkTelegramChat(chat_identifier, BOT_TOKEN);
+      if (!check.ok) return res.status(400).json({ success: false, error: check.error });
+      return res.status(200).json({ success: true, chat: check.chat });
+    }
+
+    if (action === 'add_featured_task') {
+      const { taskData } = req.body || {};
+      if (!taskData || !taskData.type) return res.status(400).json({ success: false, error: 'Missing task data.' });
+
+      const currentTasks = await getFeaturedTasks(supabase, { fresh: true });
+      let newTask;
+
+      if (taskData.type === 'channel') {
+        const check = await checkTelegramChat(taskData.chat_identifier, BOT_TOKEN);
+        if (!check.ok) return res.status(400).json({ success: false, error: check.error });
+
+        const reward = Math.max(1, Math.round(Number(taskData.reward) || 0));
+        if (reward <= 0) return res.status(400).json({ success: false, error: 'Reward must be a positive number.' });
+
+        if (currentTasks.some(t => t.type === 'channel' && String(t.chat_id) === String(check.chat.id))) {
+          return res.status(400).json({ success: false, error: 'A task for this channel or group already exists.' });
+        }
+
+        newTask = {
+          id: `ft_c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          type: 'channel',
+          title: check.chat.title,
+          chat_id: check.chat.id,
+          chat_username: check.chat.username,
+          invite_link: check.chat.invite_link,
+          has_photo: check.chat.has_photo,
+          photo_file_id: check.chat.photo_file_id,
+          reward,
+          enabled: true,
+          created_at: Date.now()
+        };
+      } else if (taskData.type === 'miniapp') {
+        const title = String(taskData.title || '').trim();
+        const link = String(taskData.link || '').trim();
+        const icon_url = String(taskData.icon_url || '').trim();
+        const reward = Math.max(1, Math.round(Number(taskData.reward) || 0));
+
+        if (!title) return res.status(400).json({ success: false, error: 'Task title is required.' });
+        if (!link || (!link.startsWith('https://') && !link.startsWith('http://'))) {
+          return res.status(400).json({ success: false, error: 'A valid redirect link (http/https) is required.' });
+        }
+        if (reward <= 0) return res.status(400).json({ success: false, error: 'Reward must be a positive number.' });
+
+        newTask = {
+          id: `ft_m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          type: 'miniapp',
+          title,
+          link,
+          icon_url,
+          reward,
+          enabled: true,
+          created_at: Date.now()
+        };
+      } else {
+        return res.status(400).json({ success: false, error: 'Invalid task type.' });
+      }
+
+      currentTasks.push(newTask);
+      await saveFeaturedTasks(supabase, currentTasks);
+      return res.status(200).json({ success: true, task: newTask, message: 'Featured task added successfully!' });
+    }
+
+    if (action === 'toggle_featured_task') {
+      const { taskId } = req.body || {};
+      const tasks = await getFeaturedTasks(supabase, { fresh: true });
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
+      task.enabled = !task.enabled;
+      await saveFeaturedTasks(supabase, tasks);
+      return res.status(200).json({ success: true, task, message: `Task ${task.enabled ? 'activated' : 'deactivated'} successfully.` });
+    }
+
+    if (action === 'delete_featured_task') {
+      const { taskId } = req.body || {};
+      let tasks = await getFeaturedTasks(supabase, { fresh: true });
+      const beforeCount = tasks.length;
+      tasks = tasks.filter(t => t.id !== taskId);
+      if (tasks.length === beforeCount) return res.status(404).json({ success: false, error: 'Task not found.' });
+      await saveFeaturedTasks(supabase, tasks);
+      return res.status(200).json({ success: true, message: 'Task deleted successfully.' });
     }
 
     if (action === 'ban') {

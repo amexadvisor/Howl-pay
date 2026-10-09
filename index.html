@@ -271,6 +271,60 @@
     .adsgram-task__button_claim { margin-left: 0; background: var(--accent-orange); }
     .adsgram-task__button_done { margin-left: 0; background: #16a34a; color: #fff; }
 
+    /* Featured Tasks styles */
+    .featured-task-card {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 14px 16px; margin-bottom: 0; min-height: 64px;
+    }
+    .ft-icon-col {
+      width: 44px; height: 44px; border-radius: 12px; overflow: hidden;
+      flex-shrink: 0; background: rgba(255,255,255,0.06); display: flex;
+      align-items: center; justify-content: center; border: 1px solid var(--border-soft);
+    }
+    .ft-icon-img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+    }
+    .ft-icon-svg {
+      width: 24px; height: 24px; fill: var(--accent-main);
+    }
+    .ft-info-col {
+      flex: 1; min-width: 0; text-align: left;
+    }
+    .ft-title {
+      font-size: 14px; font-weight: 700; color: #fff; margin: 0 0 4px 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .ft-reward {
+      font-size: 12px; font-weight: 800; color: var(--accent-main);
+      display: flex; align-items: center; gap: 4px;
+    }
+    .ft-actions-col {
+      display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+    }
+    .ft-btn {
+      padding: 8px 14px; border-radius: 10px; font-weight: 800; font-size: 12px;
+      cursor: pointer; border: none; text-align: center; text-decoration: none;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      transition: all 0.2s ease;
+    }
+    .ft-btn-go {
+      background: var(--accent-main); color: #000; box-shadow: 0 2px 10px rgba(94,179,255,0.3);
+    }
+    .ft-btn-join {
+      background: rgba(94,179,255,0.15); color: var(--accent-main); border: 1px solid rgba(94,179,255,0.3);
+    }
+    .ft-btn-claim {
+      background: #10b981; color: #fff; box-shadow: 0 2px 10px rgba(16,185,129,0.3);
+    }
+    .ft-btn-wait {
+      background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3);
+      cursor: not-allowed;
+    }
+    .ft-btn-done {
+      background: rgba(255,255,255,0.06); color: var(--text-muted); cursor: not-allowed;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
     .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
@@ -593,6 +647,14 @@
           <div id="adsgramMsg" style="display: none; font-size: 12px; color: var(--text-muted); margin-bottom: 10px; line-height: 1.4;"></div>
           <div id="adsgramSlot" style="width: 100%;"></div>
         </div>
+
+        <!-- Featured Tasks Section -->
+        <div id="featured-tasks-section" style="display: none; margin-top: 20px;">
+          <div class="section-header-row">
+            <div class="left"><span class="dot"></span> FEATURED TASKS</div>
+          </div>
+          <div id="featured-tasks-list" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;"></div>
+        </div>
       </div>
 
       <!-- WITHDRAW VIEW -->
@@ -902,6 +964,76 @@
           <button id="qt-save" onclick="qtAdminSave()" style="width:100%; margin-top:16px; background:var(--accent-main); color:#000; border:none; padding:14px; border-radius:12px; font-weight:800; font-size:14px; cursor:pointer;">Save Quick Task Settings</button>
         </div>
 
+        <!-- Featured Tasks Management Card -->
+        <div class="glass-card" id="ft-admin-card">
+          <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0 0 4px 0;">
+            <i class="fa-solid fa-star" style="color:var(--accent-main)"></i> Featured Tasks Management
+          </h3>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">
+            Add Telegram Channel / Group join tasks or Mini App / Bot visit tasks. Non-recurring, one-time per user.
+          </p>
+
+          <!-- Type Selector Tabs -->
+          <div style="display: flex; gap: 8px; margin-bottom: 14px;">
+            <button type="button" id="ft-tab-channel-btn" onclick="ftAdminSwitchTab('channel')" style="flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; border: none; cursor: pointer; background: var(--accent-main); color: #000; transition: 0.2s;">
+              <i class="fa-brands fa-telegram"></i> Telegram Channel
+            </button>
+            <button type="button" id="ft-tab-miniapp-btn" onclick="ftAdminSwitchTab('miniapp')" style="flex: 1; padding: 10px; border-radius: 10px; font-size: 12px; font-weight: 800; border: 1px solid var(--border-soft); cursor: pointer; background: rgba(0,0,0,0.3); color: var(--text-muted); transition: 0.2s;">
+              <i class="fa-solid fa-gamepad"></i> Mini App / Bot
+            </button>
+          </div>
+
+          <!-- Channel Task Form -->
+          <div id="ft-form-channel" style="display: block;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 4px;">
+              CHANNEL/GROUP @USERNAME OR CHAT ID
+              <input type="text" id="ft-input-chat" placeholder="@yourchannel or -1001234567890" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <p style="font-size:10px; color:var(--accent-orange); margin:2px 0 8px 0; line-height:1.3;">
+              * The bot MUST be added as an Administrator in this channel/group first.
+            </p>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 12px;">
+              REWARD (HOWL)
+              <input type="number" id="ft-input-chat-reward" placeholder="150" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <button id="ft-add-channel-btn" onclick="ftAdminAddChannel()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer;">
+              Verify & Add Channel Task
+            </button>
+          </div>
+
+          <!-- Mini App Form -->
+          <div id="ft-form-miniapp" style="display: none;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 8px;">
+              TASK TITLE
+              <input type="text" id="ft-input-app-title" placeholder="e.g. Play Dogs Mini App" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 8px;">
+              REDIRECT LINK
+              <input type="text" id="ft-input-app-link" placeholder="https://t.me/..." style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 8px;">
+              ICON PHOTO PUBLIC URL (OPTIONAL)
+              <input type="text" id="ft-input-app-icon" placeholder="https://example.com/logo.png" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700; display:block; margin-bottom: 12px;">
+              REWARD (HOWL)
+              <input type="number" id="ft-input-app-reward" placeholder="100" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <button id="ft-add-app-btn" onclick="ftAdminAddMiniApp()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:12px; border-radius:10px; font-weight:800; font-size:13px; cursor:pointer;">
+              Add Mini App Task
+            </button>
+          </div>
+
+          <!-- Existing Tasks List in Admin -->
+          <div style="font-size:12px; font-weight:800; color:var(--accent-main); margin:18px 0 8px 0; display:flex; justify-content:space-between; align-items:center;">
+            <span>CONFIGURED TASKS</span>
+            <button onclick="ftAdminLoad()" style="background:none; border:none; color:var(--text-muted); font-size:11px; cursor:pointer; font-weight:700;"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          </div>
+          <div id="ft-admin-tasks-list" style="display: flex; flex-direction: column; gap: 8px;">
+            <div style="font-size:12px; color:var(--text-muted); padding:10px 0; text-align:center;">Loading tasks...</div>
+          </div>
+        </div>
+
         <div class="glass-card">
           <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
             Lookup User by Telegram ID
@@ -1008,6 +1140,9 @@
         }
 
         setInterval(updateCooldownTimers, 1000);
+        setInterval(ftTickTimers, 1000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) ftTickTimers(); });
+        window.addEventListener('focus', () => { ftTickTimers(); });
         setTimeout(() => { 
             const splash = document.getElementById('splash-screen');
             splash.style.opacity = '0';
@@ -1066,6 +1201,7 @@
         adminLoadAdConfig();
         adsrAdminLoad();
         qtAdminLoad();
+        ftAdminLoad();
     }
 
     const BAN_VIEWS = {
@@ -1317,6 +1453,7 @@
                 setupOfferwallIframes();
                 generateRefLink();
                 syncAdStatusFromServer();
+                loadFeaturedTasks();
             }
         } catch (error) {}
     }
@@ -1390,7 +1527,7 @@
         const nav = document.getElementById('bottom-nav');
         if (viewId === 'admin-view') { if (nav) nav.style.display = 'none'; } else { if (nav) nav.style.display = 'flex'; }
 
-        if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); }
+        if(viewId === 'home-view') { document.querySelectorAll('.nav-item')[0].classList.add('active'); loadFeaturedTasks(); }
         if(viewId === 'tasks-view') document.querySelectorAll('.nav-item')[1].classList.add('active');
         if(viewId === 'team-view') { document.querySelectorAll('.nav-item')[3].classList.add('active'); generateRefLink(); loadReferralList(); }
         if(viewId === 'profile-view' || viewId === 'history-view') document.querySelectorAll('.nav-item')[4].classList.add('active');
@@ -1405,6 +1542,7 @@
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'quick-view') quickLoad();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
+        if (viewId === 'admin-view') ftAdminLoad();
         document.getElementById('main-content').scrollTop = 0;
     }
 
@@ -2721,6 +2859,483 @@
             else alert('❌ ' + (d.error || 'Could not save settings.'));
         } catch (e) { alert('Network error while saving settings.'); }
         btn.disabled = false; btn.textContent = 'Save Quick Task Settings';
+    }
+
+    // ================= FEATURED TASKS (USER & ADMIN) =================
+    const FT_TG_SVG = '<svg class="ft-icon-svg" viewBox="0 0 24 24"><path fill="var(--accent-main)" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.75-.55 2.92-1.27 4.86-2.11 5.83-2.52 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .37z"/></svg>';
+
+    let ftLoadedTasks = [];
+    let ftClaimingId = null;
+
+    function ftOpenLink(url) {
+        if (!url) return;
+        try {
+            if (window.Telegram && window.Telegram.WebApp) {
+                if ((url.startsWith('https://t.me/') || url.startsWith('tg://')) && window.Telegram.WebApp.openTelegramLink) {
+                    window.Telegram.WebApp.openTelegramLink(url);
+                    return;
+                }
+                if (window.Telegram.WebApp.openLink) {
+                    window.Telegram.WebApp.openLink(url);
+                    return;
+                }
+            }
+        } catch (e) {}
+        window.open(url, '_blank');
+    }
+
+    async function loadFeaturedTasks() {
+        const listEl = document.getElementById('featured-tasks-list');
+        const secEl = document.getElementById('featured-tasks-section');
+        if (!listEl || !secEl) return;
+
+        const initData = window.Telegram?.WebApp?.initData || '';
+        try {
+            const res = await fetch('/api/featured-tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'list', initData })
+            });
+            const data = await res.json();
+            if (!data || !data.success || !Array.isArray(data.tasks) || data.tasks.length === 0) {
+                secEl.style.display = 'none';
+                ftLoadedTasks = [];
+                return;
+            }
+
+            ftLoadedTasks = data.tasks;
+            secEl.style.display = 'block';
+            ftRenderTasksList();
+        } catch (e) {
+            console.error('Failed loading featured tasks', e);
+        }
+    }
+
+    function ftRenderTasksList() {
+        const listEl = document.getElementById('featured-tasks-list');
+        if (!listEl) return;
+
+        if (!ftLoadedTasks || ftLoadedTasks.length === 0) {
+            const secEl = document.getElementById('featured-tasks-section');
+            if (secEl) secEl.style.display = 'none';
+            listEl.innerHTML = '';
+            return;
+        }
+
+        listEl.innerHTML = ftLoadedTasks.map(task => {
+            let iconHtml = '';
+            if (task.type === 'channel') {
+                if (task.has_photo && task.avatar_url) {
+                    iconHtml = `<img src="${escHtml(task.avatar_url)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML=FT_TG_SVG;" />`;
+                } else {
+                    iconHtml = FT_TG_SVG;
+                }
+            } else {
+                if (task.icon_url) {
+                    iconHtml = `<img src="${escHtml(task.icon_url)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\\'fa-solid fa-gamepad\\\' style=\\\'color:var(--accent-main);font-size:20px;\\\'></i>';" />`;
+                } else {
+                    iconHtml = `<i class="fa-solid fa-gamepad" style="color:var(--accent-main); font-size:20px;"></i>`;
+                }
+            }
+
+            const actionsHtml = ftBuildActionsHtml(task);
+
+            return `
+              <div class="glass-card featured-task-card" id="ft-card-${task.id}">
+                <div class="ft-icon-col">${iconHtml}</div>
+                <div class="ft-info-col">
+                  <div class="ft-title" title="${escHtml(task.title)}">${escHtml(task.title)}</div>
+                  <div class="ft-reward"><i class="fa-solid fa-paw"></i> +${Number(task.reward).toLocaleString()} HOWL</div>
+                </div>
+                <div class="ft-actions-col" id="ft-actions-${task.id}">
+                  ${actionsHtml}
+                </div>
+              </div>
+            `;
+        }).join('');
+    }
+
+    function ftBuildActionsHtml(task) {
+        if (task.done) {
+            return `<button class="ft-btn ft-btn-done" disabled><i class="fa-solid fa-check"></i> DONE</button>`;
+        }
+
+        if (task.type === 'channel') {
+            const started = localStorage.getItem('ft_started_' + task.id);
+            if (!started) {
+                return `<button class="ft-btn ft-btn-go" onclick="ftGoChannel('${task.id}')">GO <i class="fa-solid fa-arrow-right"></i></button>`;
+            }
+            return `
+              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${task.id}')">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+              <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${task.id}" onclick="ftClaim('${task.id}')">CLAIM</button>
+            `;
+        }
+
+        if (task.type === 'miniapp') {
+            const startTime = Number(localStorage.getItem('ft_miniapp_' + task.id) || 0);
+            if (!startTime) {
+                return `<button class="ft-btn ft-btn-go" onclick="ftGoMiniApp('${task.id}')">GO <i class="fa-solid fa-arrow-right"></i></button>`;
+            }
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            if (elapsed < 15) {
+                const rem = 15 - elapsed;
+                return `<button class="ft-btn ft-btn-wait" id="ft-wait-btn-${task.id}" data-task-id="${task.id}" disabled>WAIT ${rem}s</button>`;
+            }
+            return `<button class="ft-btn ft-btn-claim" id="ft-claim-btn-${task.id}" onclick="ftClaim('${task.id}')">CLAIM</button>`;
+        }
+
+        return '';
+    }
+
+    function ftGoChannel(taskId) {
+        const task = ftLoadedTasks.find(t => t.id === taskId);
+        if (!task) return;
+        triggerHaptic('light');
+        localStorage.setItem('ft_started_' + taskId, '1');
+        ftOpenLink(task.invite_link);
+        const actEl = document.getElementById('ft-actions-' + taskId);
+        if (actEl) {
+            actEl.innerHTML = `
+              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+              <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>
+            `;
+        }
+    }
+
+    function ftRejoinChannel(taskId) {
+        const task = ftLoadedTasks.find(t => t.id === taskId);
+        if (!task) return;
+        triggerHaptic('light');
+        ftOpenLink(task.invite_link);
+    }
+
+    function ftGoMiniApp(taskId) {
+        const task = ftLoadedTasks.find(t => t.id === taskId);
+        if (!task) return;
+        triggerHaptic('light');
+        localStorage.setItem('ft_miniapp_' + taskId, Date.now().toString());
+        ftOpenLink(task.link);
+        const actEl = document.getElementById('ft-actions-' + taskId);
+        if (actEl) {
+            actEl.innerHTML = `<button class="ft-btn ft-btn-wait" id="ft-wait-btn-${taskId}" data-task-id="${taskId}" disabled>WAIT 15s</button>`;
+        }
+    }
+
+    function ftTickTimers() {
+        const waitButtons = document.querySelectorAll('.ft-btn-wait');
+        if (!waitButtons || waitButtons.length === 0) return;
+
+        waitButtons.forEach(btn => {
+            const taskId = btn.getAttribute('data-task-id');
+            if (!taskId) return;
+            const startTime = Number(localStorage.getItem('ft_miniapp_' + taskId) || 0);
+            if (!startTime) return;
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            if (elapsed < 15) {
+                const rem = 15 - elapsed;
+                btn.textContent = `WAIT ${rem}s`;
+            } else {
+                const actEl = document.getElementById('ft-actions-' + taskId);
+                if (actEl) {
+                    actEl.innerHTML = `<button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>`;
+                }
+            }
+        });
+    }
+
+    async function ftClaim(taskId) {
+        if (ftClaimingId) return;
+        const btn = document.getElementById('ft-claim-btn-' + taskId);
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+        }
+        ftClaimingId = taskId;
+        triggerHaptic('medium');
+
+        const initData = window.Telegram?.WebApp?.initData || '';
+        try {
+            const res = await fetch('/api/featured-tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'claim', taskId, initData })
+            });
+            const data = await res.json();
+            if (data.success) {
+                triggerHaptic('success');
+                alert(data.message || '🎉 Reward successfully claimed!');
+                if (typeof refreshBalance === 'function') refreshBalance();
+                
+                localStorage.removeItem('ft_miniapp_' + taskId);
+
+                if (data.type === 'miniapp') {
+                    loadFeaturedTasks();
+                } else {
+                    const actEl = document.getElementById('ft-actions-' + taskId);
+                    if (actEl) {
+                        actEl.innerHTML = '<button class="ft-btn ft-btn-done" disabled><i class="fa-solid fa-check"></i> DONE</button>';
+                    }
+                    const found = ftLoadedTasks.find(t => t.id === taskId);
+                    if (found) found.done = true;
+                }
+            } else {
+                triggerHaptic('error');
+                alert('❌ ' + (data.error || 'Could not claim reward.'));
+                if (btn) {
+                    btn.disabled = false;
+                    btn.textContent = 'CLAIM';
+                }
+            }
+        } catch (e) {
+            triggerHaptic('error');
+            alert('❌ Network error while claiming task.');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'CLAIM';
+            }
+        } finally {
+            ftClaimingId = null;
+        }
+    }
+
+    // ================= ADMIN FEATURED TASKS =================
+    let ftAdminActiveTab = 'channel';
+
+    function ftAdminSwitchTab(tab) {
+        ftAdminActiveTab = tab;
+        const formCh = document.getElementById('ft-form-channel');
+        const formApp = document.getElementById('ft-form-miniapp');
+        const btnCh = document.getElementById('ft-tab-channel-btn');
+        const btnApp = document.getElementById('ft-tab-miniapp-btn');
+
+        if (tab === 'channel') {
+            if (formCh) formCh.style.display = 'block';
+            if (formApp) formApp.style.display = 'none';
+            if (btnCh) {
+                btnCh.style.background = 'var(--accent-main)';
+                btnCh.style.color = '#000';
+                btnCh.style.border = 'none';
+            }
+            if (btnApp) {
+                btnApp.style.background = 'rgba(0,0,0,0.3)';
+                btnApp.style.color = 'var(--text-muted)';
+                btnApp.style.border = '1px solid var(--border-soft)';
+            }
+        } else {
+            if (formCh) formCh.style.display = 'none';
+            if (formApp) formApp.style.display = 'block';
+            if (btnApp) {
+                btnApp.style.background = 'var(--accent-main)';
+                btnApp.style.color = '#000';
+                btnApp.style.border = 'none';
+            }
+            if (btnCh) {
+                btnCh.style.background = 'rgba(0,0,0,0.3)';
+                btnCh.style.color = 'var(--text-muted)';
+                btnCh.style.border = '1px solid var(--border-soft)';
+            }
+        }
+    }
+
+    async function ftAdminCall(action, extra = {}) {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const res = await fetch('/api/admin', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ initData, action, ...extra })
+        });
+        return res.json();
+    }
+
+    async function ftAdminLoad() {
+        const listEl = document.getElementById('ft-admin-tasks-list');
+        if (!listEl) return;
+        try {
+            const d = await ftAdminCall('get_featured_tasks');
+            if (!d.success || !Array.isArray(d.tasks)) {
+                listEl.innerHTML = '<div style="font-size:12px; color:var(--accent-orange); padding:10px 0; text-align:center;">Failed to load tasks.</div>';
+                return;
+            }
+
+            if (d.tasks.length === 0) {
+                listEl.innerHTML = '<div style="font-size:12px; color:var(--text-muted); padding:10px 0; text-align:center;">No featured tasks created yet.</div>';
+                return;
+            }
+
+            listEl.innerHTML = d.tasks.map(task => {
+                const isCh = task.type === 'channel';
+                const sub = isCh ? (task.chat_username ? '@' + task.chat_username : 'Chat ID: ' + task.chat_id) : task.link;
+                return `
+                  <div class="glass-card" style="padding:12px; margin-bottom:8px; display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                      <div style="display:flex; align-items:center; gap:8px;">
+                        <span style="font-size:10px; font-weight:800; padding:2px 8px; border-radius:6px; background:${isCh ? 'rgba(94,179,255,0.15)' : 'rgba(245,158,11,0.15)'}; color:${isCh ? 'var(--accent-main)' : '#f59e0b'};">
+                          ${isCh ? '<i class="fa-brands fa-telegram"></i> CHANNEL' : '<i class="fa-solid fa-gamepad"></i> MINI APP'}
+                        </span>
+                        <span style="font-size:11px; font-weight:800; color:${task.enabled !== false ? '#22c55e' : 'var(--text-muted)'};">
+                          ${task.enabled !== false ? 'ACTIVE' : 'INACTIVE'}
+                        </span>
+                      </div>
+                      <div style="font-size:12px; font-weight:800; color:var(--accent-main);">
+                        +${Number(task.reward).toLocaleString()} HOWL
+                      </div>
+                    </div>
+
+                    <div style="font-size:13px; font-weight:700; color:#fff; word-break:break-word;">
+                      ${escHtml(task.title)}
+                    </div>
+
+                    <div style="font-size:10px; color:var(--text-muted); word-break:break-all;">
+                      ${escHtml(sub)}
+                    </div>
+
+                    <div style="display:flex; justify-content:flex-end; gap:8px; margin-top:4px;">
+                      <button onclick="ftAdminToggle('${task.id}')" style="background:rgba(255,255,255,0.06); color:#fff; border:1px solid var(--border-soft); border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;">
+                        ${task.enabled !== false ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button onclick="ftAdminDelete('${task.id}')" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700; cursor:pointer;">
+                        <i class="fa-solid fa-trash"></i> Delete
+                      </button>
+                    </div>
+                  </div>
+                `;
+            }).join('');
+        } catch (e) {
+            listEl.innerHTML = '<div style="font-size:12px; color:var(--accent-orange); padding:10px 0; text-align:center;">Network error loading tasks.</div>';
+        }
+    }
+
+    async function ftAdminAddChannel() {
+        const chatInput = document.getElementById('ft-input-chat');
+        const rewardInput = document.getElementById('ft-input-chat-reward');
+        const btn = document.getElementById('ft-add-channel-btn');
+        if (!chatInput || !rewardInput || !btn) return;
+
+        const chat_identifier = chatInput.value.trim();
+        const reward = Number(rewardInput.value);
+
+        if (!chat_identifier) {
+            alert('Please enter a channel username (@channel) or Chat ID (-100...).');
+            return;
+        }
+        if (!reward || reward <= 0) {
+            alert('Please enter a valid HOWL reward amount.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verifying with bot...';
+        triggerHaptic('medium');
+
+        try {
+            const d = await ftAdminCall('add_featured_task', {
+                taskData: { type: 'channel', chat_identifier, reward }
+            });
+            if (d.success) {
+                triggerHaptic('success');
+                alert('✅ Channel task added: ' + (d.task?.title || chat_identifier));
+                chatInput.value = '';
+                rewardInput.value = '';
+                ftAdminLoad();
+                loadFeaturedTasks();
+            } else {
+                triggerHaptic('error');
+                alert('❌ ' + (d.error || 'Failed to add channel task.'));
+            }
+        } catch (e) {
+            triggerHaptic('error');
+            alert('❌ Network error while adding channel task.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Verify & Add Channel Task';
+        }
+    }
+
+    async function ftAdminAddMiniApp() {
+        const titleInput = document.getElementById('ft-input-app-title');
+        const linkInput = document.getElementById('ft-input-app-link');
+        const iconInput = document.getElementById('ft-input-app-icon');
+        const rewardInput = document.getElementById('ft-input-app-reward');
+        const btn = document.getElementById('ft-add-app-btn');
+        if (!titleInput || !linkInput || !rewardInput || !btn) return;
+
+        const title = titleInput.value.trim();
+        const link = linkInput.value.trim();
+        const icon_url = iconInput ? iconInput.value.trim() : '';
+        const reward = Number(rewardInput.value);
+
+        if (!title) {
+            alert('Please enter the task title.');
+            return;
+        }
+        if (!link || (!link.startsWith('http://') && !link.startsWith('https://'))) {
+            alert('Please enter a valid link starting with https://');
+            return;
+        }
+        if (!reward || reward <= 0) {
+            alert('Please enter a valid HOWL reward amount.');
+            return;
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Adding task...';
+        triggerHaptic('medium');
+
+        try {
+            const d = await ftAdminCall('add_featured_task', {
+                taskData: { type: 'miniapp', title, link, icon_url, reward }
+            });
+            if (d.success) {
+                triggerHaptic('success');
+                alert('✅ Mini App task added successfully!');
+                titleInput.value = '';
+                linkInput.value = '';
+                if (iconInput) iconInput.value = '';
+                rewardInput.value = '';
+                ftAdminLoad();
+                loadFeaturedTasks();
+            } else {
+                triggerHaptic('error');
+                alert('❌ ' + (d.error || 'Failed to add task.'));
+            }
+        } catch (e) {
+            triggerHaptic('error');
+            alert('❌ Network error while adding task.');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Add Mini App Task';
+        }
+    }
+
+    async function ftAdminToggle(taskId) {
+        triggerHaptic('light');
+        try {
+            const d = await ftAdminCall('toggle_featured_task', { taskId });
+            if (d.success) {
+                ftAdminLoad();
+                loadFeaturedTasks();
+            } else {
+                alert('❌ ' + (d.error || 'Failed to toggle task.'));
+            }
+        } catch (e) {
+            alert('❌ Network error toggling task.');
+        }
+    }
+
+    async function ftAdminDelete(taskId) {
+        if (!confirm('Are you sure you want to delete this featured task?')) return;
+        triggerHaptic('medium');
+        try {
+            const d = await ftAdminCall('delete_featured_task', { taskId });
+            if (d.success) {
+                ftAdminLoad();
+                loadFeaturedTasks();
+            } else {
+                alert('❌ ' + (d.error || 'Failed to delete task.'));
+            }
+        } catch (e) {
+            alert('❌ Network error deleting task.');
+        }
     }
 </script>
 </body>
