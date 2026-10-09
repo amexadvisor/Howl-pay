@@ -4,7 +4,7 @@ import { HOWL_USD_RATE, verifyInitData, creditHowl, getUserBalance } from '../li
 const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-const ADMIN_IDS = ['8026237972', '1928631932'];
+const ADMIN_IDS = ['8026237972'];
 
 function getClientIp(req) {
   let ip = null;

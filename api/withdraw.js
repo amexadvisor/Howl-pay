@@ -7,7 +7,7 @@ const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_
 
 const MIN_WITHDRAW_HOWL = 1500;
 const NETWORK_FEE_USD = 0.01;
-const ADMIN_IDS = ['8026237972', '1928631932'];
+const ADMIN_IDS = ['8026237972'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');

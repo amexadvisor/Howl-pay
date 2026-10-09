@@ -6,7 +6,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const BOT_TOKEN = process.env.BOT_TOKEN;
-const ADMIN_IDS = ['8026237972', '1928631932'];
+const ADMIN_IDS = ['8026237972'];
 
 // Give the HOWL back to the  user's real balance (same logic as every other endpoint)
 async function refundToBalance(userId, usd) {
