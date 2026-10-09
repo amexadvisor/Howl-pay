@@ -2892,10 +2892,10 @@
 
         const initData = window.Telegram?.WebApp?.initData || '';
         try {
-            const res = await fetch('/api/featured-tasks', {
+            const res = await fetch('/api/quick-tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'list', initData })
+                body: JSON.stringify({ action: 'featured_list', initData })
             });
             const data = await res.json();
             if (!data || !data.success || !Array.isArray(data.tasks) || data.tasks.length === 0) {
@@ -3056,10 +3056,10 @@
 
         const initData = window.Telegram?.WebApp?.initData || '';
         try {
-            const res = await fetch('/api/featured-tasks', {
+            const res = await fetch('/api/quick-tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'claim', taskId, initData })
+                body: JSON.stringify({ action: 'featured_claim', taskId, initData })
             });
             const data = await res.json();
             if (data.success) {
