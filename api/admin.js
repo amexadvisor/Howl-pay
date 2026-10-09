@@ -8,7 +8,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-const ADMIN_IDS = ['8026237972'];
+const ADMIN_IDS = ['8026237972', '1928631932'];
 
 // Sum every Referral* ledger row for a user (paged, because Supabase caps a query at 1000 rows).
 // HOWL-labelled rows are stored in HOWL, everything else in USD.

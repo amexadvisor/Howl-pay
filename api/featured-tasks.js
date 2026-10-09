@@ -12,7 +12,7 @@ const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPAB
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
 const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
-const ADMIN_IDS = ['8026237972'];
+const ADMIN_IDS = ['8026237972', '1928631932'];
 
 async function accountBlocked(uid) {
   if (ADMIN_IDS.includes(uid)) return false;

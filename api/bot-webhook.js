@@ -6,6 +6,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim(); 
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 const BOT_TOKEN = process.env.BOT_TOKEN;
+const ADMIN_IDS = ['8026237972', '1928631932'];
 
 // Give the HOWL back to the  user's real balance (same logic as every other endpoint)
 async function refundToBalance(userId, usd) {
@@ -37,9 +38,10 @@ export default async function handler(req, res) {
       const clickerId = String(body.callback_query.from.id);
       const data = body.callback_query.data;
       const messageId = body.callback_query.message.message_id;
+      const adminChatId = String(body.callback_query.message.chat?.id || clickerId);
 
       // SECURITY: Only process your specific admin button clicks
-      if (clickerId !== '8026237972' || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
+      if (!ADMIN_IDS.includes(clickerId) || (!data.startsWith('A_') && !data.startsWith('R_') && !data.startsWith('NR_'))) {
         return res.status(200).json({ success: true }); 
       }
 
@@ -113,7 +115,7 @@ export default async function handler(req, res) {
               created_at: new Date().toISOString()
           }]);
           
-          await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".");
+          await editAdminMessage(messageId, "❌ *Rejected & Refunded*\nUser was refunded $" + usdtDeducted.toFixed(4) + ".", adminChatId);
           await notifyUserRaw(userId, "❌ Your withdrawal request was rejected. $" + usdtDeducted.toFixed(4) + " has been refunded to your balance.");
 
       } else if (action === 'NR') {
@@ -128,7 +130,7 @@ export default async function handler(req, res) {
               created_at: new Date().toISOString()
           }]);
           
-          await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.");
+          await editAdminMessage(messageId, "❌ *Rejected (No Refund)*\nRequest closed without balance restoration.", adminChatId);
           await notifyUserRaw(userId, "❌ Your withdrawal request was rejected by administration.");
 
       } else if (action === 'A') {
@@ -159,10 +161,10 @@ export default async function handler(req, res) {
                       status: '1',
                       created_at: new Date().toISOString()
                   }]);
-                  await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.");
+                  await editAdminMessage(messageId, "⚠️ *Blockchain Failed & Auto-Refunded*\nError: " + shortErr + "\n\nFunds have been returned to user.", adminChatId);
                   await notifyUserRaw(userId, "⚠️ Your withdrawal encountered a blockchain network error. Your $" + usdtDeducted.toFixed(4) + " balance has been automatically refunded.");
               } else {
-                  await editAdminMessage(messageId, "🚨 *Blockchain Failed AND auto-refund failed*\nError: " + shortErr + "\n\nUser ID: `" + userId + "`\nRefund manually: $" + usdtDeducted.toFixed(4));
+                  await editAdminMessage(messageId, "🚨 *Blockchain Failed AND auto-refund failed*\nError: " + shortErr + "\n\nUser ID: `" + userId + "`\nRefund manually: $" + usdtDeducted.toFixed(4), adminChatId);
               }
               return res.status(200).json({ success: true });
           }
@@ -180,7 +182,7 @@ export default async function handler(req, res) {
                   created_at: new Date().toISOString()
               }]);
               
-              await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")");
+              await editAdminMessage(messageId, "✅ *Paid Successfully*\nAmount: $" + payoutUsdt.toFixed(4) + "\nTxHash: [" + tx.hash + "](https://bscscan.com/tx/" + tx.hash + ")", adminChatId);
               
               // 1. PRIVATE USER MESSAGE (No Name, No App Link)
               const userHtml = 
@@ -245,10 +247,10 @@ export default async function handler(req, res) {
   }
 }
 
-async function editAdminMessage(messageId, newText) {
+async function editAdminMessage(messageId, newText, adminChatId) {
     await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/editMessageText', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: '8026237972', message_id: messageId, text: newText, parse_mode: 'Markdown', disable_web_page_preview: true })
+        body: JSON.stringify({ chat_id: adminChatId || '8026237972', message_id: messageId, text: newText, parse_mode: 'Markdown', disable_web_page_preview: true })
     });
 }
 

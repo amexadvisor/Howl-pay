@@ -7,7 +7,7 @@ const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_
 
 const MIN_WITHDRAW_HOWL = 1500;
 const NETWORK_FEE_USD = 0.01;
-const ADMIN_CHAT_ID = '8026237972';
+const ADMIN_IDS = ['8026237972', '1928631932'];
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
 
   // Banned or duplicate-device accounts cannot withdraw (admin Unban overrides)
   try {
-    if (targetUserId !== '8026237972') {
+    if (!ADMIN_IDS.includes(targetUserId)) {
       const { data: banRows } = await supabase.from('transactions').select('status')
         .eq('user_id', targetUserId).eq('task_type', 'ADMIN_BAN')
         .order('created_at', { ascending: false }).limit(1);
@@ -53,7 +53,7 @@ export default async function handler(req, res) {
             .select('user_id, created_at').eq('fingerprint', me.fingerprint)
             .neq('user_id', targetUserId)
             .order('created_at', { ascending: true }).limit(1).maybeSingle();
-          if (primary && (String(primary.user_id) === '8026237972' || new Date(me.created_at) >= new Date(primary.created_at))) {
+          if (primary && (ADMIN_IDS.includes(String(primary.user_id)) || new Date(me.created_at) >= new Date(primary.created_at))) {
             return res.status(403).json({ success: false, message: 'Account suspended due to multi-account policy.' });
           }
         }
@@ -117,22 +117,26 @@ export default async function handler(req, res) {
     // 3) Notify admin (a failure here must not undo the request)
     try {
       const adminMsg = '🚨 *New Withdrawal Request*\n\nUser ID: `' + targetUserId + '`\nAmount: *' + reqAmount + ' HOWL* ($' + usdtValue.toFixed(4) + ')\nFee: $0.0100\nPayout: *$' + payoutUsdt.toFixed(4) + ' USDT*\n\nAddress: `' + cleanAddress + '`';
-      await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          chat_id: ADMIN_CHAT_ID,
-          text: adminMsg,
-          parse_mode: 'Markdown',
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: '✅ Approve & Pay', callback_data: 'A_' + timestampId + '_' + signCallback('A', timestampId, BOT_TOKEN) }],
-              [{ text: '❌ Reject & Refund', callback_data: 'R_' + timestampId + '_' + signCallback('R', timestampId, BOT_TOKEN) }],
-              [{ text: '❌ Reject (No Refund)', callback_data: 'NR_' + timestampId + '_' + signCallback('NR', timestampId, BOT_TOKEN) }]
-            ]
-          }
-        })
-      });
+      for (const adminId of ADMIN_IDS) {
+        try {
+          await fetch('https://api.telegram.org/bot' + BOT_TOKEN + '/sendMessage', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              chat_id: adminId,
+              text: adminMsg,
+              parse_mode: 'Markdown',
+              reply_markup: {
+                inline_keyboard: [
+                  [{ text: '✅ Approve & Pay', callback_data: 'A_' + timestampId + '_' + signCallback('A', timestampId, BOT_TOKEN) }],
+                  [{ text: '❌ Reject & Refund', callback_data: 'R_' + timestampId + '_' + signCallback('R', timestampId, BOT_TOKEN) }],
+                  [{ text: '❌ Reject (No Refund)', callback_data: 'NR_' + timestampId + '_' + signCallback('NR', timestampId, BOT_TOKEN) }]
+                ]
+              }
+            })
+          });
+        } catch (e) {}
+      }
     } catch (notifyErr) {
       console.error('Admin notify failed:', notifyErr.message);
     }

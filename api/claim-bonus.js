@@ -6,7 +6,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_SERVICE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_SERVICE_KEY) ? createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY) : null;
 
-const ADMIN_IDS = ['8026237972'];
+const ADMIN_IDS = ['8026237972', '1928631932'];
 const MIN_GAP_MS = 4000;   // minimum time between two claims of the same ad type
 
 export default async function handler(req, res) {

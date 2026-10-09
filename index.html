@@ -1151,10 +1151,11 @@
     });
 
     // Device identity now comes from /device-vault.js (window.HowlDevice)
+    const ADMIN_IDS = ['8026237972', '1928631932'];
 
     function checkAdminStatus(data) {
         if (!data) return;
-        if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) {
+        if (data.is_admin || (tgUser && ADMIN_IDS.includes(String(tgUser.id)))) {
             isAdminUser = true;
             const adminItem = document.getElementById('admin-profile-item');
             if (adminItem) adminItem.style.display = 'block';
@@ -1232,7 +1233,7 @@
     }
 
     function triggerBanScreen(reason) {
-        if (isAdminUser || (tgUser && String(tgUser.id) === '8026237972')) return;
+        if (isAdminUser || (tgUser && ADMIN_IDS.includes(String(tgUser.id)))) return;
 
         if (gateCheckInterval) { clearInterval(gateCheckInterval); gateCheckInterval = null; }
         try { howlAudio.pause(); } catch(e) {}
@@ -1329,7 +1330,7 @@
             // Reads every store (Secure/Device/local/IndexedDB/cookie), heals the ones that were cleared,
             // and returns { fingerprint, hw, ownerId, isLocalMulti }
             let device = null;
-            try { device = window.HowlDevice ? await window.HowlDevice.collect(u.id, { ignoreOwners: ['8026237972'] }) : null; } catch (e) {}
+            try { device = window.HowlDevice ? await window.HowlDevice.collect(u.id, { ignoreOwners: ADMIN_IDS }) : null; } catch (e) {}
 
             await executeSyncRequest({
                 initData: Telegram.WebApp.initData,
@@ -1368,7 +1369,7 @@
 
             if (data.user_balance) updateBalanceUI(data.user_balance);
             if (data.success && data.referral_stats) updateReferralStatsUI(data.referral_stats);
-            if (data.is_admin || (tgUser && String(tgUser.id) === '8026237972')) checkAdminStatus(data);
+            if (data.is_admin || (tgUser && ADMIN_IDS.includes(String(tgUser.id)))) checkAdminStatus(data);
         }).catch(e => {});
     }
 
@@ -1410,7 +1411,7 @@
                 Telegram.WebApp.setHeaderColor('#02040f');
                 if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
                     tgUser = Telegram.WebApp.initDataUnsafe.user;
-                    if (String(tgUser.id) === '8026237972') checkAdminStatus({ is_admin: true });
+                    if (ADMIN_IDS.includes(String(tgUser.id))) checkAdminStatus({ is_admin: true });
                 }
                 applyLocalBan();
                 syncUserProfile();

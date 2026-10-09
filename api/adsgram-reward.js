@@ -28,7 +28,7 @@ const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
 const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
 const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
 
-const ADMIN_IDS = ['8026237972'];
+const ADMIN_IDS = ['8026237972', '1928631932'];
 const TASK = REWARD_BLOCK.taskType;
 const BONUS_TASK = `${TASK} Click Bonus`;   // different task_type so cycle tracking (getState) never sees it
 const MIN_GAP_MS = 12000;   // a real ad takes longer than this; it also swallows AdsGram retries
