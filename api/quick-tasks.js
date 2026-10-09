@@ -194,11 +194,16 @@ async function handleFeaturedClaim(req, res, uid) {
   const { taskId } = req.body || {};
   if (!taskId) return res.status(400).json({ success: false, error: 'Task ID is required.' });
 
-  if (await accountBlocked(supabase, uid)) {
+  // Parallelize ban check and cached tasks read
+  const [blocked, allTasks] = await Promise.all([
+    accountBlocked(supabase, uid),
+    getFeaturedTasks(supabase)
+  ]);
+
+  if (blocked) {
     return res.status(403).json({ success: false, error: 'Account suspended.' });
   }
 
-  const allTasks = await getFeaturedTasks(supabase, { fresh: true });
   const task = allTasks.find(t => t.id === taskId);
   if (!task || task.enabled === false) {
     return res.status(404).json({ success: false, error: 'Task not found or is no longer available.' });
@@ -219,16 +224,6 @@ async function handleFeaturedClaim(req, res, uid) {
   } else {
     const lHash = linkHash(task.link);
     txId = `ft_link_${lHash}_${uid}`;
-  }
-
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id')
-    .eq('transaction_id', txId)
-    .maybeSingle();
-
-  if (existing) {
-    return res.status(200).json({ success: false, error: 'You have already claimed this task!' });
   }
 
   const rewardHowl = Math.max(1, Math.round(Number(task.reward) || 0));

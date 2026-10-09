@@ -3066,7 +3066,7 @@
 
         const initData = window.Telegram?.WebApp?.initData || '';
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 8000);
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         try {
             const res = await fetch('/api/quick-tasks', {
@@ -3101,11 +3101,13 @@
                 }
             } else {
                 triggerHaptic('error');
+                const tObj = ftLoadedTasks.find(t => t.id === taskId);
+                const isCh = tObj && tObj.type === 'channel';
                 if (btn) {
                     btn.disabled = false;
                     btn.style.background = '#ef4444';
                     btn.style.color = '#fff';
-                    btn.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Not Joined';
+                    btn.innerHTML = isCh ? '<i class="fa-solid fa-circle-exclamation"></i> Not Joined' : '<i class="fa-solid fa-circle-exclamation"></i> Retry';
                     setTimeout(() => {
                         if (btn && btn.className !== 'ft-btn ft-btn-done') {
                             btn.style.background = '';
@@ -3114,7 +3116,7 @@
                         }
                     }, 2500);
                 }
-                ftAlert(data.error || 'Could not verify membership. Please make sure you joined!');
+                ftAlert(data.error || (isCh ? 'Please join the channel or group before claiming!' : 'Could not claim reward.'));
             }
         } catch (e) {
             clearTimeout(timeoutId);
