@@ -283,6 +283,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ success: false, error: 'A task for this channel or group already exists.' });
         }
 
+        const max_users = Math.max(1, Math.round(Number(taskData.max_users) || 1000));
         newTask = {
           id: `ft_c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           type: 'channel',
@@ -293,6 +294,8 @@ export default async function handler(req, res) {
           has_photo: check.chat.has_photo,
           photo_file_id: check.chat.photo_file_id,
           reward,
+          max_users,
+          claimed_count: 0,
           enabled: true,
           created_at: Date.now()
         };
@@ -301,6 +304,7 @@ export default async function handler(req, res) {
         const link = String(taskData.link || '').trim();
         const icon_url = String(taskData.icon_url || '').trim();
         const reward = Math.max(1, Math.round(Number(taskData.reward) || 0));
+        const max_users = Math.max(1, Math.round(Number(taskData.max_users) || 1000));
 
         if (!title) return res.status(400).json({ success: false, error: 'Task title is required.' });
         if (!link || (!link.startsWith('https://') && !link.startsWith('http://'))) {
@@ -315,6 +319,8 @@ export default async function handler(req, res) {
           link,
           icon_url,
           reward,
+          max_users,
+          claimed_count: 0,
           enabled: true,
           created_at: Date.now()
         };
@@ -325,6 +331,27 @@ export default async function handler(req, res) {
       currentTasks.push(newTask);
       await saveFeaturedTasks(supabase, currentTasks);
       return res.status(200).json({ success: true, task: newTask, message: 'Featured task added successfully!' });
+    }
+
+    if (action === 'add_slots_featured_task') {
+      const { taskId, extraSlots } = req.body || {};
+      const extra = Math.round(Number(extraSlots) || 0);
+      if (!taskId) return res.status(400).json({ success: false, error: 'Task ID is required.' });
+      if (extra <= 0) return res.status(400).json({ success: false, error: 'Additional slots must be a positive number.' });
+
+      const tasks = await getFeaturedTasks(supabase, { fresh: true });
+      const task = tasks.find(t => t.id === taskId);
+      if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
+
+      const currentMax = Number(task.max_users) || (Number(task.claimed_count) || 0);
+      task.max_users = currentMax + extra;
+      task.enabled = true; // Auto re-enable when slots are added
+      await saveFeaturedTasks(supabase, tasks);
+      return res.status(200).json({
+        success: true,
+        task,
+        message: `Added ${extra} slots successfully! New limit: ${task.max_users} users.`
+      });
     }
 
     if (action === 'toggle_featured_task') {

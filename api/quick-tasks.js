@@ -12,6 +12,7 @@ import { getQuickTasks, accountBlocked, COMMENT_TASK_TYPE, BIO_TASK_TYPE } from 
 import {
   FEATURED_TASK_TYPE,
   getFeaturedTasks,
+  saveFeaturedTasks,
   verifyUserInChat,
   linkHash
 } from '../lib/featured-tasks.js';
@@ -154,10 +155,16 @@ async function handleFeaturedList(req, res, uid) {
 
   const visibleTasks = [];
   for (const t of activeTasks) {
+    const maxUsers = Number(t.max_users) || 0;
+    const claimedCount = Number(t.claimed_count) || 0;
+    const isFull = maxUsers > 0 && claimedCount >= maxUsers;
+    const slotsLeft = maxUsers > 0 ? Math.max(0, maxUsers - claimedCount) : null;
+
     if (t.type === 'miniapp') {
       const lHash = linkHash(t.link);
       const isDone = completedTxIds.has(`ft_link_${lHash}_${uid}`) || completedTxIds.has(`ft_task_${t.id}_${uid}`);
-      if (!isDone) {
+      // If already done or full, auto-disappear from feed
+      if (!isDone && !isFull) {
         visibleTasks.push({
           id: t.id,
           type: 'miniapp',
@@ -165,12 +172,19 @@ async function handleFeaturedList(req, res, uid) {
           link: t.link,
           icon_url: t.icon_url || '',
           reward: Number(t.reward) || 0,
+          max_users: maxUsers,
+          claimed_count: claimedCount,
+          slots_left: slotsLeft,
           done: false
         });
       }
     } else {
       const cId = Math.abs(Number(t.chat_id) || 0);
       const isDone = completedTxIds.has(`ft_chat_${cId}_${uid}`) || completedTxIds.has(`ft_task_${t.id}_${uid}`);
+      // If full and user has not completed it yet, auto-disappear from feed
+      if (isFull && !isDone) {
+        continue;
+      }
       visibleTasks.push({
         id: t.id,
         type: 'channel',
@@ -181,6 +195,9 @@ async function handleFeaturedList(req, res, uid) {
         photo_file_id: t.photo_file_id || '',
         avatar_url: t.photo_file_id ? `/api/quick-tasks?action=featured_avatar&file_id=${encodeURIComponent(t.photo_file_id)}` : '',
         reward: Number(t.reward) || 0,
+        max_users: maxUsers,
+        claimed_count: claimedCount,
+        slots_left: slotsLeft,
         done: isDone
       });
     }
@@ -207,6 +224,16 @@ async function handleFeaturedClaim(req, res, uid) {
   const task = allTasks.find(t => t.id === taskId);
   if (!task || task.enabled === false) {
     return res.status(404).json({ success: false, error: 'Task not found or is no longer available.' });
+  }
+
+  // Check if task has reached user slots cap
+  const maxUsers = Number(task.max_users) || 0;
+  const currentClaimed = Number(task.claimed_count) || 0;
+  if (maxUsers > 0 && currentClaimed >= maxUsers) {
+    return res.status(200).json({
+      success: false,
+      error: 'This task has reached its maximum user limit!'
+    });
   }
 
   let txId = '';
@@ -254,6 +281,18 @@ async function handleFeaturedClaim(req, res, uid) {
   if (!credit.ok) {
     await supabase.from('transactions').delete().eq('transaction_id', txId);
     return res.status(500).json({ success: false, error: 'Failed to credit HOWL reward.' });
+  }
+
+  // Increment task claimed_count in app_settings
+  try {
+    const freshTasks = await getFeaturedTasks(supabase, { fresh: true });
+    const targetTask = freshTasks.find(t => t.id === task.id);
+    if (targetTask) {
+      targetTask.claimed_count = (Number(targetTask.claimed_count) || 0) + 1;
+      await saveFeaturedTasks(supabase, freshTasks);
+    }
+  } catch (cntErr) {
+    console.error('[featured-tasks] bump claimed_count error:', cntErr && cntErr.message);
   }
 
   return res.status(200).json({
