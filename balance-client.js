@@ -71,7 +71,8 @@
     inflight = true;
     const mySeq = ++seq;
     try {
-      const r = await fetch('/api/claim-bonus', {
+      const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+      const r = await fetch(apiBase + '/api/claim-bonus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': data },
         body: JSON.stringify({ balance_only: true, initData: data }),

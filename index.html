@@ -7,6 +7,11 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Backend API Configuration -->
+  <script>
+    window.API_BASE_URL = 'https://howlearn.duckdns.org';
+  </script>
+
   <!-- Safe Error Telemetry via Backend -->
   <script>
     (function() {
@@ -53,7 +58,8 @@
             details: formattedDetail
           };
 
-          fetch('/api/log-error', {
+          const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+          fetch(apiBase + '/api/log-error', {
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1088,6 +1094,7 @@
   </div>
 
 <script>
+    const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
     let tgUser = null;
     let currentUserId = 'guest_user';
     let currentHowlBalance = 0;
@@ -1354,7 +1361,7 @@
     }
 
     function executeSyncRequest(payload, tgId) {
-        return fetch('/api/verify', {
+        return fetch(`${API_BASE_URL}/api/verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
@@ -1436,7 +1443,7 @@
     async function verifyChannelMembership() {
         if (currentUserId === 'guest_user') return; 
         try {
-            const response = await fetch(`/api/check-channels?userId=${currentUserId}`);
+            const response = await fetch(`${API_BASE_URL}/api/check-channels?userId=${currentUserId}`);
             const data = await response.json();
             
             if (data.results) {
@@ -1472,7 +1479,7 @@
         if (!initDataPayload) return;
 
         try {
-            const response = await fetch('/api/claim-bonus', {
+            const response = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
                 body: JSON.stringify({ check_status: true, initData: initDataPayload })
@@ -1655,7 +1662,7 @@
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
 
         try {
-            const response = await fetch('/api/claim-bonus', {
+            const response = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "X-Telegram-Init-Data": initDataPayload },
                 body: JSON.stringify({ completed: true, provider: 'adsgram', initData: initDataPayload })
@@ -1801,7 +1808,7 @@
 
         try {
             const initData = window.Telegram?.WebApp?.initData || "";
-            const res = await fetch('/api/withdraw', {
+            const res = await fetch(`${API_BASE_URL}/api/withdraw`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData, address, amount })
@@ -1829,7 +1836,7 @@
         if (!historyList) return;
         historyList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
         try {
-            const response = await fetch(`/api/history?userId=${currentUserId}`);
+            const response = await fetch(`${API_BASE_URL}/api/history?userId=${currentUserId}`);
             const data = await response.json();
             if (!data || data.length === 0) {
                 historyList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">No transactions found.</div>`;
@@ -1847,7 +1854,7 @@
         if (!leaderboardList) return;
         leaderboardList.innerHTML = `<div class="loader-spinner" style="margin: 30px auto;"></div>`;
         try {
-            const response = await fetch('/api/leaderboard');
+            const response = await fetch(`${API_BASE_URL}/api/leaderboard`);
             const sortedEarners = await response.json();
             if (!sortedEarners || sortedEarners.length === 0) {
                 leaderboardList.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-muted);">No top earners found.</div>`;
@@ -1916,7 +1923,7 @@
     }
 
     async function sendRewardWebhook() {
-        const bonusEndpoint = webhookUrl || '/api/claim-bonus';
+        const bonusEndpoint = webhookUrl || `${API_BASE_URL}/api/claim-bonus`;
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
 
         try {
@@ -1975,7 +1982,7 @@
     async function adminLoadAdConfig() {
         try {
             const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData, action: 'get_ad_config' })
             });
@@ -2003,7 +2010,7 @@
         if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
         try {
             const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData, action: 'set_ad_config', config })
             });
@@ -2036,7 +2043,7 @@
 
         try {
             const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData: initData, action: 'lookup', targetUserId: targetId })
@@ -2181,7 +2188,7 @@
         triggerHaptic('medium');
         try {
             const initData = window.Telegram?.WebApp?.initData || '';
-            const res = await fetch('/api/admin', {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData: initData, action: action, targetUserId: targetId })
@@ -2285,7 +2292,7 @@
         const initData = window.Telegram?.WebApp?.initData || '';
         if (!initData) return null;
         try {
-            const res = await fetch('/api/adsgram-reward', {
+            const res = await fetch(`${API_BASE_URL}/api/adsgram-reward`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData }), cache: 'no-store'
             });
@@ -2478,7 +2485,7 @@
         const initData = window.Telegram?.WebApp?.initData || '';
         if (!initData) return null;
         try {
-            const res = await fetch('/api/adsgram-reward', {
+            const res = await fetch(`${API_BASE_URL}/api/adsgram-reward`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ initData, action: 'click', clicks: Number(clicks) || 0, total: Number(total) || 1 }),
                 cache: 'no-store'
@@ -2592,7 +2599,7 @@
 
     async function adsrAdminCall(action, config) {
         const initData = window.Telegram?.WebApp?.initData || '';
-        const res = await fetch('/api/admin', {
+        const res = await fetch(`${API_BASE_URL}/api/admin`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData, action, config })
         });
@@ -2658,7 +2665,7 @@
 
     async function qtApi(action) {
         const initData = window.Telegram?.WebApp?.initData || '';
-        const res = await fetch('/api/quick-tasks', {
+        const res = await fetch(`${API_BASE_URL}/api/quick-tasks`, {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData, action }), cache: 'no-store'
         });
@@ -2787,7 +2794,7 @@
         const initData = window.Telegram?.WebApp?.initData || '';
         if (!initData) return;
         try {
-            const res = await fetch('/api/claim-bonus', {
+            const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-Telegram-Init-Data': initData },
                 body: JSON.stringify({ referral_list: true, initData }), cache: 'no-store'
@@ -2900,7 +2907,7 @@
 
         const initData = window.Telegram?.WebApp?.initData || '';
         try {
-            const res = await fetch('/api/quick-tasks', {
+            const res = await fetch(`${API_BASE_URL}/api/quick-tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'featured_list', initData })
@@ -2934,8 +2941,9 @@
         listEl.innerHTML = ftLoadedTasks.map(task => {
             let iconHtml = '';
             if (task.type === 'channel') {
-                if (task.has_photo && task.avatar_url) {
-                    iconHtml = `<img src="${escHtml(task.avatar_url)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML=FT_TG_SVG;" />`;
+                const avatar = task.avatar_url ? (task.avatar_url.startsWith('http') ? task.avatar_url : (API_BASE_URL + task.avatar_url)) : '';
+                if (task.has_photo && avatar) {
+                    iconHtml = `<img src="${escHtml(avatar)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML=FT_TG_SVG;" />`;
                 } else {
                     iconHtml = FT_TG_SVG;
                 }
@@ -3098,7 +3106,7 @@
         const timeoutId = setTimeout(() => controller.abort(), 15000);
 
         try {
-            const res = await fetch('/api/quick-tasks', {
+            const res = await fetch(`${API_BASE_URL}/api/quick-tasks`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ action: 'featured_claim', taskId, initData }),
@@ -3206,7 +3214,7 @@
 
     async function ftAdminCall(action, extra = {}) {
         const initData = window.Telegram?.WebApp?.initData || '';
-        const res = await fetch('/api/admin', {
+        const res = await fetch(`${API_BASE_URL}/api/admin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ initData, action, ...extra })
