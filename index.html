@@ -1129,8 +1129,14 @@
     }
 
     function triggerHaptic(style = 'light') {
-        if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) {
-            Telegram.WebApp.HapticFeedback.impactOccurred(style);
+        if (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback) {
+            try {
+                if (['error', 'success', 'warning'].includes(style)) {
+                    window.Telegram.WebApp.HapticFeedback.notificationOccurred(style);
+                } else {
+                    window.Telegram.WebApp.HapticFeedback.impactOccurred(style);
+                }
+            } catch (e) {}
         }
     }
 
@@ -2967,6 +2973,7 @@
                   <div class="ft-title" title="${escHtml(task.title)}">${escHtml(task.title)}</div>
                   <div class="ft-reward"><i class="fa-solid fa-paw"></i> +${Number(task.reward).toLocaleString()} HOWL</div>
                   ${spotsBadge}
+                  <div id="ft-status-${task.id}" style="display:none; font-size:10px; margin-top:4px; font-weight:700; line-height:1.2;"></div>
                 </div>
                 <div class="ft-actions-col" id="ft-actions-${task.id}">
                   ${actionsHtml}
@@ -3027,6 +3034,11 @@
         const task = ftLoadedTasks.find(t => t.id === taskId);
         if (!task) return;
         triggerHaptic('light');
+        const statusEl = document.getElementById('ft-status-' + taskId);
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = `<span style="color:var(--accent-main);"><i class="fa-solid fa-circle-info"></i> Joined? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`;
+        }
         ftOpenLink(task.invite_link);
     }
 
@@ -3065,13 +3077,14 @@
     }
 
     function ftAlert(msg) {
+        if (!msg) return;
         try {
             if (window.Telegram?.WebApp?.showAlert) {
                 window.Telegram.WebApp.showAlert(msg);
                 return;
             }
         } catch (e) {}
-        alert(msg);
+        try { alert(msg); } catch (e) {}
     }
 
     async function ftClaim(taskId) {
@@ -3082,6 +3095,12 @@
         btn.disabled = true;
         ftClaimingId = taskId;
         triggerHaptic('medium');
+
+        const statusEl = document.getElementById('ft-status-' + taskId);
+        if (statusEl) {
+            statusEl.style.display = 'block';
+            statusEl.innerHTML = `<span style="color:var(--accent-main);"><i class="fa-solid fa-spinner fa-spin"></i> Checking membership with bot...</span>`;
+        }
 
         // Multi-stage animated feedback so button feels responsive and alive
         let step = 0;
@@ -3121,6 +3140,11 @@
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> DONE';
 
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.innerHTML = `<span style="color:#10b981;"><i class="fa-solid fa-circle-check"></i> +${Number(data.reward || 50).toLocaleString()} HOWL Claimed!</span>`;
+                }
+
                 ftAlert(data.message || '🎉 Reward successfully claimed!');
                 if (typeof refreshBalance === 'function') refreshBalance();
                 
@@ -3141,17 +3165,36 @@
                 triggerHaptic('error');
                 const tObj = ftLoadedTasks.find(t => t.id === taskId);
                 const isCh = tObj && tObj.type === 'channel';
+
+                if (statusEl) {
+                    statusEl.style.display = 'block';
+                    statusEl.innerHTML = `<span style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ${escHtml(data.error || (isCh ? 'Not joined yet. Tap JOIN first, then tap CLAIM.' : 'Could not claim.'))}</span>`;
+                }
+
                 btn.disabled = false;
                 btn.style.background = '#ef4444';
                 btn.style.color = '#fff';
                 btn.innerHTML = isCh ? '<i class="fa-solid fa-circle-exclamation"></i> Not Joined' : '<i class="fa-solid fa-circle-exclamation"></i> Retry';
-                setTimeout(() => {
-                    if (btn && !btn.classList.contains('ft-btn-done')) {
-                        btn.style.background = '';
-                        btn.style.color = '';
-                        btn.textContent = 'CLAIM';
-                    }
-                }, 2500);
+
+                const actEl = document.getElementById('ft-actions-' + taskId);
+                if (isCh && actEl) {
+                    setTimeout(() => {
+                        if (actEl && !actEl.querySelector('.ft-btn-done')) {
+                            actEl.innerHTML = `
+                              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')" style="background:var(--accent-main); color:#000; font-weight:800; box-shadow:0 0 10px rgba(94,179,255,0.4);">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                              <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>
+                            `;
+                        }
+                    }, 1800);
+                } else {
+                    setTimeout(() => {
+                        if (btn && !btn.classList.contains('ft-btn-done')) {
+                            btn.style.background = '';
+                            btn.style.color = '';
+                            btn.textContent = 'CLAIM';
+                        }
+                    }, 2500);
+                }
                 ftAlert(data.error || (isCh ? 'Please join the channel or group before claiming!' : 'Could not claim reward.'));
             }
         } catch (e) {
@@ -3160,6 +3203,10 @@
             triggerHaptic('error');
             const isTimeout = e?.name === 'AbortError';
             const msg = isTimeout ? 'Verification timed out. Please try again.' : 'Network error while claiming task.';
+            if (statusEl) {
+                statusEl.style.display = 'block';
+                statusEl.innerHTML = `<span style="color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(msg)}</span>`;
+            }
             if (btn) {
                 btn.disabled = false;
                 btn.style.background = '';
