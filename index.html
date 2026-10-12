@@ -331,6 +331,51 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
+    /* Golden Glow for Boinkers Partner Tasks */
+    .featured-task-card.golden-glow-task {
+      border: 1.5px solid rgba(255, 204, 0, 0.75) !important;
+      background: linear-gradient(135deg, rgba(255, 204, 0, 0.14) 0%, rgba(28, 22, 10, 0.78) 50%, rgba(15, 15, 22, 0.92) 100%) !important;
+      box-shadow: 0 0 18px rgba(255, 204, 0, 0.38), inset 0 0 12px rgba(255, 204, 0, 0.08) !important;
+      position: relative;
+    }
+    .featured-task-card.golden-glow-task .ft-icon-col {
+      border-color: rgba(255, 204, 0, 0.6) !important;
+      box-shadow: 0 0 8px rgba(255, 204, 0, 0.35);
+    }
+    .featured-task-card.golden-glow-task .ft-reward {
+      color: #ffcc00 !important;
+      font-weight: 900;
+      text-shadow: 0 0 8px rgba(255, 204, 0, 0.45);
+    }
+    .featured-task-card.golden-glow-task .ft-btn-go {
+      background: #ffcc00 !important;
+      color: #000 !important;
+      box-shadow: 0 2px 10px rgba(255, 204, 0, 0.45) !important;
+      font-weight: 900 !important;
+    }
+    .featured-task-card.golden-glow-task .ft-btn-join {
+      background: rgba(255, 204, 0, 0.18) !important;
+      color: #ffcc00 !important;
+      border-color: rgba(255, 204, 0, 0.45) !important;
+      font-weight: 800 !important;
+    }
+    .golden-partner-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 8.5px;
+      font-weight: 900;
+      letter-spacing: 0.6px;
+      padding: 1px 6px;
+      border-radius: 6px;
+      background: rgba(255, 204, 0, 0.22);
+      border: 1px solid rgba(255, 204, 0, 0.55);
+      color: #ffcc00;
+      margin-left: 6px;
+      vertical-align: middle;
+      text-transform: uppercase;
+    }
+
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
     .nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; font-weight: 700; padding: 12px 0 0 0; background: transparent; border: none; width: 20%; cursor: pointer; transition: 0.2s; text-transform: uppercase; letter-spacing: 0.5px; }
     .nav-item i { font-size: 20px; margin-bottom: 6px; }
@@ -1064,12 +1109,15 @@
             <input type="checkbox" id="boinkers-enabled" onchange="boinkersToggleStatusUI()"> Enable Boinkers Campaign
           </label>
 
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">10 SPINS REWARD (HOWL)
-              <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:14px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">OPEN APP REWARD
+              <input type="number" id="boinkers-open-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">MOON TASK REWARD (HOWL)
-              <input type="number" id="boinkers-moon-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">10 SPINS REWARD
+              <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
+            </label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">MOON TASK REWARD
+              <input type="number" id="boinkers-moon-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
           </div>
 
@@ -1105,7 +1153,11 @@
 
             <!-- Outbound stats -->
             <div style="font-size:10px; color:var(--text-muted); font-weight:800; margin-bottom:6px; letter-spacing:0.5px;">OUTBOUND (HOWL → BOINKERS)</div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; font-size:11px;">
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">Open Claims</div>
+                <div id="boinkers-stat-out-open" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
+              </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
                 <div style="color:var(--text-muted); font-size:9px;">10 Spins Claims</div>
                 <div id="boinkers-stat-out-spins" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
@@ -3016,6 +3068,9 @@
         }
 
         listEl.innerHTML = ftLoadedTasks.map(task => {
+            const isGolden = task.golden_glow || (task.id && task.id.startsWith('boinkers_'));
+            const glowClass = isGolden ? ' golden-glow-task' : '';
+
             let iconHtml = '';
             if (task.type === 'channel') {
                 const avatar = task.avatar_url ? (task.avatar_url.startsWith('http') ? task.avatar_url : (API_BASE_URL + task.avatar_url)) : '';
@@ -3025,8 +3080,9 @@
                     iconHtml = FT_TG_SVG;
                 }
             } else {
-                if (task.icon_url) {
-                    iconHtml = `<img src="${escHtml(task.icon_url)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\\'fa-solid fa-gamepad\\\' style=\\\'color:var(--accent-main);font-size:20px;\\\'></i>';" />`;
+                const iconSrc = (task.icon_url || task.avatar_url) ? ((task.icon_url || task.avatar_url).startsWith('http') ? (task.icon_url || task.avatar_url) : (API_BASE_URL + (task.icon_url || task.avatar_url))) : '';
+                if (iconSrc) {
+                    iconHtml = `<img src="${escHtml(iconSrc)}" class="ft-icon-img" alt="" onerror="this.onerror=null;this.parentElement.innerHTML='<i class=\\\'fa-solid fa-gamepad\\\' style=\\\'color:var(--accent-main);font-size:20px;\\\'></i>';" />`;
                 } else {
                     iconHtml = `<i class="fa-solid fa-gamepad" style="color:var(--accent-main); font-size:20px;"></i>`;
                 }
@@ -3036,12 +3092,13 @@
             const spotsBadge = (task.slots_left !== null && task.slots_left !== undefined && !task.done)
                 ? `<div style="font-size:10px; color:var(--text-muted); font-weight:600; margin-top:2px; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-users" style="color:var(--accent-main); font-size:9px;"></i> ${Number(task.slots_left).toLocaleString()} spots left</div>`
                 : '';
+            const partnerBadge = isGolden ? `<span class="golden-partner-badge"><i class="fa-solid fa-star"></i> BOINKERS</span>` : '';
 
             return `
-              <div class="glass-card featured-task-card" id="ft-card-${task.id}">
+              <div class="glass-card featured-task-card${glowClass}" id="ft-card-${task.id}">
                 <div class="ft-icon-col">${iconHtml}</div>
                 <div class="ft-info-col">
-                  <div class="ft-title" title="${escHtml(task.title)}">${escHtml(task.title)}</div>
+                  <div class="ft-title" title="${escHtml(task.title)}">${escHtml(task.title)}${partnerBadge}</div>
                   <div class="ft-reward"><i class="fa-solid fa-paw"></i> +${Number(task.reward).toLocaleString()} HOWL</div>
                   ${spotsBadge}
                   <div id="ft-status-${task.id}" style="display:none; font-size:10px; margin-top:4px; font-weight:700; line-height:1.2;"></div>
@@ -3061,11 +3118,13 @@
 
         if (task.type === 'channel') {
             const started = localStorage.getItem('ft_started_' + task.id);
+            const isBk = task.id && task.id.startsWith('boinkers_');
+            const playLabel = isBk ? 'PLAY' : 'JOIN';
             if (!started) {
                 return `<button class="ft-btn ft-btn-go" onclick="ftGoChannel('${task.id}')">GO <i class="fa-solid fa-arrow-right"></i></button>`;
             }
             return `
-              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${task.id}')">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${task.id}')">${playLabel} <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
               <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${task.id}" onclick="ftClaim('${task.id}')">CLAIM</button>
             `;
         }
@@ -3094,8 +3153,10 @@
         ftOpenLink(task.invite_link);
         const actEl = document.getElementById('ft-actions-' + taskId);
         if (actEl) {
+            const isBk = taskId && taskId.startsWith('boinkers_');
+            const playLabel = isBk ? 'PLAY' : 'JOIN';
             actEl.innerHTML = `
-              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')">${playLabel} <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
               <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>
             `;
         }
@@ -3107,8 +3168,11 @@
         triggerHaptic('light');
         const statusEl = document.getElementById('ft-status-' + taskId);
         if (statusEl) {
+            const isBk = taskId && taskId.startsWith('boinkers_');
             statusEl.style.display = 'block';
-            statusEl.innerHTML = `<span style="color:var(--accent-main);"><i class="fa-solid fa-circle-info"></i> Joined? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`;
+            statusEl.innerHTML = isBk 
+                ? `<span style="color:#ffcc00;"><i class="fa-solid fa-circle-info"></i> Finished task in Boinkers? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`
+                : `<span style="color:var(--accent-main);"><i class="fa-solid fa-circle-info"></i> Joined? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`;
         }
         ftOpenLink(task.invite_link);
     }
@@ -3612,6 +3676,9 @@
                 const enabledEl = document.getElementById('boinkers-enabled');
                 if (enabledEl) enabledEl.checked = cfg.enabled !== false;
 
+                const openRewardEl = document.getElementById('boinkers-open-reward');
+                if (openRewardEl) openRewardEl.value = cfg.open_reward || 50;
+
                 const spinsRewardEl = document.getElementById('boinkers-spins-reward');
                 if (spinsRewardEl) spinsRewardEl.value = cfg.spin_reward || 100;
 
@@ -3631,6 +3698,7 @@
                 setTxt('boinkers-stat-in-withdrawn', inWith ? `${inWith.success_calls} / ${inWith.total_calls}` : '0 / 0');
 
                 const totals = stats.totals || {};
+                setTxt('boinkers-stat-out-open', `${totals.open_verified || 0} (${(totals.open_howl || 0).toLocaleString()} HOWL)`);
                 setTxt('boinkers-stat-out-spins', `${totals.spins_verified || 0} (${(totals.spins_howl || 0).toLocaleString()} HOWL)`);
                 setTxt('boinkers-stat-out-moon', `${totals.moon_verified || 0} (${(totals.moon_howl || 0).toLocaleString()} HOWL)`);
             }
@@ -3660,6 +3728,7 @@
         if (btn) btn.disabled = true;
 
         const enabled = document.getElementById('boinkers-enabled')?.checked;
+        const open_reward = Number(document.getElementById('boinkers-open-reward')?.value) || 50;
         const spin_reward = Number(document.getElementById('boinkers-spins-reward')?.value) || 100;
         const moon_reward = Number(document.getElementById('boinkers-moon-reward')?.value) || 200;
 
@@ -3670,7 +3739,7 @@
                 body: JSON.stringify({
                     action: 'boinkers_set_config',
                     initData,
-                    boinkers_config: { enabled, spin_reward, moon_reward }
+                    boinkers_config: { enabled, open_reward, spin_reward, moon_reward }
                 })
             });
             const data = await res.json();
