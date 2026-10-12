@@ -1048,6 +1048,76 @@
           </div>
         </div>
 
+        <!-- Boinkers Collaboration Management Card -->
+        <div class="glass-card" id="boinkers-admin-card">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+            <h3 style="display:flex; align-items:center; gap:8px; font-size:15px; margin:0;">
+              <i class="fa-solid fa-handshake" style="color:var(--accent-main)"></i> Boinkers Collaboration
+            </h3>
+            <span id="boinkers-status-badge" style="font-size:10px; font-weight:800; padding:4px 10px; border-radius:20px; background:rgba(0,255,100,0.15); color:#22c55e;">ACTIVE</span>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin:0 0 14px 0; line-height:1.5;">
+            Cross-promotion partnership with Boinkers. Switch OFF to instantly hide tasks from users and pause inbound verification endpoints.
+          </p>
+
+          <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#fff; font-weight:700; margin:0 0 14px 0; cursor:pointer;">
+            <input type="checkbox" id="boinkers-enabled" onchange="boinkersToggleStatusUI()"> Enable Boinkers Campaign
+          </label>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px;">
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">10 SPINS REWARD (HOWL)
+              <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">MOON TASK REWARD (HOWL)
+              <input type="number" id="boinkers-moon-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px; border-radius:10px; font-size:14px; font-weight:700; outline:none;">
+            </label>
+          </div>
+
+          <button id="boinkers-save-btn" onclick="boinkersAdminSave()" style="width:100%; background:var(--accent-main); color:#000; border:none; padding:12px; border-radius:12px; font-weight:800; font-size:13px; cursor:pointer; margin-bottom:16px;">
+            Save Campaign Settings
+          </button>
+
+          <!-- Live Collaboration Statistics -->
+          <div style="background:rgba(0,0,0,0.25); border:1px solid var(--border-soft); border-radius:12px; padding:14px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+              <span style="font-size:12px; font-weight:800; color:#fff;">Live Conversion Stats</span>
+              <button onclick="boinkersAdminLoad()" style="background:none; border:none; color:var(--accent-main); font-size:12px; cursor:pointer; display:flex; align-items:center; gap:4px;">
+                <i class="fa-solid fa-rotate"></i> Refresh
+              </button>
+            </div>
+
+            <!-- Inbound stats -->
+            <div style="font-size:10px; color:var(--text-muted); font-weight:800; margin-bottom:6px; letter-spacing:0.5px;">INBOUND (BOINKERS → HOWL)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:6px; margin-bottom:12px; font-size:11px;">
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">App Opened</div>
+                <div id="boinkers-stat-in-opened" style="font-weight:800; color:#fff; margin-top:2px;">0</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">10+ Ads</div>
+                <div id="boinkers-stat-in-ads" style="font-weight:800; color:#fff; margin-top:2px;">0</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">Withdrawal</div>
+                <div id="boinkers-stat-in-withdrawn" style="font-weight:800; color:#fff; margin-top:2px;">0</div>
+              </div>
+            </div>
+
+            <!-- Outbound stats -->
+            <div style="font-size:10px; color:var(--text-muted); font-weight:800; margin-bottom:6px; letter-spacing:0.5px;">OUTBOUND (HOWL → BOINKERS)</div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11px;">
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">10 Spins Claims</div>
+                <div id="boinkers-stat-out-spins" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
+              </div>
+              <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
+                <div style="color:var(--text-muted); font-size:9px;">Moon Claims</div>
+                <div id="boinkers-stat-out-moon" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="glass-card">
           <label style="display: block; font-size: 12px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
             Lookup User by Telegram ID
@@ -1224,6 +1294,7 @@
         adsrAdminLoad();
         qtAdminLoad();
         ftAdminLoad();
+        boinkersAdminLoad();
     }
 
     const BAN_VIEWS = {
@@ -1564,7 +1635,7 @@
         if (viewId === 'history-view') renderHistory();
         if (viewId === 'quick-view') quickLoad();
         if (viewId === 'leaderboard-view') fetchLeaderboard();
-        if (viewId === 'admin-view') ftAdminLoad();
+        if (viewId === 'admin-view') { ftAdminLoad(); boinkersAdminLoad(); }
         document.getElementById('main-content').scrollTop = 0;
     }
 
@@ -3521,6 +3592,98 @@
             }
         } catch (e) {
             alert('❌ Network error deleting task.');
+        }
+    }
+
+    // ================= Boinkers Collaboration Admin Functions =================
+    async function boinkersAdminLoad() {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'boinkers_get_config', initData })
+            });
+            const data = await res.json();
+            if (data && data.success) {
+                const cfg = data.config || {};
+                const stats = data.stats || {};
+
+                const enabledEl = document.getElementById('boinkers-enabled');
+                if (enabledEl) enabledEl.checked = cfg.enabled !== false;
+
+                const spinsRewardEl = document.getElementById('boinkers-spins-reward');
+                if (spinsRewardEl) spinsRewardEl.value = cfg.spin_reward || 100;
+
+                const moonRewardEl = document.getElementById('boinkers-moon-reward');
+                if (moonRewardEl) moonRewardEl.value = cfg.moon_reward || 200;
+
+                boinkersToggleStatusUI();
+
+                // Populate stats
+                const inOpened = (stats.inbound || []).find(s => s.endpoint === 'app-opened');
+                const inAds = (stats.inbound || []).find(s => s.endpoint === 'ads-watched');
+                const inWith = (stats.inbound || []).find(s => s.endpoint === 'withdrawal');
+
+                const setTxt = (id, txt) => { const el = document.getElementById(id); if (el) el.innerText = txt; };
+                setTxt('boinkers-stat-in-opened', inOpened ? `${inOpened.success_calls} / ${inOpened.total_calls}` : '0 / 0');
+                setTxt('boinkers-stat-in-ads', inAds ? `${inAds.success_calls} / ${inAds.total_calls}` : '0 / 0');
+                setTxt('boinkers-stat-in-withdrawn', inWith ? `${inWith.success_calls} / ${inWith.total_calls}` : '0 / 0');
+
+                const totals = stats.totals || {};
+                setTxt('boinkers-stat-out-spins', `${totals.spins_verified || 0} (${(totals.spins_howl || 0).toLocaleString()} HOWL)`);
+                setTxt('boinkers-stat-out-moon', `${totals.moon_verified || 0} (${(totals.moon_howl || 0).toLocaleString()} HOWL)`);
+            }
+        } catch (e) {
+            console.error('Failed to load boinkers config', e);
+        }
+    }
+
+    function boinkersToggleStatusUI() {
+        const enabledEl = document.getElementById('boinkers-enabled');
+        const badgeEl = document.getElementById('boinkers-status-badge');
+        if (!badgeEl || !enabledEl) return;
+        if (enabledEl.checked) {
+            badgeEl.innerText = 'ACTIVE';
+            badgeEl.style.background = 'rgba(0,255,100,0.15)';
+            badgeEl.style.color = '#22c55e';
+        } else {
+            badgeEl.innerText = 'PAUSED';
+            badgeEl.style.background = 'rgba(255,60,60,0.15)';
+            badgeEl.style.color = '#ef4444';
+        }
+    }
+
+    async function boinkersAdminSave() {
+        const initData = window.Telegram?.WebApp?.initData || '';
+        const btn = document.getElementById('boinkers-save-btn');
+        if (btn) btn.disabled = true;
+
+        const enabled = document.getElementById('boinkers-enabled')?.checked;
+        const spin_reward = Number(document.getElementById('boinkers-spins-reward')?.value) || 100;
+        const moon_reward = Number(document.getElementById('boinkers-moon-reward')?.value) || 200;
+
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/admin`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    action: 'boinkers_set_config',
+                    initData,
+                    boinkers_config: { enabled, spin_reward, moon_reward }
+                })
+            });
+            const data = await res.json();
+            if (data && data.success) {
+                alert('Boinkers collaboration settings saved!');
+                boinkersAdminLoad();
+            } else {
+                alert(data?.error || 'Failed to save settings.');
+            }
+        } catch (e) {
+            alert('Network error saving settings.');
+        } finally {
+            if (btn) btn.disabled = false;
         }
     }
 </script>
