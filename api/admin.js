@@ -1,430 +1,45 @@
-import { createClient } from '@supabase/supabase-js';
-import { HOWL_USD_RATE, verifyInitData, computeBalance } from '../lib/balance.js';
-import { getAdConfig, saveAdConfig, validateAdConfig } from '../lib/adconfig.js';
-import { getQuickTasks, saveQuickTasks, validateQuickTasks } from '../lib/quicktasks.js';
-import { getFeaturedTasks, saveFeaturedTasks, checkTelegramChat } from '../lib/featured-tasks.js';
-
-const SUPABASE_URL = (process.env.SUPABASE_URL || 'https://knrgbyezxjunjysaaukx.supabase.co').trim();
-const SUPABASE_KEY = (process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || '').trim();
-const supabase = (SUPABASE_URL && SUPABASE_KEY) ? createClient(SUPABASE_URL, SUPABASE_KEY) : null;
-
-const ADMIN_IDS = ['8026237972'];
-
-// Sum every Referral* ledger row for a user (paged, because Supabase caps a query at 1000 rows).
-// HOWL-labelled rows are stored in HOWL, everything else in USD.
-async function sumReferralEarnings(userId) {
-  let howl = 0, usdt = 0, commissions = 0, signups = 0, milestones = 0;
-  const size = 1000;
-  for (let from = 0; from < 50000; from += size) {
-    const { data, error } = await supabase
-      .from('transactions')
-      .select('reward_amount, task_type')
-      .eq('user_id', userId)
-      .ilike('task_type', 'Referral%')
-      .order('id', { ascending: true })
-      .range(from, from + size - 1);
-    if (error || !data || data.length === 0) break;
-
-    for (const tx of data) {
-      const amt = parseFloat(tx.reward_amount) || 0;
-      const type = String(tx.task_type || '');
-      if (type.includes('HOWL')) {
-        howl += amt;
-        if (type.includes('Signup')) signups++;
-        if (type.includes('Milestone')) milestones++;
-      } else {
-        usdt += amt;
-        commissions++;
-      }
-    }
-    if (data.length < size) break;
-  }
-  return { howl, usdt, commissions, signups, milestones };
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Telegram-Init-Data, Authorization');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Cache-Control', 'no-store');
 
   if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
-
-  const { initData, action, targetUserId, config: adConfigInput } = req.body || {};
-  const BOT_TOKEN = (process.env.BOT_TOKEN || '').trim();
-
-  if (!initData) return res.status(400).json({ success: false, error: 'Missing Telegram initData' });
-  if (!BOT_TOKEN) return res.status(500).json({ success: false, error: 'Server misconfigured: BOT_TOKEN is missing.' });
-  if (!supabase) return res.status(500).json({ success: false, error: 'Server misconfigured: Database connection missing.' });
 
   try {
-    // 1. Verify Telegram signature (shared helper)
-    const verified = verifyInitData(initData, BOT_TOKEN);
-    if (!verified) return res.status(403).json({ success: false, error: 'Invalid security signature.' });
+    const url = new URL(req.url, 'https://howlearn.duckdns.org');
+    const targetUrl = `https://howlearn.duckdns.org${url.pathname}${url.search}`;
 
-    // 2. Strict admin authorization
-    const callerIdStr = String(verified.user.id);
-    if (!ADMIN_IDS.includes(callerIdStr)) {
-      return res.status(403).json({ success: false, error: 'Access denied: Admin credentials required.' });
-    }
-
-    if (!action) return res.status(400).json({ success: false, error: 'Missing action parameter.' });
-
-    // 3. Actions
-    if (action === 'lookup') {
-      if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing targetUserId.' });
-      const targetStr = String(targetUserId).trim();
-
-      const { data: user, error: userErr } = await supabase
-        .from('users').select('*').eq('user_id', targetStr).maybeSingle();
-
-      if (userErr) return res.status(500).json({ success: false, error: userErr.message });
-      if (!user) {
-        return res.status(200).json({
-          success: true, found: false,
-          message: `User ${targetStr} was not found in the database.`
-        });
+    const headers = {};
+    for (const [key, val] of Object.entries(req.headers)) {
+      if (key.toLowerCase() !== 'host') {
+        headers[key] = val;
       }
-
-      const startOfDay = new Date();
-      startOfDay.setUTCHours(0, 0, 0, 0);
-
-      // Everything else in parallel
-      const [
-        banRes, collRes, refCountRes, refUsersRes, adsTotalRes, adsTodayRes,
-        wdRes, recentTxRes, referrerRes, refEarnings
-      ] = await Promise.all([
-        supabase.from('transactions').select('status, created_at')
-          .eq('user_id', targetStr).eq('task_type', 'ADMIN_BAN')
-          .order('created_at', { ascending: false }).limit(1),
-
-        user.fingerprint
-          ? supabase.from('users').select('user_id, name, created_at')
-              .eq('fingerprint', user.fingerprint).neq('user_id', targetStr)
-          : Promise.resolve({ data: [] }),
-
-        supabase.from('users').select('*', { count: 'exact', head: true }).eq('referred_by', targetStr),
-
-        supabase.from('users').select('user_id, name, created_at')
-          .eq('referred_by', targetStr).order('created_at', { ascending: false }).limit(200),
-
-        supabase.from('transactions').select('*', { count: 'exact', head: true })
-          .eq('user_id', targetStr).eq('task_type', 'Monetag Rewarded Ad'),
-
-        supabase.from('transactions').select('*', { count: 'exact', head: true })
-          .eq('user_id', targetStr).eq('task_type', 'Monetag Rewarded Ad')
-          .gte('created_at', startOfDay.toISOString()),
-
-        supabase.from('transactions').select('reward_amount, status')
-          .eq('user_id', targetStr).like('task_type', 'BEP20 Withdrawal%'),
-
-        supabase.from('transactions').select('task_type, reward_amount, status, created_at')
-          .eq('user_id', targetStr)
-          .not('task_type', 'eq', 'ADMIN_BAN')
-          .not('task_type', 'like', 'SYSTEM_%')
-          .order('created_at', { ascending: false }).limit(8),
-
-        user.referred_by
-          ? supabase.from('users').select('user_id, name').eq('user_id', String(user.referred_by)).maybeSingle()
-          : Promise.resolve({ data: null }),
-
-        sumReferralEarnings(targetStr)
-      ]);
-
-      // --- Ban / collision status ---
-      const latestBanRecord = banRes.data && banRes.data[0] ? banRes.data[0] : null;
-      const isManuallyBanned = !!(latestBanRecord && latestBanRecord.status === 'BANNED');
-      const isManuallyUnbanned = !!(latestBanRecord && latestBanRecord.status === 'UNBANNED');
-      const deviceCollisions = collRes.data || [];
-
-      let effectiveStatus = 'active';
-      if (ADMIN_IDS.includes(targetStr)) effectiveStatus = 'admin_protected';
-      else if (isManuallyBanned) effectiveStatus = 'banned_manual';
-      else if (isManuallyUnbanned) effectiveStatus = 'unbanned_override';
-      else if (deviceCollisions.length > 0) effectiveStatus = 'banned_multiaccount';
-
-      // --- Balance: SAME formula as every other endpoint ---
-      const bal = computeBalance(user);
-
-      // --- Referrals ---
-      const referredUsers = refUsersRes.data || [];
-      let activeReferrals = 0;
-      if (referredUsers.length > 0) {
-        const ids = referredUsers.map(r => String(r.user_id));
-        const { data: adRows } = await supabase
-          .from('transactions').select('user_id')
-          .in('user_id', ids).eq('task_type', 'Monetag Rewarded Ad').limit(5000);
-        activeReferrals = new Set((adRows || []).map(r => String(r.user_id))).size;
-      }
-      const refTotalUsd = (refEarnings.howl * HOWL_USD_RATE) + refEarnings.usdt;
-
-      // --- Withdrawals ---
-      let wdPendingUsd = 0, wdPaidUsd = 0, wdRejected = 0;
-      const wdRows = wdRes.data || [];
-      wdRows.forEach(w => {
-        const usd = Math.abs(parseFloat(w.reward_amount) || 0);
-        if (w.status === 'pending' || w.status === 'processing') wdPendingUsd += usd;
-        else if (w.status === 'approved') wdPaidUsd += usd;
-        else wdRejected++;
-      });
-
-      return res.status(200).json({
-        success: true,
-        found: true,
-        user: {
-          user_id: user.user_id,
-          name: user.name,
-          photo_url: user.photo_url,
-          // spendable balance (single source of truth)
-          total_howl: bal.total_howl,
-          total_usd: bal.total_usd,
-          coins: bal.coins,
-          balance: bal.usdt_earnings,
-          hold_howl: bal.hold_howl,
-          hold_usd: bal.hold_usd,
-          // lifetime counters
-          lifetime_howl: parseFloat(user.total_howl) || 0,
-          total_earned: parseFloat(user.total_earned) || 0,
-          created_at: user.created_at,
-          last_seen: user.last_seen,
-          fingerprint: user.fingerprint,
-          referred_by: user.referred_by
-        },
-        referrals: {
-          total: refCountRes.count || 0,
-          active: activeReferrals,
-          active_sample_size: referredUsers.length,
-          referrer: referrerRes.data ? { user_id: referrerRes.data.user_id, name: referrerRes.data.name } : null,
-          howl_earned: Math.round(refEarnings.howl),
-          usdt_earned: +refEarnings.usdt.toFixed(4),
-          total_usd_earned: +refTotalUsd.toFixed(4),
-          commission_count: refEarnings.commissions,
-          signup_bonuses: refEarnings.signups,
-          milestones: refEarnings.milestones,
-          recent: referredUsers.slice(0, 5)
-        },
-        activity: {
-          ads_today: adsTodayRes.count || 0,
-          ads_total: adsTotalRes.count || 0,
-          ads_daily_limit: 10
-        },
-        withdrawals: {
-          requests: wdRows.length,
-          pending_usd: +wdPendingUsd.toFixed(4),
-          paid_usd: +wdPaidUsd.toFixed(4),
-          rejected: wdRejected
-        },
-        recent_transactions: recentTxRes.data || [],
-        status: effectiveStatus,
-        is_manually_banned: isManuallyBanned,
-        is_manually_unbanned: isManuallyUnbanned,
-        device_collisions: deviceCollisions
-      });
     }
 
-    // ---- Ad reward settings (admin only: the admin check above already ran) ----
-    if (action === 'get_ad_config') {
-      const config = await getAdConfig(supabase, { fresh: true });
-      return res.status(200).json({ success: true, config });
+    const options = {
+      method: req.method,
+      headers
+    };
+
+    if (req.method !== 'GET' && req.method !== 'HEAD' && req.body) {
+      options.body = typeof req.body === 'string' ? req.body : JSON.stringify(req.body);
+      if (!headers['content-type']) headers['content-type'] = 'application/json';
     }
 
-    if (action === 'set_ad_config') {
-      // Providers that are not sent keep their current values, so each admin card can save on its own.
-      const current = await getAdConfig(supabase, { fresh: true });
-      const v = validateAdConfig(adConfigInput, current);
-      if (!v.ok) return res.status(400).json({ success: false, error: v.error });
-      const saved = await saveAdConfig(supabase, v.config, callerIdStr);
-      return res.status(200).json({ success: true, config: saved, message: 'Ad settings saved. They apply immediately.' });
+    const upstreamRes = await fetch(targetUrl, options);
+    const contentType = upstreamRes.headers.get('content-type') || '';
+
+    if (contentType.includes('application/json')) {
+      const data = await upstreamRes.json().catch(() => ({}));
+      return res.status(upstreamRes.status).json(data);
+    } else {
+      const text = await upstreamRes.text().catch(() => '');
+      if (contentType) res.setHeader('content-type', contentType);
+      return res.status(upstreamRes.status).send(text);
     }
-
-    // ---- Quick tasks settings (comment task + bio task) ----
-    if (action === 'get_quick_tasks') {
-      const config = await getQuickTasks(supabase, { fresh: true });
-      return res.status(200).json({ success: true, config });
-    }
-
-    if (action === 'set_quick_tasks') {
-      const current = await getQuickTasks(supabase, { fresh: true });
-      const v = validateQuickTasks(adConfigInput, current);
-      if (!v.ok) return res.status(400).json({ success: false, error: v.error });
-      const saved = await saveQuickTasks(supabase, v.config);
-      return res.status(200).json({ success: true, config: saved, message: 'Quick task settings saved. They apply immediately.' });
-    }
-
-    // ---- Featured Tasks settings & management ----
-    if (action === 'get_featured_tasks') {
-      const tasks = await getFeaturedTasks(supabase, { fresh: true });
-      return res.status(200).json({ success: true, tasks });
-    }
-
-    if (action === 'check_telegram_chat') {
-      const { chat_identifier } = req.body || {};
-      const check = await checkTelegramChat(chat_identifier, BOT_TOKEN);
-      if (!check.ok) return res.status(400).json({ success: false, error: check.error });
-      return res.status(200).json({ success: true, chat: check.chat });
-    }
-
-    if (action === 'add_featured_task') {
-      const { taskData } = req.body || {};
-      if (!taskData || !taskData.type) return res.status(400).json({ success: false, error: 'Missing task data.' });
-
-      const currentTasks = await getFeaturedTasks(supabase, { fresh: true });
-      let newTask;
-
-      if (taskData.type === 'channel') {
-        const check = await checkTelegramChat(taskData.chat_identifier, BOT_TOKEN);
-        if (!check.ok) return res.status(400).json({ success: false, error: check.error });
-
-        const reward = Math.max(1, Math.round(Number(taskData.reward) || 0));
-        if (reward <= 0) return res.status(400).json({ success: false, error: 'Reward must be a positive number.' });
-
-        if (currentTasks.some(t => t.type === 'channel' && String(t.chat_id) === String(check.chat.id))) {
-          return res.status(400).json({ success: false, error: 'A task for this channel or group already exists.' });
-        }
-
-        const max_users = Math.max(1, Math.round(Number(taskData.max_users) || 1000));
-        newTask = {
-          id: `ft_c_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          type: 'channel',
-          title: check.chat.title,
-          chat_id: check.chat.id,
-          chat_username: check.chat.username,
-          invite_link: check.chat.invite_link,
-          has_photo: check.chat.has_photo,
-          photo_file_id: check.chat.photo_file_id,
-          reward,
-          max_users,
-          claimed_count: 0,
-          enabled: true,
-          created_at: Date.now()
-        };
-      } else if (taskData.type === 'miniapp') {
-        const title = String(taskData.title || '').trim();
-        const link = String(taskData.link || '').trim();
-        const icon_url = String(taskData.icon_url || '').trim();
-        const reward = Math.max(1, Math.round(Number(taskData.reward) || 0));
-        const max_users = Math.max(1, Math.round(Number(taskData.max_users) || 1000));
-
-        if (!title) return res.status(400).json({ success: false, error: 'Task title is required.' });
-        if (!link || (!link.startsWith('https://') && !link.startsWith('http://'))) {
-          return res.status(400).json({ success: false, error: 'A valid redirect link (http/https) is required.' });
-        }
-        if (reward <= 0) return res.status(400).json({ success: false, error: 'Reward must be a positive number.' });
-
-        newTask = {
-          id: `ft_m_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-          type: 'miniapp',
-          title,
-          link,
-          icon_url,
-          reward,
-          max_users,
-          claimed_count: 0,
-          enabled: true,
-          created_at: Date.now()
-        };
-      } else {
-        return res.status(400).json({ success: false, error: 'Invalid task type.' });
-      }
-
-      currentTasks.push(newTask);
-      await saveFeaturedTasks(supabase, currentTasks);
-      return res.status(200).json({ success: true, task: newTask, message: 'Featured task added successfully!' });
-    }
-
-    if (action === 'add_slots_featured_task') {
-      const { taskId, extraSlots } = req.body || {};
-      const extra = Math.round(Number(extraSlots) || 0);
-      if (!taskId) return res.status(400).json({ success: false, error: 'Task ID is required.' });
-      if (extra <= 0) return res.status(400).json({ success: false, error: 'Additional slots must be a positive number.' });
-
-      const tasks = await getFeaturedTasks(supabase, { fresh: true });
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
-
-      const currentMax = Number(task.max_users) || (Number(task.claimed_count) || 0);
-      task.max_users = currentMax + extra;
-      task.enabled = true; // Auto re-enable when slots are added
-      await saveFeaturedTasks(supabase, tasks);
-      return res.status(200).json({
-        success: true,
-        task,
-        message: `Added ${extra} slots successfully! New limit: ${task.max_users} users.`
-      });
-    }
-
-    if (action === 'toggle_featured_task') {
-      const { taskId } = req.body || {};
-      const tasks = await getFeaturedTasks(supabase, { fresh: true });
-      const task = tasks.find(t => t.id === taskId);
-      if (!task) return res.status(404).json({ success: false, error: 'Task not found.' });
-      task.enabled = !task.enabled;
-      await saveFeaturedTasks(supabase, tasks);
-      return res.status(200).json({ success: true, task, message: `Task ${task.enabled ? 'activated' : 'deactivated'} successfully.` });
-    }
-
-    if (action === 'delete_featured_task') {
-      const { taskId } = req.body || {};
-      let tasks = await getFeaturedTasks(supabase, { fresh: true });
-      const beforeCount = tasks.length;
-      tasks = tasks.filter(t => t.id !== taskId);
-      if (tasks.length === beforeCount) return res.status(404).json({ success: false, error: 'Task not found.' });
-      await saveFeaturedTasks(supabase, tasks);
-      return res.status(200).json({ success: true, message: 'Task deleted successfully.' });
-    }
-
-    if (action === 'ban') {
-      if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing targetUserId.' });
-      const targetStr = String(targetUserId).trim();
-
-      if (ADMIN_IDS.includes(targetStr)) {
-        return res.status(400).json({ success: false, error: 'Cannot ban an administrator account.' });
-      }
-
-      const { error: banErr } = await supabase.from('transactions').insert([{
-        user_id: targetStr,
-        reward_amount: 0,
-        transaction_id: `admin_ban_${Date.now()}_${targetStr}`,
-        task_type: 'ADMIN_BAN',
-        status: 'BANNED',
-        created_at: new Date().toISOString()
-      }]);
-
-      if (banErr) return res.status(500).json({ success: false, error: banErr.message });
-
-      return res.status(200).json({ success: true, message: `User ${targetStr} has been successfully banned.` });
-    }
-
-    if (action === 'unban') {
-      if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing targetUserId.' });
-      const targetStr = String(targetUserId).trim();
-
-      const { error: unbanErr } = await supabase.from('transactions').insert([{
-        user_id: targetStr,
-        reward_amount: 0,
-        transaction_id: `admin_unban_${Date.now()}_${targetStr}`,
-        task_type: 'ADMIN_BAN',
-        status: 'UNBANNED',
-        created_at: new Date().toISOString()
-      }]);
-
-      if (unbanErr) return res.status(500).json({ success: false, error: unbanErr.message });
-
-      // Reset device fingerprint so the collision is completely cleared
-      try {
-        await supabase.from('users')
-          .update({ fingerprint: `unbanned_${Date.now()}_${targetStr}` })
-          .eq('user_id', targetStr);
-      } catch (e) {}
-
-      return res.status(200).json({ success: true, message: `User ${targetStr} has been unbanned and restored successfully.` });
-    }
-
-    return res.status(400).json({ success: false, error: `Unknown action: ${action}` });
-
   } catch (err) {
-    console.error('[Admin Action Error]', err);
-    return res.status(500).json({ success: false, error: err.message || 'Internal server error' });
+    console.error('[admin forward error]', err.message);
+    return res.status(500).json({ success: false, error: 'Server proxy error' });
   }
-              }
+}
