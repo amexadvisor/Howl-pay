@@ -480,21 +480,52 @@
     </div>
   </div>
 
+  <!-- AdsGram Pre-Watch Tutorial Modal -->
+  <div id="adsrPreWatchModal" class="full-screen-modal" onclick="if(event.target===this)closeAdsrPreWatchModal()">
+    <div class="modal-content" style="max-width: 320px; max-height: 90vh; overflow-y: auto; padding: 22px 18px; border-radius: 24px; position: relative; background: rgba(8, 14, 32, 0.97); border: 1px solid rgba(94, 179, 255, 0.35); box-shadow: 0 20px 60px rgba(0,0,0,0.85), 0 0 30px rgba(94, 179, 255, 0.2); text-align: center;">
+      <button onclick="closeAdsrPreWatchModal()" style="position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 4px; line-height: 1;"><i class="fa-solid fa-xmark"></i></button>
+
+      <div style="display: inline-block; background: rgba(94, 179, 255, 0.12); border: 1px solid rgba(94, 179, 255, 0.3); color: var(--accent-main); padding: 4px 14px; border-radius: 50px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;">
+        <i class="fa-solid fa-circle-info"></i> How to Earn Max HOWL
+      </div>
+
+      <h3 style="font-size: 18px; font-weight: 900; margin: 0 0 6px 0; color: #fff;">Tap the Button Inside Each Ad</h3>
+      <p style="font-size: 12px; color: rgba(255, 255, 255, 0.8); line-height: 1.45; margin: 0 0 12px 0;">
+        During each ad, tap the blue button at the bottom (like <b>Join Now</b> or <b>Play Now</b>) to unlock your full <b>3-click bonus reward</b>!
+      </p>
+
+      <div style="border-radius: 12px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.15); background: #000; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+        <video src="/assets/ad-click-tutorial.mp4" poster="/assets/ad-click-tutorial.jpg" autoplay loop muted playsinline style="width: 100%; max-height: 140px; object-fit: contain; display: block;"></video>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 14px; font-size: 12px; color: var(--text-muted); cursor: pointer;" onclick="toggleAdsrPreHideCheckbox()">
+        <input type="checkbox" id="adsrPreHideCheck" style="cursor: pointer; accent-color: var(--accent-main); width: 15px; height: 15px;">
+        <label for="adsrPreHideCheck" style="cursor: pointer;">Don't show this before watching again</label>
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button onclick="confirmAdsrStartWatch()" style="flex: 1; border-radius: 14px; padding: 13px; font-size: 14px; font-weight: 800; background: var(--accent-main); color: #000; border: none; box-shadow: 0 4px 15px rgba(94, 179, 255, 0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-solid fa-play"></i> START WATCHING
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- AdsGram Reward Completion Modal -->
   <div id="adsrCompletedModal" class="full-screen-modal" onclick="if(event.target===this)closeAdsrModal()">
-    <div class="modal-content" style="max-width: 320px; padding: 24px 20px; border-radius: 24px; position: relative; background: rgba(8, 14, 32, 0.96); border: 1px solid rgba(94, 179, 255, 0.25); box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(94, 179, 255, 0.15); text-align: center;">
+    <div class="modal-content" style="max-width: 320px; max-height: 90vh; overflow-y: auto; padding: 22px 18px; border-radius: 24px; position: relative; background: rgba(8, 14, 32, 0.96); border: 1px solid rgba(94, 179, 255, 0.25); box-shadow: 0 20px 60px rgba(0,0,0,0.8), 0 0 30px rgba(94, 179, 255, 0.15); text-align: center;">
       <button onclick="closeAdsrModal()" style="position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 4px; line-height: 1;"><i class="fa-solid fa-xmark"></i></button>
 
-      <div style="display: flex; justify-content: center; align-items: center; margin: 4px auto 14px auto;">
-        <div id="adsr-modal-wolf" style="width: 85px; height: 85px; filter: drop-shadow(0 0 20px rgba(94, 179, 255, 0.6)); display: flex; align-items: center; justify-content: center;">
-          <i class="fa-solid fa-paw" style="font-size: 42px; color: var(--accent-main);"></i>
+      <div style="display: flex; justify-content: center; align-items: center; margin: 2px auto 10px auto;">
+        <div id="adsr-modal-wolf" style="width: 75px; height: 75px; filter: drop-shadow(0 0 20px rgba(94, 179, 255, 0.6)); display: flex; align-items: center; justify-content: center;">
+          <i class="fa-solid fa-paw" style="font-size: 38px; color: var(--accent-main);"></i>
         </div>
       </div>
 
       <h3 style="font-size: 19px; font-weight: 900; margin: 0 0 4px 0; color: #fff; letter-spacing: 0.5px;">Reward Claimed!</h3>
-      <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 16px 0;">AdsGram Task Summary</p>
+      <p style="font-size: 12px; color: var(--text-muted); margin: 0 0 14px 0;">AdsGram Task Summary</p>
 
-      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 14px 16px; margin-bottom: 18px; display: flex; flex-direction: column; gap: 10px; text-align: left;">
+      <div style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; padding: 12px 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; text-align: left;">
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 13px;">
           <span style="color: var(--text-muted);"><i class="fa-solid fa-film" style="color: var(--accent-main); margin-right: 6px;"></i> Ads Watched</span>
           <span id="adsrModalAdsCount" style="color: #fff; font-weight: 800;">3 Ads</span>
@@ -507,6 +538,19 @@
         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
           <span style="color: #fff; font-weight: 800;"><i class="fa-solid fa-paw" style="color: var(--accent-main); margin-right: 6px;"></i> Total Reward</span>
           <span id="adsrModalRewardVal" style="color: var(--accent-main); font-weight: 900; font-size: 16px; text-shadow: 0 0 10px rgba(94, 179, 255, 0.5);">+45 HOWL</span>
+        </div>
+      </div>
+
+      <!-- Conditional Tutorial Box (shown only if clicks < 3) -->
+      <div id="adsrModalTutorialBox" style="display: none; background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 16px; padding: 12px; margin-bottom: 14px; text-align: left;">
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 800; color: #fbbf24; margin-bottom: 6px;">
+          <i class="fa-solid fa-lightbulb"></i> How to unlock up to 3x more HOWL:
+        </div>
+        <div style="font-size: 11px; color: rgba(255, 255, 255, 0.85); line-height: 1.45; margin-bottom: 10px;">
+          Tap the blue button inside each ad (e.g. <b>Join Now</b> or <b>Play Now</b>) to claim the full 3-click bonus reward!
+        </div>
+        <div style="border-radius: 10px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.12); background: #000;">
+          <video src="/assets/ad-click-tutorial.mp4" poster="/assets/ad-click-tutorial.jpg" autoplay loop muted playsinline style="width: 100%; max-height: 120px; object-fit: contain; display: block;"></video>
         </div>
       </div>
 
@@ -715,7 +759,7 @@
             <div id="adsrProgressBar" style="width: 0%; height: 100%; background: var(--accent-main); transition: width 0.3s ease; box-shadow: 0 0 10px var(--accent-main);"></div>
           </div>
           <div id="adsrTimer" style="display: none; font-size: 14px; font-weight: 800; color: var(--accent-orange); margin-bottom: 12px; letter-spacing: 1px; text-shadow: 0 0 10px rgba(245, 158, 11, 0.4);"></div>
-          <button class="watch-btn" id="adsrBtn" onclick="startAdsgramReward()">WATCH</button>
+          <button class="watch-btn" id="adsrBtn" onclick="onWatchAdsgramClick()">WATCH</button>
         </div>
         </div>
 
@@ -2637,6 +2681,11 @@
         if (clicksEl) clicksEl.textContent = `${clicks} / ${total} ${clicks === 1 ? 'Click' : 'Clicks'}`;
         if (rewardEl) rewardEl.textContent = `+${Math.max(0, Math.round(rewardHowl || 0))} HOWL`;
 
+        const tutBox = document.getElementById('adsrModalTutorialBox');
+        if (tutBox) {
+            tutBox.style.display = clicks < total ? 'block' : 'none';
+        }
+
         modal.classList.add('active');
         triggerHaptic('medium');
     }
@@ -2645,6 +2694,50 @@
         const modal = document.getElementById('adsrCompletedModal');
         if (modal) modal.classList.remove('active');
         triggerHaptic('light');
+    }
+
+    function onWatchAdsgramClick() {
+        if (adsrBusy) return;
+        const hidePre = localStorage.getItem('adsr_hide_pre_tutorial') === '1';
+        if (hidePre) {
+            startAdsgramReward();
+            return;
+        }
+        openAdsrPreWatchModal();
+    }
+
+    function openAdsrPreWatchModal() {
+        const modal = document.getElementById('adsrPreWatchModal');
+        if (!modal) {
+            startAdsgramReward();
+            return;
+        }
+        const chk = document.getElementById('adsrPreHideCheck');
+        if (chk) chk.checked = false;
+        modal.classList.add('active');
+        triggerHaptic('light');
+    }
+
+    function closeAdsrPreWatchModal() {
+        const modal = document.getElementById('adsrPreWatchModal');
+        if (modal) modal.classList.remove('active');
+        triggerHaptic('light');
+    }
+
+    function toggleAdsrPreHideCheckbox() {
+        const chk = document.getElementById('adsrPreHideCheck');
+        if (chk && event.target !== chk) {
+            chk.checked = !chk.checked;
+        }
+    }
+
+    function confirmAdsrStartWatch() {
+        const chk = document.getElementById('adsrPreHideCheck');
+        if (chk && chk.checked) {
+            localStorage.setItem('adsr_hide_pre_tutorial', '1');
+        }
+        closeAdsrPreWatchModal();
+        startAdsgramReward();
     }
 
     // Asks the server for the click bonus of the latest credited view (the server decides if it is allowed)
