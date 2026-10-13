@@ -1151,10 +1151,10 @@
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">OPEN APP REWARD
               <input type="number" id="boinkers-open-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">LEVEL 10 REWARD
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">LEVEL UP 10 TIMES REWARD
               <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">5 STARS REWARD
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">SPEND MIN 5 STARS REWARD
               <input type="number" id="boinkers-moon-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
           </div>
@@ -1197,11 +1197,11 @@
                 <div id="boinkers-stat-out-open" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
-                <div style="color:var(--text-muted); font-size:9px;">Level 10 Claims</div>
+                <div style="color:var(--text-muted); font-size:9px;">Level Up 10 Times Claims</div>
                 <div id="boinkers-stat-out-spins" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
-                <div style="color:var(--text-muted); font-size:9px;">5 Stars Claims</div>
+                <div style="color:var(--text-muted); font-size:9px;">Spend Min 5 Stars Claims</div>
                 <div id="boinkers-stat-out-moon" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
             </div>
@@ -3326,15 +3326,15 @@
                 stepsHtml = `
                   <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
                   <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
-                  <div style="margin-bottom:6px;">2. Spin on the wheel to gain energy and level up.</div>
-                  <div style="margin-bottom:6px;">3. Reach <b>Level 10</b> in Boinkers.</div>
+                  <div style="margin-bottom:6px;">2. Spin on the wheel to gain energy and upgrade your Boinker.</div>
+                  <div style="margin-bottom:6px;">3. <b>Level up 10 times in Boinkers</b>.</div>
                   <div>4. Return to Howl and tap <b>Claim</b> to verify & credit +${task.reward} HOWL!</div>
                 `;
             } else if (task.id === 'boinkers_moon') {
                 stepsHtml = `
                   <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
                   <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
-                  <div style="margin-bottom:6px;">2. Spend or purchase at least <b>5 Telegram Stars</b> inside Boinkers.</div>
+                  <div style="margin-bottom:6px;">2. <b>Spend min 5 stars in Boinkers</b> on any in-game feature.</div>
                   <div>3. Return to Howl and tap <b>Claim</b> to verify & credit +${task.reward} HOWL!</div>
                 `;
             } else {
