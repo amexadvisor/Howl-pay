@@ -438,7 +438,7 @@
   </div>
 
   <!-- Mandatory Channel Gate -->
-  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s;">
+  <div id="channel-gate" style="position: fixed; inset: 0; background: rgba(3, 6, 20, 0.95); backdrop-filter: blur(10px); z-index: 99990; display: flex; flex-direction: column; padding: 24px; transition: opacity 0.4s; overflow-y: auto;">
     <div style="text-align: center; margin: 40px 0 30px 0;">
       <div style="width: 64px; height: 64px; background: var(--accent-dim); border: 1px solid var(--accent-main); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 28px; margin: 0 auto 16px auto; color: var(--accent-main); box-shadow: 0 0 20px rgba(94,179,255,0.3);">
         <i class="fa-solid fa-lock"></i>
@@ -446,7 +446,7 @@
       <h2 style="font-size: 24px; font-weight: 900; margin: 0 0 8px 0;">Unlock App</h2>
       <p style="color: var(--text-muted); font-size: 14px;">Join our official channels to continue.</p>
     </div>
-    <div class="channel-list">
+    <div class="channel-list" style="display: flex; flex-direction: column; gap: 12px;">
       <a href="https://t.me/howlnotification" target="_blank" class="glass-card clickable" style="text-decoration: none; color: white; display: flex; align-items: center; justify-content: space-between; padding: 16px;">
         <div style="display:flex; gap:12px; align-items:center;">
           <div class="data-icon" style="background: rgba(255,255,255,0.05);"><i class="fa-solid fa-bell" style="color:var(--accent-main)"></i></div>
@@ -469,7 +469,21 @@
         <div id="status-howl_community" style="font-size:12px; font-weight:800; color:var(--text-muted)">Join <i class="fa-solid fa-arrow-right"></i></div>
       </a>
     </div>
+
+    <!-- Check & Verify Button -->
+    <div style="margin-top: 24px; text-align: center;">
+      <button id="gate-verify-btn" onclick="onGateCheckAndVerify()" style="width: 100%; padding: 16px; border-radius: var(--radius-lg); font-weight: 800; font-size: 15px; border: none; cursor: pointer; background: linear-gradient(135deg, #5eb3ff 0%, #0077ff 100%); color: #fff; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 20px rgba(94, 179, 255, 0.35); transition: all 0.2s ease;">
+        <i class="fa-solid fa-circle-check"></i> CHECK &amp; VERIFY
+      </button>
+      <div id="gate-verify-status" style="margin-top: 12px; font-size: 13px; min-height: 18px; color: var(--text-muted); font-weight: 600;"></div>
+    </div>
   </div>
+  <script>
+    if (localStorage.getItem('howl_channels_verified') === '1') {
+      const g = document.getElementById('channel-gate');
+      if (g) g.style.display = 'none';
+    }
+  </script>
 
   <!-- TOS Modal -->
   <div id="tosModal" class="full-screen-modal">
@@ -1497,7 +1511,11 @@
         if (main) main.style.display = 'block';
         const nav = document.getElementById('bottom-nav');
         if (nav) nav.style.display = 'flex';
-        if (!gateCheckInterval) gateCheckInterval = setInterval(verifyChannelMembership, 2000);
+        if (localStorage.getItem('howl_channels_verified') !== '1') {
+            const gate = document.getElementById('channel-gate');
+            if (gate) gate.style.display = 'flex';
+            verifyChannelMembership(false);
+        }
     }
 
     // If this device already remembers a ban for this account, show it immediately (before any network call)
@@ -1647,17 +1665,62 @@
         currentUserId = tgUser && tgUser.id ? tgUser.id.toString() : 'guest_user';
         generateRefLink();
         loadTelegramUser();
-        verifyChannelMembership();
-        gateCheckInterval = setInterval(verifyChannelMembership, 2000); 
+
+        const isVerified = localStorage.getItem('howl_channels_verified') === '1';
+        const gate = document.getElementById('channel-gate');
+
+        if (isVerified) {
+            if (gate) gate.style.display = 'none';
+            setupOfferwallIframes();
+            syncAdStatusFromServer();
+            loadFeaturedTasks();
+        } else {
+            if (gate) gate.style.display = 'flex';
+            verifyChannelMembership(false);
+        }
     }
 
-    async function verifyChannelMembership() {
-        if (currentUserId === 'guest_user') return; 
+    let isVerifyingChannels = false;
+
+    async function onGateCheckAndVerify() {
+        if (isVerifyingChannels) return;
+        triggerHaptic('light');
+        await verifyChannelMembership(true);
+    }
+
+    async function verifyChannelMembership(isManualClick = false) {
+        if (currentUserId === 'guest_user') {
+            if (isManualClick) {
+                const statusEl = document.getElementById('gate-verify-status');
+                if (statusEl) {
+                    statusEl.style.color = "var(--accent-orange)";
+                    statusEl.textContent = "Please launch this app inside Telegram to verify.";
+                }
+            }
+            return;
+        }
+
+        const verifyBtn = document.getElementById('gate-verify-btn');
+        const statusEl = document.getElementById('gate-verify-status');
+
+        if (isManualClick) {
+            isVerifyingChannels = true;
+            if (verifyBtn) {
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+            }
+            if (statusEl) {
+                statusEl.style.color = "var(--text-muted)";
+                statusEl.textContent = "Checking your channel memberships...";
+            }
+        }
+
         try {
             const response = await fetch(`${API_BASE_URL}/api/check-channels?userId=${currentUserId}`);
             const data = await response.json();
-            
-            if (data.results) {
+
+            let unjoinedCount = 0;
+            if (data && data.results) {
                 data.results.forEach(channel => {
                     const statusBadge = document.getElementById(`status-${channel.key}`);
                     if (statusBadge) {
@@ -1665,6 +1728,7 @@
                             statusBadge.style.color = "var(--accent-main)";
                             statusBadge.innerHTML = '<i class="fa-solid fa-check"></i> Joined';
                         } else {
+                            unjoinedCount++;
                             statusBadge.style.color = "var(--text-muted)";
                             statusBadge.innerHTML = 'Join <i class="fa-solid fa-arrow-right"></i>';
                         }
@@ -1672,18 +1736,66 @@
                 });
             }
 
-            if (data.allJoined) {
-                clearInterval(gateCheckInterval);
+            if (data && data.allJoined) {
+                localStorage.setItem('howl_channels_verified', '1');
+                if (verifyBtn) {
+                    verifyBtn.style.background = "linear-gradient(135deg, #10b981 0%, #059669 100%)";
+                    verifyBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Verified! Unlocking...';
+                }
+                if (statusEl) {
+                    statusEl.style.color = "#10b981";
+                    statusEl.textContent = "All channels joined successfully!";
+                }
+                triggerHaptic('success');
+
                 const gate = document.getElementById('channel-gate');
-                gate.style.opacity = '0';
-                setTimeout(() => { gate.style.display = 'none'; }, 400);
+                if (gate) {
+                    gate.style.opacity = '0';
+                    setTimeout(() => { gate.style.display = 'none'; }, 400);
+                }
+
                 setupOfferwallIframes();
                 generateRefLink();
                 syncAdStatusFromServer();
                 loadFeaturedTasks();
+            } else {
+                if (isManualClick) {
+                    triggerHaptic('warning');
+                    if (statusEl) {
+                        statusEl.style.color = "var(--accent-orange)";
+                        statusEl.textContent = unjoinedCount > 0 
+                            ? `Please join all ${unjoinedCount} remaining channel(s) above and tap verify.`
+                            : "Please join all channels above and tap verify.";
+                    }
+                }
             }
-        } catch (error) {}
+        } catch (error) {
+            console.error('Channel check error:', error);
+            if (isManualClick && statusEl) {
+                statusEl.style.color = "var(--accent-orange)";
+                statusEl.textContent = "Unable to verify right now. Please try again.";
+            }
+        } finally {
+            if (isManualClick) {
+                isVerifyingChannels = false;
+                const isVerified = localStorage.getItem('howl_channels_verified') === '1';
+                if (!isVerified && verifyBtn) {
+                    verifyBtn.disabled = false;
+                    verifyBtn.innerHTML = '<i class="fa-solid fa-circle-check"></i> CHECK &amp; VERIFY';
+                }
+            }
+        }
     }
+
+    // Auto-check once when returning to the app if gate is visible
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !isVerifyingChannels) {
+            const gate = document.getElementById('channel-gate');
+            if (gate && gate.style.display !== 'none' && localStorage.getItem('howl_channels_verified') !== '1') {
+                verifyChannelMembership(false);
+            }
+        }
+    });
 
     async function syncAdStatusFromServer() {
         const initDataPayload = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp.initData : "";
