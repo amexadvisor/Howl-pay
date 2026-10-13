@@ -1154,7 +1154,7 @@
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">LEVEL 10 REWARD
               <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">MOON TASK REWARD
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">5 STARS REWARD
               <input type="number" id="boinkers-moon-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
           </div>
@@ -1201,7 +1201,7 @@
                 <div id="boinkers-stat-out-spins" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
-                <div style="color:var(--text-muted); font-size:9px;">Moon Claims</div>
+                <div style="color:var(--text-muted); font-size:9px;">5 Stars Claims</div>
                 <div id="boinkers-stat-out-moon" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
             </div>
@@ -3086,12 +3086,40 @@
                 return;
             }
 
-            ftLoadedTasks = data.tasks;
+            ftLoadedTasks = ftSortTasks(data.tasks);
             secEl.style.display = 'block';
             ftRenderTasksList();
         } catch (e) {
             console.error('Failed loading featured tasks', e);
         }
+    }
+
+    function ftSortTasks(tasks) {
+        if (!Array.isArray(tasks)) return [];
+        const boinkerOrder = {
+            'boinkers_open': 1,
+            'boinkers_spins': 2,
+            'boinkers_moon': 3
+        };
+        return [...tasks].sort((a, b) => {
+            const aBk = a.id && a.id.startsWith('boinkers_');
+            const bBk = b.id && b.id.startsWith('boinkers_');
+
+            if (aBk && bBk) {
+                return (boinkerOrder[a.id] || 99) - (boinkerOrder[b.id] || 99);
+            }
+            if (aBk && !bBk) return -1;
+            if (!aBk && bBk) return 1;
+
+            // Normal tasks: active/uncompleted first, finished at the bottom
+            const aDone = !!a.done;
+            const bDone = !!b.done;
+            if (!aDone && bDone) return -1;
+            if (aDone && !bDone) return 1;
+
+            // Newer tasks first
+            return (Number(b.created_at) || 0) - (Number(a.created_at) || 0);
+        });
     }
 
     function ftRenderTasksList() {
@@ -3104,6 +3132,8 @@
             listEl.innerHTML = '';
             return;
         }
+
+        ftLoadedTasks = ftSortTasks(ftLoadedTasks);
 
         listEl.innerHTML = ftLoadedTasks.map(task => {
             const isGolden = task.golden_glow || (task.id && task.id.startsWith('boinkers_'));
@@ -3304,7 +3334,7 @@
                 stepsHtml = `
                   <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
                   <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
-                  <div style="margin-bottom:6px;">2. Spin for energy & send <b>3 Boinkers to the Moon</b>.</div>
+                  <div style="margin-bottom:6px;">2. Spend or purchase at least <b>5 Telegram Stars</b> inside Boinkers.</div>
                   <div>3. Return to Howl and tap <b>Claim</b> to verify & credit +${task.reward} HOWL!</div>
                 `;
             } else {
@@ -3405,12 +3435,10 @@
                 if (data.type === 'miniapp') {
                     loadFeaturedTasks();
                 } else {
-                    const actEl = document.getElementById('ft-actions-' + taskId);
-                    if (actEl) {
-                        actEl.innerHTML = '<button class="ft-btn ft-btn-done" disabled><i class="fa-solid fa-check"></i> DONE</button>';
-                    }
                     const found = ftLoadedTasks.find(t => t.id === taskId);
                     if (found) found.done = true;
+                    ftLoadedTasks = ftSortTasks(ftLoadedTasks);
+                    ftRenderTasksList();
                 }
             } else {
                 triggerHaptic('error');
