@@ -331,49 +331,55 @@
       border: 1px solid rgba(255,255,255,0.08);
     }
 
-    /* Golden Glow for Boinkers Partner Tasks */
+    /* Clean Golden Cards for Boinkers Partner Tasks */
     .featured-task-card.golden-glow-task {
-      border: 1.5px solid rgba(255, 204, 0, 0.75) !important;
-      background: linear-gradient(135deg, rgba(255, 204, 0, 0.14) 0%, rgba(28, 22, 10, 0.78) 50%, rgba(15, 15, 22, 0.92) 100%) !important;
-      box-shadow: 0 0 18px rgba(255, 204, 0, 0.38), inset 0 0 12px rgba(255, 204, 0, 0.08) !important;
+      border: 1px solid rgba(255, 204, 0, 0.45) !important;
+      background: linear-gradient(135deg, rgba(255, 204, 0, 0.06) 0%, rgba(22, 18, 12, 0.9) 100%) !important;
+      box-shadow: inset 0 1px 0 rgba(255, 204, 0, 0.18) !important;
       position: relative;
     }
     .featured-task-card.golden-glow-task .ft-icon-col {
-      border-color: rgba(255, 204, 0, 0.6) !important;
-      box-shadow: 0 0 8px rgba(255, 204, 0, 0.35);
+      border-color: rgba(255, 204, 0, 0.45) !important;
     }
     .featured-task-card.golden-glow-task .ft-reward {
       color: #ffcc00 !important;
-      font-weight: 900;
-      text-shadow: 0 0 8px rgba(255, 204, 0, 0.45);
+      font-weight: 800;
     }
     .featured-task-card.golden-glow-task .ft-btn-go {
       background: #ffcc00 !important;
       color: #000 !important;
-      box-shadow: 0 2px 10px rgba(255, 204, 0, 0.45) !important;
+      box-shadow: none !important;
       font-weight: 900 !important;
     }
     .featured-task-card.golden-glow-task .ft-btn-join {
-      background: rgba(255, 204, 0, 0.18) !important;
+      background: rgba(255, 204, 0, 0.15) !important;
       color: #ffcc00 !important;
-      border-color: rgba(255, 204, 0, 0.45) !important;
+      border-color: rgba(255, 204, 0, 0.4) !important;
       font-weight: 800 !important;
     }
     .golden-partner-badge {
       display: inline-flex;
       align-items: center;
       gap: 3px;
-      font-size: 8.5px;
+      font-size: 8px;
       font-weight: 900;
-      letter-spacing: 0.6px;
-      padding: 1px 6px;
-      border-radius: 6px;
-      background: rgba(255, 204, 0, 0.22);
-      border: 1px solid rgba(255, 204, 0, 0.55);
+      letter-spacing: 0.5px;
+      padding: 1px 5px;
+      border-radius: 5px;
+      background: rgba(255, 204, 0, 0.18);
+      border: 1px solid rgba(255, 204, 0, 0.4);
       color: #ffcc00;
-      margin-left: 6px;
+      margin-left: 5px;
       vertical-align: middle;
       text-transform: uppercase;
+    }
+    .ft-desc {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin: 1px 0 3px 0;
+      line-height: 1.25;
+      white-space: normal;
+      word-break: break-word;
     }
 
     .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; background: rgba(5, 7, 20, 0.85); backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px); border-top: 1px solid rgba(255,255,255,0.05); display: flex; justify-content: space-around; align-items: flex-end; padding: 0 10px 16px 10px; z-index: 100; box-shadow: 0 -10px 30px rgba(0,0,0,0.5); }
@@ -505,6 +511,38 @@
       </div>
 
       <button class="modal-btn" onclick="closeAdsrModal()" style="border-radius: 14px; padding: 13px; font-size: 14px; font-weight: 800; background: var(--accent-main); color: #000; box-shadow: 0 4px 15px rgba(94, 179, 255, 0.35); cursor: pointer;">AWESOME</button>
+    </div>
+  </div>
+
+  <!-- Featured Task Verification / Guidance Modal -->
+  <div id="ftTaskInfoModal" class="full-screen-modal" onclick="if(event.target===this)closeFtTaskModal()">
+    <div class="modal-content" style="max-width: 330px; padding: 22px 18px; border-radius: 22px; position: relative; background: rgba(12, 16, 28, 0.97); border: 1px solid rgba(255, 204, 0, 0.35); box-shadow: 0 20px 60px rgba(0,0,0,0.85); text-align: center;">
+      <button onclick="closeFtTaskModal()" style="position: absolute; top: 14px; right: 16px; background: none; border: none; color: var(--text-muted); font-size: 16px; cursor: pointer; padding: 4px; line-height: 1;"><i class="fa-solid fa-xmark"></i></button>
+
+      <div style="display: flex; justify-content: center; align-items: center; margin: 4px auto 12px auto;">
+        <div id="ft-modal-icon-wrap" style="width: 58px; height: 58px; border-radius: 14px; overflow: hidden; border: 1px solid rgba(255, 204, 0, 0.5); display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3);">
+          <img id="ft-modal-icon-img" src="/assets/boinkers.jpg" style="width:100%; height:100%; object-fit:cover;" alt="" />
+        </div>
+      </div>
+
+      <div id="ft-modal-status-badge" style="display:inline-block; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #ef4444; padding: 3px 12px; border-radius: 50px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;">
+        Task Not Completed Yet
+      </div>
+
+      <h3 id="ft-modal-title" style="font-size: 17px; font-weight: 800; margin: 0 0 4px 0; color: #fff;">Task Title</h3>
+      <div id="ft-modal-reward" style="font-size: 12px; color: #ffcc00; font-weight: 800; margin-bottom: 14px;"><i class="fa-solid fa-paw"></i> +100 HOWL</div>
+
+      <div id="ft-modal-body" style="background: rgba(255, 255, 255, 0.04); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 14px; padding: 12px 14px; margin-bottom: 16px; text-align: left; font-size: 12px; color: rgba(255, 255, 255, 0.85); line-height: 1.55;">
+      </div>
+
+      <div style="display: flex; gap: 8px;">
+        <button id="ft-modal-action-btn" onclick="ftModalLaunchTask()" style="flex: 1; border-radius: 12px; padding: 12px; font-size: 13px; font-weight: 800; background: #ffcc00; color: #000; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i> Open App
+        </button>
+        <button onclick="closeFtTaskModal()" style="border-radius: 12px; padding: 12px 16px; font-size: 13px; font-weight: 700; background: rgba(255,255,255,0.08); color: #fff; border: 1px solid var(--border-soft); cursor: pointer;">
+          Close
+        </button>
+      </div>
     </div>
   </div>
 
@@ -1113,7 +1151,7 @@
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">OPEN APP REWARD
               <input type="number" id="boinkers-open-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
-            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">10 SPINS REWARD
+            <label style="font-size:10px; color:var(--text-muted); font-weight:700;">LEVEL 10 REWARD
               <input type="number" id="boinkers-spins-reward" min="1" style="width:100%; margin-top:4px; background:rgba(0,0,0,0.3); border:1px solid var(--border-soft); color:#fff; padding:10px 6px; border-radius:10px; font-size:13px; font-weight:700; outline:none;">
             </label>
             <label style="font-size:10px; color:var(--text-muted); font-weight:700;">MOON TASK REWARD
@@ -1159,7 +1197,7 @@
                 <div id="boinkers-stat-out-open" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
-                <div style="color:var(--text-muted); font-size:9px;">10 Spins Claims</div>
+                <div style="color:var(--text-muted); font-size:9px;">Level 10 Claims</div>
                 <div id="boinkers-stat-out-spins" style="font-weight:800; color:#fff; margin-top:2px;">0 (0 HOWL)</div>
               </div>
               <div style="background:rgba(255,255,255,0.04); padding:8px; border-radius:8px;">
@@ -3099,9 +3137,9 @@
                 <div class="ft-icon-col">${iconHtml}</div>
                 <div class="ft-info-col">
                   <div class="ft-title" title="${escHtml(task.title)}">${escHtml(task.title)}${partnerBadge}</div>
+                  ${task.description ? `<div class="ft-desc">${escHtml(task.description)}</div>` : ''}
                   <div class="ft-reward"><i class="fa-solid fa-paw"></i> +${Number(task.reward).toLocaleString()} HOWL</div>
                   ${spotsBadge}
-                  <div id="ft-status-${task.id}" style="display:none; font-size:10px; margin-top:4px; font-weight:700; line-height:1.2;"></div>
                 </div>
                 <div class="ft-actions-col" id="ft-actions-${task.id}">
                   ${actionsHtml}
@@ -3166,14 +3204,6 @@
         const task = ftLoadedTasks.find(t => t.id === taskId);
         if (!task) return;
         triggerHaptic('light');
-        const statusEl = document.getElementById('ft-status-' + taskId);
-        if (statusEl) {
-            const isBk = taskId && taskId.startsWith('boinkers_');
-            statusEl.style.display = 'block';
-            statusEl.innerHTML = isBk 
-                ? `<span style="color:#ffcc00;"><i class="fa-solid fa-circle-info"></i> Finished task in Boinkers? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`
-                : `<span style="color:var(--accent-main);"><i class="fa-solid fa-circle-info"></i> Joined? Tap <b>CLAIM</b> to verify & credit HOWL.</span>`;
-        }
         ftOpenLink(task.invite_link);
     }
 
@@ -3222,6 +3252,103 @@
         try { alert(msg); } catch (e) {}
     }
 
+    // Modal helpers for task guidance & failure popup
+    let ftCurrentModalTask = null;
+
+    function openFtTaskModal(task, errorMsg) {
+        if (!task) return;
+        ftCurrentModalTask = task;
+        const modal = document.getElementById('ftTaskInfoModal');
+        if (!modal) return;
+
+        const iconImg = document.getElementById('ft-modal-icon-img');
+        if (iconImg) {
+            const avatar = task.avatar_url || task.icon_url || '/assets/boinkers.jpg';
+            const src = avatar.startsWith('http') ? avatar : (API_BASE_URL + avatar);
+            iconImg.src = src;
+        }
+
+        const titleEl = document.getElementById('ft-modal-title');
+        if (titleEl) titleEl.innerText = task.title || 'Task Details';
+
+        const rewardEl = document.getElementById('ft-modal-reward');
+        if (rewardEl) rewardEl.innerHTML = `<i class="fa-solid fa-paw"></i> +${Number(task.reward || 0).toLocaleString()} HOWL`;
+
+        const badgeEl = document.getElementById('ft-modal-status-badge');
+        if (badgeEl) {
+            badgeEl.innerText = 'TASK NOT COMPLETED YET';
+            badgeEl.style.background = 'rgba(239, 68, 68, 0.15)';
+            badgeEl.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            badgeEl.style.color = '#ef4444';
+        }
+
+        const bodyEl = document.getElementById('ft-modal-body');
+        if (bodyEl) {
+            let stepsHtml = '';
+            if (task.id === 'boinkers_open') {
+                stepsHtml = `
+                  <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
+                  <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
+                  <div style="margin-bottom:6px;">2. Keep the app open for at least 15 seconds.</div>
+                  <div>3. Return to Howl and tap <b>Claim</b> to receive your +${task.reward} HOWL!</div>
+                `;
+            } else if (task.id === 'boinkers_spins') {
+                stepsHtml = `
+                  <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
+                  <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
+                  <div style="margin-bottom:6px;">2. Spin on the wheel to gain energy and level up.</div>
+                  <div style="margin-bottom:6px;">3. Reach <b>Level 10</b> in Boinkers.</div>
+                  <div>4. Return to Howl and tap <b>Claim</b> to verify & credit +${task.reward} HOWL!</div>
+                `;
+            } else if (task.id === 'boinkers_moon') {
+                stepsHtml = `
+                  <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-list-check" style="color:#ffcc00; margin-right:4px;"></i> How to complete:</div>
+                  <div style="margin-bottom:6px;">1. Tap <b>Open App</b> below to launch Boinkers.</div>
+                  <div style="margin-bottom:6px;">2. Spin for energy & send <b>3 Boinkers to the Moon</b>.</div>
+                  <div>3. Return to Howl and tap <b>Claim</b> to verify & credit +${task.reward} HOWL!</div>
+                `;
+            } else {
+                stepsHtml = `
+                  <div style="font-weight:700; color:#fff; margin-bottom:8px;"><i class="fa-solid fa-circle-info" style="color:var(--accent-main); margin-right:4px;"></i> How to complete:</div>
+                  <div style="margin-bottom:6px;">${escHtml(errorMsg || task.description || 'Complete the task requirement, then tap Claim.')}</div>
+                  <div>After completing, return here and tap <b>Claim</b>!</div>
+                `;
+            }
+            bodyEl.innerHTML = stepsHtml;
+        }
+
+        const actionBtn = document.getElementById('ft-modal-action-btn');
+        if (actionBtn) {
+            const isRegularChannel = task.type === 'channel' && !(task.id && task.id.startsWith('boinkers_'));
+            actionBtn.innerHTML = isRegularChannel
+                ? `<i class="fa-solid fa-arrow-up-right-from-square"></i> Join Channel`
+                : `<i class="fa-solid fa-arrow-up-right-from-square"></i> Open App`;
+        }
+
+        modal.classList.add('active');
+        triggerHaptic('warning');
+    }
+
+    function closeFtTaskModal() {
+        const modal = document.getElementById('ftTaskInfoModal');
+        if (modal) modal.classList.remove('active');
+    }
+
+    function ftModalLaunchTask() {
+        if (!ftCurrentModalTask) return;
+        const link = ftCurrentModalTask.invite_link || ftCurrentModalTask.link;
+        if (link) {
+            if (ftCurrentModalTask.type === 'miniapp') {
+                localStorage.setItem('ft_miniapp_' + ftCurrentModalTask.id, Date.now().toString());
+            } else {
+                localStorage.setItem('ft_started_' + ftCurrentModalTask.id, '1');
+            }
+            ftOpenLink(link);
+            closeFtTaskModal();
+            loadFeaturedTasks();
+        }
+    }
+
     async function ftClaim(taskId) {
         if (ftClaimingId) return;
         const btn = document.getElementById('ft-claim-btn-' + taskId);
@@ -3231,13 +3358,7 @@
         ftClaimingId = taskId;
         triggerHaptic('medium');
 
-        const statusEl = document.getElementById('ft-status-' + taskId);
-        if (statusEl) {
-            statusEl.style.display = 'block';
-            statusEl.innerHTML = `<span style="color:var(--accent-main);"><i class="fa-solid fa-spinner fa-spin"></i> Checking membership with bot...</span>`;
-        }
-
-        // Multi-stage animated feedback so button feels responsive and alive
+        // Multi-stage animated feedback on button
         let step = 0;
         const setStepText = () => {
             if (!btn || btn.classList.contains('ft-btn-done')) return;
@@ -3269,16 +3390,12 @@
             clearInterval(stageTimer);
             clearTimeout(timeoutId);
             const data = await res.json();
+
             if (data.success) {
                 triggerHaptic('success');
                 btn.className = 'ft-btn ft-btn-done';
                 btn.disabled = true;
                 btn.innerHTML = '<i class="fa-solid fa-check"></i> DONE';
-
-                if (statusEl) {
-                    statusEl.style.display = 'block';
-                    statusEl.innerHTML = `<span style="color:#10b981;"><i class="fa-solid fa-circle-check"></i> +${Number(data.reward || 50).toLocaleString()} HOWL Claimed!</span>`;
-                }
 
                 ftAlert(data.message || '🎉 Reward successfully claimed!');
                 if (typeof refreshBalance === 'function') refreshBalance();
@@ -3296,41 +3413,27 @@
                     if (found) found.done = true;
                 }
             } else {
-                clearInterval(stageTimer);
                 triggerHaptic('error');
                 const tObj = ftLoadedTasks.find(t => t.id === taskId);
                 const isCh = tObj && tObj.type === 'channel';
-
-                if (statusEl) {
-                    statusEl.style.display = 'block';
-                    statusEl.innerHTML = `<span style="color:#ef4444;"><i class="fa-solid fa-circle-exclamation"></i> ${escHtml(data.error || (isCh ? 'Not joined yet. Tap JOIN first, then tap CLAIM.' : 'Could not claim.'))}</span>`;
-                }
+                const isBk = taskId && taskId.startsWith('boinkers_');
+                const playLabel = isBk ? 'PLAY' : 'JOIN';
 
                 btn.disabled = false;
-                btn.style.background = '#ef4444';
-                btn.style.color = '#fff';
-                btn.innerHTML = isCh ? '<i class="fa-solid fa-circle-exclamation"></i> Not Joined' : '<i class="fa-solid fa-circle-exclamation"></i> Retry';
+                btn.style.background = '';
+                btn.style.color = '';
+                btn.innerHTML = 'CLAIM';
 
                 const actEl = document.getElementById('ft-actions-' + taskId);
                 if (isCh && actEl) {
-                    setTimeout(() => {
-                        if (actEl && !actEl.querySelector('.ft-btn-done')) {
-                            actEl.innerHTML = `
-                              <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')" style="background:var(--accent-main); color:#000; font-weight:800; box-shadow:0 0 10px rgba(94,179,255,0.4);">JOIN <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
-                              <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>
-                            `;
-                        }
-                    }, 1800);
-                } else {
-                    setTimeout(() => {
-                        if (btn && !btn.classList.contains('ft-btn-done')) {
-                            btn.style.background = '';
-                            btn.style.color = '';
-                            btn.textContent = 'CLAIM';
-                        }
-                    }, 2500);
+                    actEl.innerHTML = `
+                      <button class="ft-btn ft-btn-join" onclick="ftRejoinChannel('${taskId}')">${playLabel} <i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                      <button class="ft-btn ft-btn-claim" id="ft-claim-btn-${taskId}" onclick="ftClaim('${taskId}')">CLAIM</button>
+                    `;
                 }
-                ftAlert(data.error || (isCh ? 'Please join the channel or group before claiming!' : 'Could not claim reward.'));
+
+                // Show guidance modal instead of stretching the card
+                openFtTaskModal(tObj, data.error);
             }
         } catch (e) {
             clearInterval(stageTimer);
@@ -3338,17 +3441,14 @@
             triggerHaptic('error');
             const isTimeout = e?.name === 'AbortError';
             const msg = isTimeout ? 'Verification timed out. Please try again.' : 'Network error while claiming task.';
-            if (statusEl) {
-                statusEl.style.display = 'block';
-                statusEl.innerHTML = `<span style="color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> ${escHtml(msg)}</span>`;
-            }
             if (btn) {
                 btn.disabled = false;
                 btn.style.background = '';
                 btn.style.color = '';
-                btn.textContent = 'CLAIM';
+                btn.innerHTML = 'CLAIM';
             }
-            ftAlert(msg);
+            const tObj = ftLoadedTasks.find(t => t.id === taskId);
+            openFtTaskModal(tObj, msg);
         } finally {
             clearInterval(stageTimer);
             ftClaimingId = null;
