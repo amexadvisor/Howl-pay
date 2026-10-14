@@ -409,9 +409,147 @@
     .loader-spinner { width: 30px; height: 30px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--accent-main); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
     @keyframes spin { to { transform: rotate(360deg); } }
     input[type="number"]::-webkit-inner-spin-button, input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+    /* Top Notification Pop-up Banner */
+    .top-notification-banner {
+      position: fixed;
+      top: 14px;
+      left: 12px;
+      right: 12px;
+      max-width: 440px;
+      margin: 0 auto;
+      z-index: 9999999;
+      background: rgba(8, 14, 32, 0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 204, 0, 0.55);
+      border-radius: 18px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 204, 0, 0.25);
+      transform: translateY(-160%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .top-notification-banner.show {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .top-notification-banner.tn-gold {
+      border-color: rgba(255, 204, 0, 0.6);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(255, 204, 0, 0.25);
+    }
+    .top-notification-banner.tn-gold .tn-icon-wrap {
+      background: rgba(255, 204, 0, 0.15);
+      border: 1px solid rgba(255, 204, 0, 0.4);
+      color: #ffcc00;
+      box-shadow: 0 0 15px rgba(255, 204, 0, 0.25);
+    }
+    .top-notification-banner.tn-success {
+      border-color: rgba(34, 197, 94, 0.6);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(34, 197, 94, 0.25);
+    }
+    .top-notification-banner.tn-success .tn-icon-wrap {
+      background: rgba(34, 197, 94, 0.15);
+      border: 1px solid rgba(34, 197, 94, 0.4);
+      color: #22c55e;
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.25);
+    }
+    .top-notification-banner.tn-cyan {
+      border-color: rgba(94, 179, 255, 0.6);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(94, 179, 255, 0.25);
+    }
+    .top-notification-banner.tn-cyan .tn-icon-wrap {
+      background: rgba(94, 179, 255, 0.15);
+      border: 1px solid rgba(94, 179, 255, 0.4);
+      color: var(--accent-main);
+      box-shadow: 0 0 15px rgba(94, 179, 255, 0.25);
+    }
+    .top-notification-banner.tn-error {
+      border-color: rgba(239, 68, 68, 0.6);
+      box-shadow: 0 14px 35px rgba(0, 0, 0, 0.8), 0 0 25px rgba(239, 68, 68, 0.25);
+    }
+    .top-notification-banner.tn-error .tn-icon-wrap {
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #ef4444;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.25);
+    }
+    .tn-icon-wrap {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 19px;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+    .tn-content {
+      flex: 1;
+      min-width: 0;
+      text-align: left;
+    }
+    .tn-title {
+      font-size: 12px;
+      font-weight: 900;
+      color: #fff;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      line-height: 1.2;
+      margin-bottom: 2px;
+    }
+    .tn-message {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.85);
+      line-height: 1.35;
+      font-weight: 600;
+      white-space: normal;
+      word-break: break-word;
+    }
+    .tn-close-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 12px;
+      cursor: pointer;
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+    .tn-close-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      color: #fff;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Top Notification Pop-up Banner -->
+  <div id="top-notification-banner" class="top-notification-banner" onclick="dismissTopNotification()">
+    <div class="tn-icon-wrap" id="tn-icon-wrap">
+      <i id="tn-icon" class="fa-solid fa-coins"></i>
+    </div>
+    <div class="tn-content">
+      <div id="tn-title" class="tn-title">TASK COMPLETED!</div>
+      <div id="tn-message" class="tn-message">+100 HOWL added to your balance</div>
+    </div>
+    <button class="tn-close-btn" onclick="event.stopPropagation(); dismissTopNotification();" aria-label="Dismiss">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
 
   <!-- Live Animated Background -->
   <div class="night-sky-bg">
@@ -1358,6 +1496,62 @@
         }
     }
 
+    let topNotificationTimer = null;
+
+    function showTopNotification(opts) {
+        if (!opts) return;
+        if (typeof opts === 'string') {
+            opts = { message: opts };
+        }
+        const title = opts.title || 'TASK COMPLETED!';
+        const rawMsg = opts.message || 'Reward successfully claimed!';
+        const isError = opts.type === 'error' || rawMsg.includes('❌') || rawMsg.toLowerCase().includes('fail') || rawMsg.toLowerCase().includes('error');
+        const isCyan = opts.type === 'cyan';
+        const type = isError ? 'error' : (isCyan ? 'cyan' : (opts.type || 'gold'));
+        const icon = opts.icon || (isError ? 'fa-solid fa-circle-exclamation' : (type === 'gold' ? 'fa-solid fa-coins' : 'fa-solid fa-circle-check'));
+        const duration = opts.duration || 3800;
+
+        const banner = document.getElementById('top-notification-banner');
+        if (!banner) return;
+
+        if (topNotificationTimer) {
+            clearTimeout(topNotificationTimer);
+            topNotificationTimer = null;
+        }
+
+        banner.classList.remove('tn-gold', 'tn-success', 'tn-cyan', 'tn-error');
+        banner.classList.add(`tn-${type}`);
+
+        const titleEl = document.getElementById('tn-title');
+        const msgEl = document.getElementById('tn-message');
+        const iconEl = document.getElementById('tn-icon');
+
+        if (titleEl) titleEl.textContent = title;
+        if (msgEl) msgEl.textContent = rawMsg.replace(/^[🎉✅⚠️❌]\s*/, '');
+        if (iconEl) iconEl.className = icon;
+
+        try {
+            triggerHaptic(isError ? 'error' : 'success');
+        } catch (e) {}
+
+        banner.classList.add('show');
+
+        topNotificationTimer = setTimeout(() => {
+            dismissTopNotification();
+        }, duration);
+    }
+
+    function dismissTopNotification() {
+        const banner = document.getElementById('top-notification-banner');
+        if (banner) {
+            banner.classList.remove('show');
+        }
+        if (topNotificationTimer) {
+            clearTimeout(topNotificationTimer);
+            topNotificationTimer = null;
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initApp();
         
@@ -1996,13 +2190,28 @@
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 if (data.user_balance) updateBalanceUI(data.user_balance);
                 applyAdStatus(data.ads);
-                alert(`🎉 +${data.reward_howl} HOWL added to your balance!`);
+                showTopNotification({
+                    title: 'TASK COMPLETED!',
+                    message: `+${data.reward_howl} HOWL added to your balance!`,
+                    type: 'gold',
+                    icon: 'fa-solid fa-coins'
+                });
             } else {
                 if (data.ads) applyAdStatus(data.ads);
-                alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
+                showTopNotification({
+                    title: 'CLAIM STATUS',
+                    message: data.error || 'Claim failed. Daily limit may be reached.',
+                    type: 'error',
+                    icon: 'fa-solid fa-circle-exclamation'
+                });
             }
         } catch (err) {
-            alert('❌ Network Error. Claim failed.');
+            showTopNotification({
+                title: 'NETWORK ERROR',
+                message: 'Network Error. Claim failed.',
+                type: 'error',
+                icon: 'fa-solid fa-circle-exclamation'
+            });
         }
 
         adsgramClaiming = false;
@@ -2261,19 +2470,36 @@
             if (response.ok && data.success) {
                 if (window.Telegram && Telegram.WebApp && Telegram.WebApp.HapticFeedback) Telegram.WebApp.HapticFeedback.notificationOccurred('success');
                 if (data.user_balance) updateBalanceUI(data.user_balance); else refreshBalance();
-                alert(`🎉 +${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`);
+                showTopNotification({
+                    title: 'AD REWARD CREDITED!',
+                    message: `+${data.reward_howl} HOWL ($${data.reward_usd.toFixed(4)}) added to your balance!`,
+                    type: 'gold',
+                    icon: 'fa-solid fa-coins'
+                });
 
                 if (data.ads) applyAdStatus(data.ads);
                 else { monetagAdsWatched = data.ads_watched || (monetagAdsWatched + 1); updateMonetagUI(); }
             } else {
                 if (data.ads) applyAdStatus(data.ads);
-                alert(`⚠️ ${data.error || 'Claim failed. Daily limit may be reached.'}`);
+                showTopNotification({
+                    title: 'CLAIM STATUS',
+                    message: data.error || 'Claim failed. Daily limit may be reached.',
+                    type: 'error',
+                    icon: 'fa-solid fa-circle-exclamation'
+                });
                 if (!data.ads && data.error && data.error.includes("Daily limit reached")) {
                     monetagAdsWatched = monetagAdLimit;
                     updateMonetagUI();
                 }
             }
-        } catch (err) { alert(`❌ Network Error. Claim failed.`); }
+        } catch (err) {
+            showTopNotification({
+                title: 'NETWORK ERROR',
+                message: 'Network Error. Claim failed.',
+                type: 'error',
+                icon: 'fa-solid fa-circle-exclamation'
+            });
+        }
     }
 
     // ================= Admin: ad reward settings =================
@@ -3053,7 +3279,12 @@
             qtRender(d);
             if (credited) {
                 triggerHaptic('medium');
-                alert('✅ +' + d.comment.reward.toLocaleString() + ' HOWL credited for your comment!');
+                showTopNotification({
+                    title: 'COMMENT REWARD!',
+                    message: `+${d.comment.reward.toLocaleString()} HOWL credited for your comment!`,
+                    type: 'gold',
+                    icon: 'fa-solid fa-coins'
+                });
             }
             if (typeof refreshBalance === 'function') refreshBalance();
         } catch (e) {}
@@ -3107,11 +3338,19 @@
         const fallback = () => {
             const ta = document.createElement('textarea');
             ta.value = str; document.body.appendChild(ta); ta.select();
-            try { document.execCommand('copy'); alert('Copied!'); } catch (e) {}
+            try {
+                document.execCommand('copy');
+                showTopNotification({ title: 'COPIED!', message: 'Text copied to clipboard', type: 'cyan', icon: 'fa-regular fa-copy', duration: 2200 });
+            } catch (e) {}
             ta.remove();
         };
-        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(str).then(() => alert('Copied!')).catch(fallback);
-        else fallback();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(str).then(() => {
+                showTopNotification({ title: 'COPIED!', message: 'Text copied to clipboard', type: 'cyan', icon: 'fa-regular fa-copy', duration: 2200 });
+            }).catch(fallback);
+        } else {
+            fallback();
+        }
     }
     function qtCopyText(i) { if (qtData && qtData.comment.texts[i] != null) qtCopy(qtData.comment.texts[i]); }
     function qtCopyBio() { if (qtData) qtCopy(qtData.bio.text); }
@@ -3132,14 +3371,31 @@
             const d = await qtApi('claim_bio');
             if (d.success) {
                 triggerHaptic('medium');
-                alert('✅ +' + Number(d.reward).toLocaleString() + ' HOWL added to your balance!');
+                showTopNotification({
+                    title: 'BIO TASK COMPLETED!',
+                    message: `+${Number(d.reward).toLocaleString()} HOWL added to your balance!`,
+                    type: 'gold',
+                    icon: 'fa-solid fa-circle-check'
+                });
             } else {
-                alert('❌ ' + (d.error || 'Could not verify your bio.'));
+                showTopNotification({
+                    title: 'VERIFICATION FAILED',
+                    message: d.error || 'Could not verify your bio.',
+                    type: 'error',
+                    icon: 'fa-solid fa-circle-exclamation'
+                });
                 if (d.need_start && d.bot_link) {
                     if (window.Telegram && Telegram.WebApp && Telegram.WebApp.openTelegramLink) Telegram.WebApp.openTelegramLink(d.bot_link);
                 }
             }
-        } catch (e) { alert('Network error. Try again.'); }
+        } catch (e) {
+            showTopNotification({
+                title: 'NETWORK ERROR',
+                message: 'Network error. Try again.',
+                type: 'error',
+                icon: 'fa-solid fa-circle-exclamation'
+            });
+        }
         await quickLoad();
     }
 
@@ -3476,15 +3732,15 @@
         });
     }
 
-    function ftAlert(msg) {
+    function ftAlert(msg, title = 'TASK COMPLETED!') {
         if (!msg) return;
-        try {
-            if (window.Telegram?.WebApp?.showAlert) {
-                window.Telegram.WebApp.showAlert(msg);
-                return;
-            }
-        } catch (e) {}
-        try { alert(msg); } catch (e) {}
+        const isErr = msg.includes('❌') || msg.toLowerCase().includes('fail') || msg.toLowerCase().includes('error');
+        showTopNotification({
+            title: isErr ? 'NOTICE' : title,
+            message: msg,
+            type: isErr ? 'error' : 'gold',
+            icon: isErr ? 'fa-solid fa-circle-exclamation' : 'fa-solid fa-coins'
+        });
     }
 
     // Modal helpers for task guidance & failure popup
