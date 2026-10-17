@@ -28,6 +28,7 @@ export default function App() {
     user,
     activeView,
     setActiveView,
+    leaderboardSource,
     isGateVerified,
     setIsGateVerified,
     isBanned,
@@ -47,7 +48,8 @@ export default function App() {
     notification,
     dismissTopNotification,
     triggerHaptic,
-    playHowlAudio
+    playHowlAudio,
+    triggerAdsrStartWatch
   } = useApp();
 
   const handleSplashEnter = () => {
@@ -121,7 +123,7 @@ export default function App() {
         onClose={() => setAdsrPreModalOpen(false)}
         onConfirm={() => {
           setAdsrPreModalOpen(false);
-          // In React, launch adsgram
+          triggerAdsrStartWatch();
         }}
       />
 
@@ -137,22 +139,33 @@ export default function App() {
         onClose={() => setFtModal({ ...ftModal, open: false })}
         onLaunch={(task) => {
           setFtModal({ ...ftModal, open: false });
-          if (task?.invite_link) {
-            if (window.Telegram?.WebApp?.openTelegramLink) {
-              window.Telegram.WebApp.openTelegramLink(task.invite_link);
+          const targetUrl = task?.invite_link || task?.link;
+          if (targetUrl) {
+            if (window.Telegram?.WebApp?.openTelegramLink && (targetUrl.includes('t.me/') || targetUrl.startsWith('tg:'))) {
+              window.Telegram.WebApp.openTelegramLink(targetUrl);
+            } else if (window.Telegram?.WebApp?.openLink) {
+              window.Telegram.WebApp.openLink(targetUrl);
             } else {
-              window.open(task.invite_link, '_blank');
+              window.open(targetUrl, '_blank');
             }
           }
         }}
       />
+
 
       {/* Main Container */}
       <div className="container">
         <main id="main-content">{renderActiveView()}</main>
 
         {/* Bottom Navigation */}
-        <BottomNav activeView={activeView} onViewChange={setActiveView} onHaptic={triggerHaptic} />
+        {activeView !== 'admin-view' && (
+          <BottomNav
+            activeView={activeView}
+            leaderboardSource={leaderboardSource}
+            onViewChange={setActiveView}
+            onHaptic={triggerHaptic}
+          />
+        )}
       </div>
 
       {/* Migration Switch Button for Testing */}

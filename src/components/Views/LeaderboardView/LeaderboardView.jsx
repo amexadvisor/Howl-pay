@@ -75,35 +75,47 @@ export default function LeaderboardView() {
             const initial = (earner.name || 'U').charAt(0).toUpperCase();
 
             return (
-              <div key={index} className="data-item">
-                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <div
+                key={index}
+                className="data-item"
+                style={{ border: `1px solid ${index === 0 ? 'rgba(234,179,8,0.3)' : 'var(--border-soft)'}` }}
+              >
+                <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                   <div
+                    className="data-icon"
                     style={{
+                      background: 'transparent',
                       width: '28px',
-                      textAlign: 'center',
+                      height: '28px',
+                      marginRight: 0,
+                      color: rankColor,
                       fontWeight: 800,
                       fontSize: '14px',
-                      color: rankColor
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}
                   >
                     {rankContent}
                   </div>
 
                   <div
-                    className="data-icon"
                     style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '50%',
-                      background: 'rgba(255,255,255,0.08)',
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '12px',
+                      background: 'var(--accent-main)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       overflow: 'hidden',
-                      marginRight: 0
+                      flexShrink: 0
                     }}
                   >
                     {earner.photo_url ? (
                       <img src={earner.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <span style={{ color: '#fff', fontWeight: 'bold' }}>{initial}</span>
+                      <span style={{ color: '#000', fontWeight: 'bold' }}>{initial}</span>
                     )}
                   </div>
 
@@ -118,7 +130,7 @@ export default function LeaderboardView() {
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <div className="data-val">${totalUsd.toFixed(4)}</div>
+                  <div className="data-val" style={{ fontSize: '14px' }}>+${totalUsd.toFixed(4)}</div>
                   {earner.total_howl ? (
                     <div style={{ fontSize: '10px', color: 'var(--accent-orange)', fontWeight: 700 }}>
                       {Number(earner.total_howl).toLocaleString()} HOWL
@@ -127,6 +139,7 @@ export default function LeaderboardView() {
                 </div>
               </div>
             );
+
           })
         )}
       </div>

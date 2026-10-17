@@ -1,34 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
-import { quickTasksCall } from '../../../services/api';
+import { fetchReferralList, BOT_USERNAME } from '../../../services/api';
+
+const qtAgo = (ts) => {
+  if (!ts) return 'never';
+  const s = Math.max(0, (Date.now() - new Date(ts).getTime()) / 1000);
+  if (s < 3600) return Math.max(1, Math.round(s / 60)) + 'm ago';
+  if (s < 86400) return Math.round(s / 3600) + 'h ago';
+  return Math.round(s / 86400) + 'd ago';
+};
 
 export default function TeamView() {
-  const { user, triggerHaptic, showTopNotification } = useApp();
+  const { user, triggerHaptic, showTopNotification, referralStats } = useApp();
   const [stats, setStats] = useState({
-    friends: 0,
-    howl: 0,
-    usdt: 0,
     active: 0,
     inactive: 0,
-    bonus: 0
+    bonus: 0,
+    total: 0,
+    listed: 0
   });
   const [friendsList, setFriendsList] = useState([]);
   const [filter, setFilter] = useState('all');
   const [loading, setLoading] = useState(true);
 
-  const refLink = `https://t.me/howl_pay_bot?start=${user.id}`;
+  const refLink =
+    user.id && user.id !== 'guest_user'
+      ? `https://t.me/${BOT_USERNAME}/app?startapp=ref_${user.id}`
+      : `https://t.me/${BOT_USERNAME}/app`;
 
   const loadReferrals = async () => {
     try {
-      const res = await quickTasksCall('referral_list');
+      const res = await fetchReferralList();
       if (res && res.success) {
         setStats({
-          friends: res.friends_count || 0,
-          howl: res.howl_earned || 0,
-          usdt: res.usdt_earned || 0,
-          active: res.active_count || 0,
-          inactive: res.inactive_count || 0,
-          bonus: res.bonus_count || 0
+          active: res.active || 0,
+          inactive: res.inactive || 0,
+          bonus: res.bonuses || 0,
+          total: res.total || 0,
+          listed: res.listed || 0
         });
         if (Array.isArray(res.friends)) {
           setFriendsList(res.friends);
@@ -72,10 +81,15 @@ export default function TeamView() {
   };
 
   const filteredFriends = friendsList.filter((f) => {
-    if (filter === 'active') return f.is_active || f.ads > 0;
-    if (filter === 'inactive') return !f.is_active && (!f.ads || f.ads === 0);
+    if (filter === 'active') return f.active;
+    if (filter === 'inactive') return !f.active;
     return true;
   });
+
+  const friendsCount = referralStats?.friends_count || 0;
+  const howlEarned = Number(referralStats?.total_howl || 0);
+  const usdtEarned = Number(referralStats?.total_usdt || (howlEarned * 0.00002));
+
 
   return (
     <div id="team-view" className="view active">
@@ -127,7 +141,7 @@ export default function TeamView() {
               FRIENDS
             </div>
             <div id="ref-friends-count" style={{ color: 'var(--accent-main)', fontWeight: 800, fontSize: '16px' }}>
-              {stats.friends}
+              {friendsCount.toLocaleString()}
             </div>
           </div>
           <div
@@ -144,7 +158,7 @@ export default function TeamView() {
               HOWL
             </div>
             <div id="ref-howl-earned" style={{ color: 'var(--accent-orange)', fontWeight: 800, fontSize: '14px' }}>
-              {stats.howl.toLocaleString()} HOWL
+              {howlEarned.toLocaleString()} HOWL
             </div>
           </div>
           <div
@@ -161,7 +175,7 @@ export default function TeamView() {
               USDT
             </div>
             <div id="ref-usdt-earned" style={{ color: '#a855f7', fontWeight: 800, fontSize: '14px' }}>
-              ${stats.usdt.toFixed(4)}
+              ${usdtEarned.toFixed(4)}
             </div>
           </div>
         </div>
@@ -191,7 +205,7 @@ export default function TeamView() {
               ACTIVE
             </div>
             <div id="ref-act-active" style={{ color: '#22c55e', fontWeight: 800, fontSize: '16px' }}>
-              {stats.active}
+              {stats.active.toLocaleString()}
             </div>
           </div>
           <div
@@ -208,7 +222,7 @@ export default function TeamView() {
               INACTIVE
             </div>
             <div id="ref-act-inactive" style={{ color: '#f59e0b', fontWeight: 800, fontSize: '16px' }}>
-              {stats.inactive}
+              {stats.inactive.toLocaleString()}
             </div>
           </div>
           <div
@@ -225,7 +239,7 @@ export default function TeamView() {
               10-AD BONUSES
             </div>
             <div id="ref-act-bonus" style={{ color: 'var(--accent-main)', fontWeight: 800, fontSize: '16px' }}>
-              {stats.bonus}
+              {stats.bonus.toLocaleString()}
             </div>
           </div>
         </div>
@@ -269,38 +283,38 @@ export default function TeamView() {
             </div>
           ) : filteredFriends.length === 0 ? (
             <div className="qt-muted" style={{ margin: '10px 0 0 0', textAlign: 'center' }}>
-              No friends found in this tab.
+              No friends here yet.
             </div>
           ) : (
             filteredFriends.map((f, i) => {
-              const isActive = f.is_active || f.ads > 0;
-              const name = f.first_name || f.username || `User #${f.id}`;
-              const initial = name.charAt(0).toUpperCase();
+              const initial = (Array.from(String(f.name || '').trim())[0] || '?').toUpperCase();
+              const sub = f.active
+                ? `${f.ads} ${f.ads === 1 ? 'ad' : 'ads'} watched${f.bonus_reached ? ' · 10-ad bonus earned' : ''}`
+                : `Joined ${qtAgo(f.joined_at)} · has not watched an ad yet`;
 
               return (
                 <div key={i} className="ref-row">
-                  <div className="ref-avatar">
-                    {f.photo_url ? (
-                      <img src={f.photo_url} alt="" style={{ width: '100%', height: '100%', borderRadius: '50%' }} />
-                    ) : (
-                      initial
-                    )}
-                  </div>
+                  <div className="ref-avatar">{initial}</div>
                   <div className="ref-info">
-                    <div className="ref-name">{name}</div>
-                    <div className="ref-sub">
-                      {f.ads || 0} ads watched {f.bonus_reached ? '· 10-ad bonus earned' : ''}
-                    </div>
+                    <div className="ref-name">{f.name}</div>
+                    <div className="ref-sub">{sub}</div>
                   </div>
-                  <div className={`ref-chip ${isActive ? 'on' : 'off'}`}>
-                    {isActive ? 'ACTIVE' : 'INACTIVE'}
-                  </div>
+                  <span className={`ref-chip ${f.active ? 'on' : 'off'}`}>
+                    {f.active ? 'ACTIVE' : 'INACTIVE'}
+                  </span>
                 </div>
               );
             })
           )}
         </div>
+
+        {stats.total > stats.listed && (
+          <div id="ref-more" className="qt-muted" style={{ margin: '8px 0 0 0' }}>
+            Showing your latest {stats.listed} of {stats.total} friends.
+          </div>
+        )}
       </div>
+
 
       {/* Referral Link Box */}
       <div className="glass-card">

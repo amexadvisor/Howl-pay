@@ -112,21 +112,42 @@ export default function FeaturedTasksSection() {
   const handleGoMiniApp = (task) => {
     triggerHaptic('light');
     localStorage.setItem('ft_miniapp_' + task.id, String(Date.now()));
-    openLink(task.invite_link);
+    openLink(task.link || task.invite_link);
     setTasks((prev) => [...prev]);
   };
 
+
+  const [claimingId, setClaimingId] = useState(null);
+  const [claimStageText, setClaimStageText] = useState('Checking...');
+
   const handleClaim = async (task) => {
-    triggerHaptic('light');
+    if (claimingId) return;
+    setClaimingId(task.id);
+    triggerHaptic('medium');
+
+    let step = 0;
+    const stages = ['Checking...', 'Verifying...', 'Crediting HOWL...', 'Finalizing...'];
+    setClaimStageText(stages[0]);
+    const stageTimer = setInterval(() => {
+      step = (step + 1) % stages.length;
+      setClaimStageText(stages[step]);
+    }, 700);
+
     try {
       const res = await quickTasksCall('featured_claim', { taskId: task.id });
+      clearInterval(stageTimer);
+      setClaimingId(null);
+
       if (res && res.success) {
+        triggerHaptic('success');
+        localStorage.removeItem('ft_miniapp_' + task.id);
         showTopNotification('TASK COMPLETED!', `+${Number(task.reward).toLocaleString()} HOWL added to your balance`, 'gold');
         refreshBalance();
         setTasks((prev) =>
-          prev.map((t) => (t.id === task.id ? { ...t, done: true } : t))
+          sortTasks(prev.map((t) => (t.id === task.id ? { ...t, done: true } : t)))
         );
       } else {
+        triggerHaptic('error');
         const errorMsg = res?.message || 'Please complete the task requirements first.';
         setFtModal({
           open: true,
@@ -135,6 +156,9 @@ export default function FeaturedTasksSection() {
         });
       }
     } catch (err) {
+      clearInterval(stageTimer);
+      setClaimingId(null);
+      triggerHaptic('error');
       showTopNotification('ERROR', 'Failed to verify task completion.', 'error');
     }
   };
@@ -234,8 +258,18 @@ export default function FeaturedTasksSection() {
                       <button className="ft-btn ft-btn-join" onClick={() => handleRejoinChannel(task)}>
                         {playLabel} <i className="fa-solid fa-arrow-up-right-from-square"></i>
                       </button>
-                      <button className="ft-btn ft-btn-claim" onClick={() => handleClaim(task)}>
-                        CLAIM
+                      <button
+                        className="ft-btn ft-btn-claim"
+                        disabled={claimingId === task.id}
+                        onClick={() => handleClaim(task)}
+                      >
+                        {claimingId === task.id ? (
+                          <>
+                            <i className="fa-solid fa-spinner fa-spin"></i> {claimStageText}
+                          </>
+                        ) : (
+                          'CLAIM'
+                        )}
                       </button>
                     </>
                   )
@@ -249,8 +283,18 @@ export default function FeaturedTasksSection() {
                       WAIT {waitSeconds}s
                     </button>
                   ) : (
-                    <button className="ft-btn ft-btn-claim" onClick={() => handleClaim(task)}>
-                      CLAIM
+                    <button
+                      className="ft-btn ft-btn-claim"
+                      disabled={claimingId === task.id}
+                      onClick={() => handleClaim(task)}
+                    >
+                      {claimingId === task.id ? (
+                        <>
+                          <i className="fa-solid fa-spinner fa-spin"></i> {claimStageText}
+                        </>
+                      ) : (
+                        'CLAIM'
+                      )}
                     </button>
                   )
                 ) : null}

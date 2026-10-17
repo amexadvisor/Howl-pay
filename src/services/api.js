@@ -1,9 +1,26 @@
-// HOWL Mini App API Service
+// HOWL Mini App API Service & Configuration
 export const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+export const BOT_USERNAME = 'howl_paybot';
+export const ADMIN_IDS = ['8026237972'];
+export const ADSR_BLOCK_ID = '51923';
+export const ADSGRAM_BLOCK_ID = 'task-51892';
 
-function getInitData() {
+export function getInitData() {
   try {
     return (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData) || '';
+  } catch (e) {
+    return '';
+  }
+}
+
+export function getStartParam() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    return (
+      (window.Telegram?.WebApp?.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.start_param) ||
+      urlParams.get('startapp') ||
+      ''
+    );
   } catch (e) {
     return '';
   }
@@ -34,15 +51,26 @@ export async function logError(category, detail) {
   } catch (e) {}
 }
 
-export async function verifyUser(payload = {}) {
+export async function verifyUser(device = null) {
   const initData = getInitData();
+  const startParam = getStartParam();
+
+  const payload = {
+    initData,
+    startParam,
+    fingerprint: device ? device.fingerprint : null,
+    hwFingerprint: device ? device.hw : null,
+    ownerId: device ? device.ownerId : null,
+    isLocalMulti: device ? device.isLocalMulti : false
+  };
+
   const res = await fetch(`${API_BASE_URL}/api/verify`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Telegram-Init-Data': initData
     },
-    body: JSON.stringify({ ...payload, initData })
+    body: JSON.stringify(payload)
   });
   return res.json();
 }
@@ -67,15 +95,87 @@ export async function fetchBalanceOnly(userId) {
   return res.json();
 }
 
-export async function claimAdReward(userId, endpoint, clicks, total) {
+export async function syncAdStatusFromServer() {
   const initData = getInitData();
-  const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+  if (!initData) return null;
+  const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'X-Telegram-Init-Data': initData
     },
-    body: JSON.stringify({ userId, clicks, total })
+    body: JSON.stringify({ check_status: true, initData })
+  });
+  return res.json();
+}
+
+export async function fetchReferralList() {
+  const initData = getInitData();
+  if (!initData) return null;
+  const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ referral_list: true, initData }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+
+export async function claimMonetagReward() {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ completed: true, provider: 'monetag', initData })
+  });
+  return res.json();
+}
+
+export async function claimAdsgramTaskReward() {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ completed: true, provider: 'adsgram', initData })
+  });
+  return res.json();
+}
+
+export async function syncAdsr() {
+  const initData = getInitData();
+  if (!initData) return null;
+  const res = await fetch(`${API_BASE_URL}/api/adsgram-reward`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ initData }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+export async function sendAdsrClick(clicks, total) {
+  const initData = getInitData();
+  if (!initData) return null;
+  const res = await fetch(`${API_BASE_URL}/api/adsgram-reward`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      initData,
+      action: 'click',
+      clicks: Number(clicks) || 0,
+      total: Number(total) || 1
+    }),
+    cache: 'no-store'
   });
   return res.json();
 }
@@ -115,7 +215,7 @@ export async function quickTasksCall(action, extra = {}) {
       'Content-Type': 'application/json',
       'X-Telegram-Init-Data': initData
     },
-    body: JSON.stringify({ action, ...extra })
+    body: JSON.stringify({ action, ...extra, initData })
   });
   return res.json();
 }

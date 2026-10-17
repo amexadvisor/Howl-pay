@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { verifyUser, fetchBalanceOnly, logError } from '../services/api';
+import { verifyUser, fetchBalanceOnly, ADMIN_IDS } from '../services/api';
 
 const AppContext = createContext(null);
 
@@ -14,7 +14,7 @@ export function AppProvider({ children }) {
           username: u.username || 'unknown',
           first_name: u.first_name || 'User',
           photo_url: u.photo_url || null,
-          is_admin: false,
+          is_admin: ADMIN_IDS.includes(String(u.id)),
           banned: false
         };
       }
@@ -31,7 +31,6 @@ export function AppProvider({ children }) {
 
   // Balance State
   const [balance, setBalance] = useState({ howl: 0, usd: 0, hold: 0 });
-  const balanceAnimRef = useRef(null);
 
   // Active View Navigation
   const [activeView, setActiveView] = useState('home-view');
@@ -51,7 +50,14 @@ export function AppProvider({ children }) {
   const [banReason, setBanReason] = useState('');
 
   // Admin Access
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    try {
+      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      return u && ADMIN_IDS.includes(String(u.id));
+    } catch (e) {
+      return false;
+    }
+  });
   const [adminChoiceModal, setAdminChoiceModal] = useState(false);
 
   // Modals & Overlays
@@ -70,13 +76,29 @@ export function AppProvider({ children }) {
     errorMsg: ''
   });
 
+  const [referralStats, setReferralStats] = useState({ friends_count: 0, total_howl: 0, total_usdt: 0 });
+
+  // AdsGram watch handler callback ref
+  const adsrWatchHandlerRef = useRef(null);
+  const setAdsrWatchHandler = useCallback((fn) => {
+    adsrWatchHandlerRef.current = fn;
+  }, []);
+  const triggerAdsrStartWatch = useCallback(() => {
+    if (adsrWatchHandlerRef.current) {
+      adsrWatchHandlerRef.current();
+    }
+  }, []);
+
   // Top Notification Popup Banner
   const [notification, setNotification] = useState({
     show: false,
     title: '',
     message: '',
-    type: 'gold'
+    type: 'gold',
+    icon: null,
+    duration: 4500
   });
+
 
   // Haptic Feedback Helper
   const triggerHaptic = useCallback((style = 'light') => {
@@ -91,14 +113,39 @@ export function AppProvider({ children }) {
     } catch (e) {}
   }, []);
 
-  // Top Notification Trigger
-  const showTopNotification = useCallback((title, message, type = 'gold') => {
+  // Top Notification Trigger supporting both (title, message, type) and ({ title, message, type, icon, duration })
+  const showTopNotification = useCallback((firstArg, messageArg, typeArg = 'gold') => {
+    let opts = {};
+    if (typeof firstArg === 'string') {
+      opts = {
+        title: firstArg,
+        message: messageArg || '',
+        type: typeArg
+      };
+    } else if (firstArg && typeof firstArg === 'object') {
+      opts = firstArg;
+    }
+
+    const title = opts.title || 'NOTIFICATION';
+    const message = opts.message || '';
+    const rawMsg = message.toLowerCase();
+    const isError =
+      opts.type === 'error' ||
+      message.includes('❌') ||
+      rawMsg.includes('fail') ||
+      rawMsg.includes('error');
+    const isCyan = opts.type === 'cyan';
+    const type = isError ? 'error' : isCyan ? 'cyan' : opts.type || 'gold';
+
     triggerHaptic(type === 'error' ? 'error' : 'light');
+
     setNotification({
       show: true,
-      title: title || 'NOTIFICATION',
-      message: message || '',
-      type
+      title,
+      message,
+      type,
+      icon: opts.icon || null,
+      duration: opts.duration || 4500
     });
   }, [triggerHaptic]);
 
@@ -110,12 +157,12 @@ export function AppProvider({ children }) {
   const playHowlAudio = useCallback(() => {
     try {
       const audio = new Audio('/assets/howl.mp3');
-      audio.volume = 0.6;
+      audio.volume = 1.0;
       audio.play().catch(() => {});
     } catch (e) {}
   }, []);
 
-  // Animate balance changes smoothly
+  // Balance applicator
   const applyBalance = useCallback((newHowl, newUsd, newHold = null) => {
     const targetHowl = Math.round(Number(newHowl) || 0);
     const targetUsd = Number(newUsd) || 0;
@@ -146,41 +193,62 @@ export function AppProvider({ children }) {
       if (window.Telegram && window.Telegram.WebApp) {
         window.Telegram.WebApp.ready();
         window.Telegram.WebApp.expand();
+        try {
+          window.Telegram.WebApp.setHeaderColor('#02040f');
+        } catch (e) {}
       }
 
-      // Read device identity from device-vault if available
-      let did = null;
+      const u = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      let device = null;
       try {
-        if (window.HowlVault && window.HowlVault.get) {
-          did = await window.HowlVault.get('did');
+        if (window.HowlDevice && u?.id) {
+          device = await window.HowlDevice.collect(u.id, { ignoreOwners: ADMIN_IDS });
         }
       } catch (e) {}
 
-      const res = await verifyUser({ did });
-      if (res && res.success && res.user) {
-        const u = res.user;
-        setUser((prev) => ({
-          ...prev,
-          id: String(u.id || prev.id),
-          username: u.username || prev.username,
-          first_name: u.first_name || prev.first_name,
-          photo_url: u.photo_url || prev.photo_url,
-          is_admin: !!u.is_admin,
-          banned: !!u.banned
-        }));
-
-        if (u.banned) {
+      const res = await verifyUser(device);
+      if (res) {
+        if (res.banned) {
+          const reason = res.message || res.ban_reason || 'Access suspended due to multi-account policy.';
+          if (window.HowlDevice && u?.id) {
+            window.HowlDevice.setBan(u.id, reason);
+          }
           setIsBanned(true);
-          setBanReason(u.ban_reason || 'Access suspended due to multi-account policy.');
+          setBanReason(reason);
+          return;
         }
 
-        if (u.is_admin) {
-          setIsAdmin(true);
-          setAdminChoiceModal(true);
+        if (res.success && window.HowlDevice && u?.id) {
+          window.HowlDevice.clearBan(u.id);
+        }
+
+        if (res.user) {
+          const usr = res.user;
+          const isUserAdmin = !!usr.is_admin || (u && ADMIN_IDS.includes(String(u.id)));
+          setUser((prev) => ({
+            ...prev,
+            id: String(usr.id || prev.id),
+            username: usr.username || prev.username,
+            first_name: usr.first_name || prev.first_name,
+            photo_url: usr.photo_url || prev.photo_url,
+            is_admin: isUserAdmin,
+            banned: false
+          }));
+
+          if (isUserAdmin) {
+            setIsAdmin(true);
+            setAdminChoiceModal(true);
+          }
         }
 
         if (res.balance) {
           applyBalance(res.balance.total_howl, res.balance.total_usd, res.balance.hold);
+        } else if (res.user_balance) {
+          applyBalance(res.user_balance.total_howl, res.user_balance.total_usd, res.user_balance.hold);
+        }
+
+        if (res.referral_stats) {
+          setReferralStats(res.referral_stats);
         }
       }
     } catch (err) {
@@ -270,8 +338,13 @@ export function AppProvider({ children }) {
     showTopNotification,
     dismissTopNotification,
     triggerHaptic,
-    playHowlAudio
+    playHowlAudio,
+    referralStats,
+    setReferralStats,
+    setAdsrWatchHandler,
+    triggerAdsrStartWatch
   };
+
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

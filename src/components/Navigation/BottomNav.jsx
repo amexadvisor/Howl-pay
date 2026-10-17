@@ -1,23 +1,36 @@
 import React from 'react';
 import LottieAnimation from '../Common/LottieAnimation';
 
-export default function BottomNav({ activeView, onViewChange, onHaptic }) {
+export default function BottomNav({ activeView, leaderboardSource, onViewChange, onHaptic }) {
   const handleNavClick = (viewId) => {
     if (onHaptic) onHaptic('light');
     onViewChange(viewId);
   };
 
+  const isHomeActive =
+    activeView === 'home-view' ||
+    (activeView === 'leaderboard-view' && leaderboardSource !== 'profile-view');
+
+  const isTasksActive = activeView === 'tasks-view';
+
+  const isTeamActive = activeView === 'team-view';
+
+  const isProfileActive =
+    activeView === 'profile-view' ||
+    activeView === 'history-view' ||
+    (activeView === 'leaderboard-view' && leaderboardSource === 'profile-view');
+
   return (
     <nav className="bottom-nav" id="bottom-nav">
       <button
-        className={`nav-item ${activeView === 'home-view' ? 'active' : ''}`}
+        className={`nav-item ${isHomeActive ? 'active' : ''}`}
         onClick={() => handleNavClick('home-view')}
       >
         <i className="fa-solid fa-house"></i> Home
       </button>
 
       <button
-        className={`nav-item ${activeView === 'tasks-view' ? 'active' : ''}`}
+        className={`nav-item ${isTasksActive ? 'active' : ''}`}
         onClick={() => handleNavClick('tasks-view')}
       >
         <i className="fa-solid fa-bolt"></i> Earn
@@ -40,14 +53,14 @@ export default function BottomNav({ activeView, onViewChange, onHaptic }) {
       </button>
 
       <button
-        className={`nav-item ${activeView === 'team-view' ? 'active' : ''}`}
+        className={`nav-item ${isTeamActive ? 'active' : ''}`}
         onClick={() => handleNavClick('team-view')}
       >
         <i className="fa-solid fa-share-nodes"></i> Friends
       </button>
 
       <button
-        className={`nav-item ${activeView === 'profile-view' ? 'active' : ''}`}
+        className={`nav-item ${isProfileActive ? 'active' : ''}`}
         onClick={() => handleNavClick('profile-view')}
       >
         <i className="fa-regular fa-user"></i> Me

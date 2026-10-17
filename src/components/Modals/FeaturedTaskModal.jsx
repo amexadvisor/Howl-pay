@@ -1,33 +1,66 @@
 import React from 'react';
+import { API_BASE_URL } from '../../services/api';
 
 export default function FeaturedTaskModal({ data, onClose, onLaunch }) {
   if (!data || !data.open) return null;
 
   const { task, errorMsg } = data;
-  const isBoinkers = task?.id === 'partner_boinkers' || task?.isPartner;
   const title = task?.title || 'Task Details';
-  const reward = task?.reward || 100;
-  const icon = task?.icon || '/assets/boinkers.jpg';
+  const reward = Number(task?.reward || 100).toLocaleString();
+  const rawAvatar = task?.avatar_url || task?.icon_url || '/assets/boinkers.jpg';
+  const icon = rawAvatar.startsWith('http') ? rawAvatar : `${API_BASE_URL}${rawAvatar}`;
 
-  let bodyContent = errorMsg;
-  if (!bodyContent) {
-    if (isBoinkers) {
-      bodyContent = (
-        <>
-          <p style={{ margin: '0 0 8px 0' }}>
-            Complete the partner requirements in <b>Boinkers</b> to claim your <b>+{reward} HOWL</b> reward!
-          </p>
-          <ul style={{ margin: 0, paddingLeft: '18px' }}>
-            <li>Open the Boinkers app via the button below</li>
-            <li>Play and complete your first in-game spin or task</li>
-            <li>Return to HOWL and claim your reward!</li>
-          </ul>
-        </>
-      );
-    } else {
-      bodyContent = task?.description || 'Open the link, complete the steps, and return to claim your reward.';
-    }
+  let stepsContent = null;
+  if (task?.id === 'boinkers_open') {
+    stepsContent = (
+      <>
+        <div style={{ fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+          <i className="fa-solid fa-list-check" style={{ color: '#ffcc00', marginRight: '4px' }}></i> How to complete:
+        </div>
+        <div style={{ marginBottom: '6px' }}>1. Tap <b>Open App</b> below to launch Boinkers.</div>
+        <div style={{ marginBottom: '6px' }}>2. Keep the app open for at least 15 seconds.</div>
+        <div>3. Return to Howl and tap <b>Claim</b> to receive your +{reward} HOWL!</div>
+      </>
+    );
+  } else if (task?.id === 'boinkers_spins') {
+    stepsContent = (
+      <>
+        <div style={{ fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+          <i className="fa-solid fa-list-check" style={{ color: '#ffcc00', marginRight: '4px' }}></i> How to complete:
+        </div>
+        <div style={{ marginBottom: '6px' }}>1. Tap <b>Open App</b> below to launch Boinkers.</div>
+        <div style={{ marginBottom: '6px' }}>2. Spin on the wheel to gain energy and upgrade your Boinker.</div>
+        <div style={{ marginBottom: '6px' }}>3. <b>Level up 10 times in Boinkers</b>.</div>
+        <div>4. Return to Howl and tap <b>Claim</b> to verify & credit +{reward} HOWL!</div>
+      </>
+    );
+  } else if (task?.id === 'boinkers_moon') {
+    stepsContent = (
+      <>
+        <div style={{ fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+          <i className="fa-solid fa-list-check" style={{ color: '#ffcc00', marginRight: '4px' }}></i> How to complete:
+        </div>
+        <div style={{ marginBottom: '6px' }}>1. Tap <b>Open App</b> below to launch Boinkers.</div>
+        <div style={{ marginBottom: '6px' }}>2. <b>Spend min 5 stars in Boinkers</b> on any in-game feature.</div>
+        <div>3. Return to Howl and tap <b>Claim</b> to verify & credit +{reward} HOWL!</div>
+      </>
+    );
+  } else {
+    stepsContent = (
+      <>
+        <div style={{ fontWeight: 700, color: '#fff', marginBottom: '8px' }}>
+          <i className="fa-solid fa-circle-info" style={{ color: 'var(--accent-main)', marginRight: '4px' }}></i> How to complete:
+        </div>
+        <div style={{ marginBottom: '6px' }}>
+          {errorMsg || task?.description || 'Complete the task requirement, then tap Claim.'}
+        </div>
+        <div>After completing, return here and tap <b>Claim</b>!</div>
+      </>
+    );
   }
+
+  const isRegularChannel = task?.type === 'channel' && !(task?.id && task?.id.startsWith('boinkers_'));
+
 
   return (
     <div
@@ -68,7 +101,7 @@ export default function FeaturedTaskModal({ data, onClose, onLaunch }) {
           <i className="fa-solid fa-xmark"></i>
         </button>
 
-        <div style={{ display: 'flex', justifyCenter: 'center', alignItems: 'center', margin: '4px auto 12px auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', margin: '4px auto 12px auto' }}>
           <div
             id="ft-modal-icon-wrap"
             style={{
@@ -128,7 +161,7 @@ export default function FeaturedTaskModal({ data, onClose, onLaunch }) {
             lineHeight: 1.55
           }}
         >
-          {bodyContent}
+          {stepsContent}
         </div>
 
         <div style={{ display: 'flex', gap: '8px' }}>
@@ -151,8 +184,17 @@ export default function FeaturedTaskModal({ data, onClose, onLaunch }) {
               gap: '6px'
             }}
           >
-            <i className="fa-solid fa-arrow-up-right-from-square"></i> Open App
+            {isRegularChannel ? (
+              <>
+                <i className="fa-solid fa-arrow-up-right-from-square"></i> Join Channel
+              </>
+            ) : (
+              <>
+                <i className="fa-solid fa-arrow-up-right-from-square"></i> Open App
+              </>
+            )}
           </button>
+
           <button
             onClick={onClose}
             style={{

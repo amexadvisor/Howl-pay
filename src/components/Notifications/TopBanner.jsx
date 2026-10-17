@@ -1,17 +1,18 @@
 import React, { useEffect } from 'react';
 
 export default function TopBanner({ notification, onDismiss }) {
-  const { show, title, message, type = 'gold' } = notification;
+  const { show, title, message, type = 'gold', icon = null, duration = 4500 } = notification;
 
   useEffect(() => {
     if (!show) return;
     const timer = setTimeout(() => {
       onDismiss();
-    }, 4500);
+    }, duration || 4500);
     return () => clearTimeout(timer);
-  }, [show, onDismiss]);
+  }, [show, duration, onDismiss]);
 
   const getIconClass = () => {
+    if (icon) return icon;
     switch (type) {
       case 'success':
         return 'fa-solid fa-circle-check';
