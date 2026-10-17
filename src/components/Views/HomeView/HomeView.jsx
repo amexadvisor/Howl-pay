@@ -1,0 +1,156 @@
+import React from 'react';
+import { useApp } from '../../../context/AppContext';
+import LottieAnimation from '../../Common/LottieAnimation';
+import WatchAndEarn from './WatchAndEarn';
+import FeaturedTasksSection from './FeaturedTasksSection';
+
+export default function HomeView() {
+  const { user, balance, setActiveView, openLeaderboard, triggerHaptic } = useApp();
+
+  const handleEarnClick = () => {
+    triggerHaptic('light');
+    setActiveView('tasks-view');
+  };
+
+  const handleWithdrawClick = () => {
+    triggerHaptic('light');
+    setActiveView('withdraw-view');
+  };
+
+  const avatarInitial = (user.first_name || user.username || 'U').charAt(0).toUpperCase();
+
+  return (
+    <div id="home-view" className="view active">
+      {/* Top Bar Modern */}
+      <div className="top-bar-modern">
+        <div className="user-greeting">
+          <div className="user-avatar-new" id="profile-pic">
+            {user.photo_url ? (
+              <img src={user.photo_url} alt="" />
+            ) : (
+              <span>{avatarInitial}</span>
+            )}
+          </div>
+          <div className="greeting-text">
+            <span className="welcome-text">WELCOME BACK</span>
+            <div className="user-name-new" id="username">
+              {user.first_name || user.username || 'Wolf'}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Total Balance Glass Card */}
+      <div className="clickable">
+        <div className="glass-card balance-card-new">
+          <div className="balance-left">
+            <div className="balance-label">TOTAL BALANCE</div>
+            <div className="balance-amount-new" id="dash-howl-balance">
+              <span id="user-howl-val">{balance.howl.toLocaleString()}</span>
+            </div>
+            <div className="balance-pills">
+              <span className="pill pill-leaf">
+                <i className="fa-solid fa-paw"></i> HOWL
+              </span>
+              <span className="pill pill-usd">
+                <i className="fa-solid fa-circle" style={{ fontSize: '6px' }}></i> ${balance.usd.toFixed(4)}
+              </span>
+              {balance.hold > 0 && (
+                <span
+                  className="pill pill-hold"
+                  id="hold-pill"
+                  title="Offerwall rewards are held for 7 days before they join your balance"
+                >
+                  <i className="fa-solid fa-hourglass-half" style={{ fontSize: '9px' }}></i>{' '}
+                  <span id="user-hold-val">{balance.hold}</span> HOLD
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="balance-right">
+            <div
+              id="wolf-emoji"
+              style={{
+                width: '75px',
+                height: '75px',
+                filter: 'drop-shadow(0 0 15px rgba(94, 179, 255, 0.4))'
+              }}
+            >
+              <LottieAnimation
+                path="/assets/wolf-emoji.json"
+                style={{ width: '100%', height: '100%' }}
+                fallbackIcon="fa-solid fa-paw"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Grid */}
+      <div className="action-grid">
+        <div className="clickable" onClick={handleEarnClick}>
+          <div className="glass-card action-btn" style={{ marginBottom: 0, padding: '16px' }}>
+            <i className="fa-solid fa-bolt"></i> EARN
+          </div>
+        </div>
+        <div className="clickable" onClick={handleWithdrawClick}>
+          <div className="glass-card action-btn" style={{ marginBottom: 0, padding: '16px' }}>
+            <i className="fa-solid fa-download"></i> WITHDRAW
+          </div>
+        </div>
+      </div>
+
+      {/* Top Earners Leaderboard row */}
+      <div className="clickable" onClick={() => openLeaderboard('home-view')}>
+        <div className="glass-card task-row">
+          <div className="task-icon">
+            <i className="fa-solid fa-trophy" style={{ color: '#eab308' }}></i>
+          </div>
+          <div className="task-text">
+            <h4>Top Earners Leaderboard</h4>
+            <p>See global rankings &amp; community earners</p>
+          </div>
+          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
+        </div>
+      </div>
+
+      {/* Quick Tasks row */}
+      <div className="clickable" onClick={() => setActiveView('quick-view')}>
+        <div className="glass-card task-row">
+          <div className="task-icon">
+            <div className="lottie-ico" id="quick-lottie">
+              <i className="fa-solid fa-bolt" style={{ color: '#f59e0b' }}></i>
+            </div>
+          </div>
+          <div className="task-text">
+            <h4>Quick Tasks</h4>
+            <p>Comment &amp; bio tasks, fast HOWL rewards</p>
+          </div>
+          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
+        </div>
+      </div>
+
+      {/* Offerwall row */}
+      <div className="clickable" onClick={() => setActiveView('tasks-view')}>
+        <div className="glass-card task-row">
+          <div className="task-icon">
+            <div className="lottie-ico" id="offerwall-lottie">
+              <i className="fa-solid fa-earth-africa" style={{ color: 'var(--accent-main)' }}></i>
+            </div>
+          </div>
+          <div className="task-text">
+            <h4>Offerwall</h4>
+            <p>High paying surveys, micro tasks &amp; more</p>
+          </div>
+          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
+        </div>
+      </div>
+
+      {/* Watch & Earn Section */}
+      <WatchAndEarn />
+
+      {/* Featured Tasks Section */}
+      <FeaturedTasksSection />
+    </div>
+  );
+}
