@@ -1,4 +1,5 @@
 import React from 'react';
+import LottieAnimation from '../Common/LottieAnimation';
 
 export default function AdsGramCompletedModal({ data, onClose }) {
   if (!data || !data.open) return null;
@@ -59,7 +60,11 @@ export default function AdsGramCompletedModal({ data, onClose }) {
               justifyContent: 'center'
             }}
           >
-            <i className="fa-solid fa-paw" style={{ fontSize: '38px', color: 'var(--accent-main)' }}></i>
+            <LottieAnimation
+              path="/assets/wolf-emoji.json"
+              style={{ width: '100%', height: '100%' }}
+              fallbackIcon="fa-solid fa-paw"
+            />
           </div>
         </div>
 

@@ -107,8 +107,12 @@ export default function App() {
       {/* Admin Entry Choice Modal */}
       <AdminEntryModal
         isOpen={adminChoiceModal}
-        onEnterUser={() => setAdminChoiceModal(false)}
+        onEnterUser={() => {
+          try { sessionStorage.setItem('howl_admin_mode_chosen', 'user'); } catch (e) {}
+          setAdminChoiceModal(false);
+        }}
         onEnterAdmin={() => {
+          try { sessionStorage.setItem('howl_admin_mode_chosen', 'admin'); } catch (e) {}
           setAdminChoiceModal(false);
           setActiveView('admin-view');
         }}

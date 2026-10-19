@@ -53,7 +53,7 @@ export default function HomeView() {
                 <i className="fa-solid fa-paw"></i> HOWL
               </span>
               <span className="pill pill-usd">
-                <i className="fa-solid fa-circle" style={{ fontSize: '6px' }}></i> ${balance.usd.toFixed(4)}
+                <i className="fa-solid fa-circle" style={{ fontSize: '6px' }}></i> $<span id="user-usd-val">{balance.usd.toFixed(4)}</span>
               </span>
               {balance.hold > 0 && (
                 <span
@@ -119,7 +119,11 @@ export default function HomeView() {
         <div className="glass-card task-row">
           <div className="task-icon">
             <div className="lottie-ico" id="quick-lottie">
-              <i className="fa-solid fa-bolt" style={{ color: '#f59e0b' }}></i>
+              <LottieAnimation
+                path="/assets/thunder.json"
+                style={{ width: '100%', height: '100%' }}
+                fallbackIcon="fa-solid fa-bolt"
+              />
             </div>
           </div>
           <div className="task-text">
@@ -135,7 +139,11 @@ export default function HomeView() {
         <div className="glass-card task-row">
           <div className="task-icon">
             <div className="lottie-ico" id="offerwall-lottie">
-              <i className="fa-solid fa-earth-africa" style={{ color: 'var(--accent-main)' }}></i>
+              <LottieAnimation
+                path="/assets/address.json"
+                style={{ width: '100%', height: '100%' }}
+                fallbackIcon="fa-solid fa-earth-africa"
+              />
             </div>
           </div>
           <div className="task-text">

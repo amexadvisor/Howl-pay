@@ -237,7 +237,13 @@ export function AppProvider({ children }) {
 
           if (isUserAdmin) {
             setIsAdmin(true);
-            setAdminChoiceModal(true);
+            try {
+              if (!sessionStorage.getItem('howl_admin_mode_chosen')) {
+                setAdminChoiceModal(true);
+              }
+            } catch (e) {
+              setAdminChoiceModal(true);
+            }
           }
         }
 
@@ -262,11 +268,18 @@ export function AppProvider({ children }) {
 
   // Periodic balance polling every 5 seconds (just like balance-client.js)
   useEffect(() => {
+    window.applyBalance = (b) => {
+      if (!b) return;
+      applyBalance(b.total_howl ?? b.howl, b.total_usd ?? b.usd, b.hold_howl ?? b.hold);
+    };
+    window.updateBalanceUI = window.applyBalance;
+    window.refreshBalance = refreshBalance;
+
     const interval = setInterval(() => {
       refreshBalance();
     }, 5000);
     return () => clearInterval(interval);
-  }, [refreshBalance]);
+  }, [applyBalance, refreshBalance]);
 
   // Handle Telegram Back Button when navigating sub-views
   useEffect(() => {
