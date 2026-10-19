@@ -3,6 +3,13 @@ import React, { useState } from 'react';
 export default function LegacySwitchBanner() {
   const [minimized, setMinimized] = useState(true);
 
+  const shouldShow =
+    Boolean(import.meta.env?.DEV) ||
+    window.location.search.includes('switch=1') ||
+    window.location.search.includes('test=1');
+
+  if (!shouldShow) return null;
+
   return (
     <div
       style={{
