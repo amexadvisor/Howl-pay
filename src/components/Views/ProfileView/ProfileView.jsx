@@ -1,11 +1,11 @@
 import React from 'react';
 import { useApp } from '../../../context/AppContext';
 
-export default function ProfileView() {
+export default function ProfileView({ isActive = false }) {
   const { user, isAdmin, setActiveView, openLeaderboard, setTosOpen, triggerHaptic } = useApp();
 
   return (
-    <div id="profile-view" className="view active">
+    <div id="profile-view" className={`view ${isActive ? 'active' : ''}`}>
       <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 16px 0' }}>Profile</h2>
 
       {/* Admin Panel Link (only shown if admin) */}

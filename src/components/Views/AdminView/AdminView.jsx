@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { adminCall, ADSR_BLOCK_ID } from '../../../services/api';
 
-export default function AdminView() {
+export default function AdminView({ isActive = false }) {
   const { setActiveView, triggerHaptic, showTopNotification } = useApp();
 
   // Active admin tab
@@ -424,7 +424,7 @@ export default function AdminView() {
   const bTotals = boinkersStats.totals || {};
 
   return (
-    <div id="admin-view" className="view active">
+    <div id="admin-view" className={`view ${isActive ? 'active' : ''}`}>
       {/* Admin Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

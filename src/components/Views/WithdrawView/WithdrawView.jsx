@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { submitWithdrawal } from '../../../services/api';
 
-export default function WithdrawView() {
+export default function WithdrawView({ isActive = false }) {
   const { setActiveView, triggerHaptic, showTopNotification, refreshBalance, applyBalance, balance } = useApp();
   const [address, setAddress] = useState('');
   const [amount, setAmount] = useState('');
@@ -54,7 +54,7 @@ export default function WithdrawView() {
   };
 
   return (
-    <div id="withdraw-view" className="view active">
+    <div id="withdraw-view" className={`view ${isActive ? 'active' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
         <button
           onClick={() => {

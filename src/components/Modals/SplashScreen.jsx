@@ -1,13 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import LottieAnimation from '../Common/LottieAnimation';
 
 export default function SplashScreen({ onEnter }) {
+  const onEnterRef = useRef(onEnter);
+  onEnterRef.current = onEnter;
+
   useEffect(() => {
     const timer = setTimeout(() => {
-      onEnter();
+      if (onEnterRef.current) onEnterRef.current();
     }, 4500);
     return () => clearTimeout(timer);
-  }, [onEnter]);
+  }, []);
 
   return (
     <div

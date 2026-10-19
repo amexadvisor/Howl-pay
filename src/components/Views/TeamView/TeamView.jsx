@@ -10,7 +10,7 @@ const qtAgo = (ts) => {
   return Math.round(s / 86400) + 'd ago';
 };
 
-export default function TeamView() {
+export default function TeamView({ isActive = false }) {
   const { user, triggerHaptic, showTopNotification, referralStats } = useApp();
   const [stats, setStats] = useState({
     active: 0,
@@ -51,8 +51,10 @@ export default function TeamView() {
   };
 
   useEffect(() => {
-    loadReferrals();
-  }, []);
+    if (isActive) {
+      loadReferrals();
+    }
+  }, [isActive]);
 
   const handleCopyLink = () => {
     triggerHaptic('light');
@@ -92,7 +94,7 @@ export default function TeamView() {
 
 
   return (
-    <div id="team-view" className="view active">
+    <div id="team-view" className={`view ${isActive ? 'active' : ''}`}>
       <h2 style={{ fontSize: '24px', fontWeight: 800, margin: '0 0 8px 0' }}>Friends</h2>
       <p style={{ color: 'var(--text-muted)', fontSize: '13px', marginBottom: '20px' }}>
         Invite friends to earn 750 HOWL + 10% USDT lifetime commission.

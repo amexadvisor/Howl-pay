@@ -181,8 +181,9 @@ export function AppProvider({ children }) {
     if (!user || !user.id || user.id === 'guest_user') return;
     try {
       const res = await fetchBalanceOnly(user.id);
-      if (res && res.success && res.balance) {
-        applyBalance(res.balance.total_howl, res.balance.total_usd, res.balance.hold);
+      const bal = res?.balance || res?.user_balance;
+      if (res && res.success && bal) {
+        applyBalance(bal.total_howl, bal.total_usd, bal.hold || bal.hold_howl);
       }
     } catch (e) {}
   }, [user, applyBalance]);
@@ -237,6 +238,7 @@ export function AppProvider({ children }) {
 
           if (isUserAdmin) {
             setIsAdmin(true);
+            setIsGateVerified(true);
             try {
               if (!sessionStorage.getItem('howl_admin_mode_chosen')) {
                 setAdminChoiceModal(true);
@@ -266,8 +268,19 @@ export function AppProvider({ children }) {
     syncUser();
   }, [syncUser]);
 
-  // Periodic balance polling every 5 seconds (just like balance-client.js)
+  // Global showView navigation helper matching legacy
+  const navigateToView = useCallback((viewId) => {
+    setActiveView(viewId);
+    triggerHaptic('light');
+    try {
+      const main = document.getElementById('main-content');
+      if (main) main.scrollTop = 0;
+    } catch (e) {}
+  }, [triggerHaptic]);
+
+  // Expose global window.showView and balance sync methods
   useEffect(() => {
+    window.showView = navigateToView;
     window.applyBalance = (b) => {
       if (!b) return;
       applyBalance(b.total_howl ?? b.howl, b.total_usd ?? b.usd, b.hold_howl ?? b.hold);
@@ -278,8 +291,13 @@ export function AppProvider({ children }) {
     const interval = setInterval(() => {
       refreshBalance();
     }, 5000);
-    return () => clearInterval(interval);
-  }, [applyBalance, refreshBalance]);
+    return () => {
+      clearInterval(interval);
+      if (window.showView === navigateToView) {
+        delete window.showView;
+      }
+    };
+  }, [navigateToView, applyBalance, refreshBalance]);
 
   // Handle Telegram Back Button when navigating sub-views
   useEffect(() => {

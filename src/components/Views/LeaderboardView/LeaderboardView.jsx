@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { fetchLeaderboard } from '../../../services/api';
 
-export default function LeaderboardView() {
+export default function LeaderboardView({ isActive = false }) {
   const { goBackFromLeaderboard } = useApp();
   const [earners, setEarners] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,11 +20,13 @@ export default function LeaderboardView() {
         setLoading(false);
       }
     };
-    load();
-  }, []);
+    if (isActive) {
+      load();
+    }
+  }, [isActive]);
 
   return (
-    <div id="leaderboard-view" className="view active">
+    <div id="leaderboard-view" className={`view ${isActive ? 'active' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
         <button
           onClick={goBackFromLeaderboard}

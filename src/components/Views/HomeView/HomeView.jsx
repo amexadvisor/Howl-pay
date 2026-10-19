@@ -4,7 +4,7 @@ import LottieAnimation from '../../Common/LottieAnimation';
 import WatchAndEarn from './WatchAndEarn';
 import FeaturedTasksSection from './FeaturedTasksSection';
 
-export default function HomeView() {
+export default function HomeView({ isActive = true }) {
   const { user, balance, setActiveView, openLeaderboard, triggerHaptic } = useApp();
 
   const handleEarnClick = () => {
@@ -20,7 +20,7 @@ export default function HomeView() {
   const avatarInitial = (user.first_name || user.username || 'U').charAt(0).toUpperCase();
 
   return (
-    <div id="home-view" className="view active">
+    <div id="home-view" className={`view ${isActive ? 'active' : ''}`}>
       {/* Top Bar Modern */}
       <div className="top-bar-modern">
         <div className="user-greeting">

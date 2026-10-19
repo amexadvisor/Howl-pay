@@ -33,6 +33,7 @@ export default function App() {
     setIsGateVerified,
     isBanned,
     banReason,
+    isAdmin,
     adminChoiceModal,
     setAdminChoiceModal,
     splashOpen,
@@ -52,38 +53,14 @@ export default function App() {
     triggerAdsrStartWatch
   } = useApp();
 
-  const handleSplashEnter = () => {
+  const handleSplashEnter = React.useCallback(() => {
     playHowlAudio();
     setSplashOpen(false);
-  };
+  }, [playHowlAudio, setSplashOpen]);
 
-  const handleGateVerified = () => {
+  const handleGateVerified = React.useCallback(() => {
     setIsGateVerified(true);
-  };
-
-  const renderActiveView = () => {
-    switch (activeView) {
-      case 'tasks-view':
-        return <TasksView />;
-      case 'quick-view':
-        return <QuickView />;
-      case 'withdraw-view':
-        return <WithdrawView />;
-      case 'team-view':
-        return <TeamView />;
-      case 'profile-view':
-        return <ProfileView />;
-      case 'history-view':
-        return <HistoryView />;
-      case 'leaderboard-view':
-        return <LeaderboardView />;
-      case 'admin-view':
-        return <AdminView />;
-      case 'home-view':
-      default:
-        return <HomeView />;
-    }
-  };
+  }, [setIsGateVerified]);
 
   return (
     <>
@@ -96,8 +73,8 @@ export default function App() {
       {/* Splash Screen */}
       {splashOpen && <SplashScreen onEnter={handleSplashEnter} />}
 
-      {/* Mandatory Channel Gate */}
-      {!isGateVerified && !splashOpen && (
+      {/* Mandatory Channel Gate (exempts admin users) */}
+      {!isGateVerified && !isAdmin && !splashOpen && (
         <ChannelGate userId={user.id} onVerified={handleGateVerified} onHaptic={triggerHaptic} />
       )}
 
@@ -157,9 +134,19 @@ export default function App() {
       />
 
 
-      {/* Main Container */}
+      {/* Main Container - All views mounted simultaneously matching legacy.html DOM */}
       <div className="container">
-        <main id="main-content">{renderActiveView()}</main>
+        <main id="main-content">
+          <HomeView isActive={activeView === 'home-view'} />
+          <TasksView isActive={activeView === 'tasks-view'} />
+          <QuickView isActive={activeView === 'quick-view'} />
+          <WithdrawView isActive={activeView === 'withdraw-view'} />
+          <TeamView isActive={activeView === 'team-view'} />
+          <ProfileView isActive={activeView === 'profile-view'} />
+          <HistoryView isActive={activeView === 'history-view'} />
+          <LeaderboardView isActive={activeView === 'leaderboard-view'} />
+          {isAdmin && <AdminView isActive={activeView === 'admin-view'} />}
+        </main>
 
         {/* Bottom Navigation */}
         {activeView !== 'admin-view' && (

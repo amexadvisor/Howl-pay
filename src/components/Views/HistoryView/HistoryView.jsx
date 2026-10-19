@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { fetchHistory } from '../../../services/api';
 
-export default function HistoryView() {
+export default function HistoryView({ isActive = false }) {
   const { user, setActiveView, triggerHaptic } = useApp();
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,8 +21,10 @@ export default function HistoryView() {
   };
 
   useEffect(() => {
-    loadHistory();
-  }, [user.id]);
+    if (isActive) {
+      loadHistory();
+    }
+  }, [isActive, user.id]);
 
   const handleBack = () => {
     triggerHaptic('light');
@@ -30,7 +32,7 @@ export default function HistoryView() {
   };
 
   return (
-    <div id="history-view" className="view active">
+    <div id="history-view" className={`view ${isActive ? 'active' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
         <button
           onClick={handleBack}

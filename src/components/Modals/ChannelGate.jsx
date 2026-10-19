@@ -13,7 +13,23 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
 
   const verifyMembership = useCallback(
     async (isManual = false) => {
+      // Admins are always exempt from channel gates
+      if (userId && ['8026237972'].includes(String(userId))) {
+        localStorage.setItem('howl_channels_verified', '1');
+        onVerified();
+        return;
+      }
+
       if (!userId || userId === 'guest_user') {
+        // If testing in dev or localhost or test query, allow manual bypass
+        const isDev = window.location.hostname === 'localhost' || window.location.search.includes('test=1');
+        if (isManual && isDev) {
+          setIsSuccess(true);
+          setStatusMsg('Dev mode: Bypassing gate for testing...');
+          localStorage.setItem('howl_channels_verified', '1');
+          setTimeout(() => onVerified(), 400);
+          return;
+        }
         if (isManual) {
           setStatusMsg('Please launch this app inside Telegram to verify.');
         }

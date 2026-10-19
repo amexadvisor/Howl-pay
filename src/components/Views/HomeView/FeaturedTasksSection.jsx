@@ -76,7 +76,13 @@ export default function FeaturedTasksSection() {
           }
         }
       });
-      setMiniappTimers(updated);
+      setMiniappTimers((prev) => {
+        const prevKeys = Object.keys(prev);
+        const newKeys = Object.keys(updated);
+        if (prevKeys.length === 0 && newKeys.length === 0) return prev;
+        const changed = newKeys.length !== prevKeys.length || newKeys.some((k) => prev[k] !== updated[k]);
+        return changed ? updated : prev;
+      });
     }, 1000);
 
     return () => clearInterval(timerIntervalRef.current);

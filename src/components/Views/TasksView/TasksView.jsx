@@ -1,7 +1,7 @@
 import React from 'react';
 import { useApp } from '../../../context/AppContext';
 
-export default function TasksView() {
+export default function TasksView({ isActive = false }) {
   const { user, setActiveView, triggerHaptic } = useApp();
 
   const handleBack = () => {
@@ -12,7 +12,7 @@ export default function TasksView() {
   const timewallUrl = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${encodeURIComponent(user.id)}`;
 
   return (
-    <div id="tasks-view" className="view active">
+    <div id="tasks-view" className={`view ${isActive ? 'active' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
         <button
           onClick={handleBack}

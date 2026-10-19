@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../../context/AppContext';
 import { quickTasksCall } from '../../../services/api';
 
-export default function QuickView() {
+export default function QuickView({ isActive = false }) {
   const { setActiveView, triggerHaptic, showTopNotification, refreshBalance } = useApp();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -24,8 +24,10 @@ export default function QuickView() {
   };
 
   useEffect(() => {
-    loadQuickTasks();
-  }, []);
+    if (isActive) {
+      loadQuickTasks();
+    }
+  }, [isActive]);
 
   // Timer for comment task countdown
   useEffect(() => {
@@ -103,7 +105,7 @@ export default function QuickView() {
   const bio = data?.bio;
 
   return (
-    <div id="quick-view" className="view active">
+    <div id="quick-view" className={`view ${isActive ? 'active' : ''}`}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
         <button
           onClick={() => {
