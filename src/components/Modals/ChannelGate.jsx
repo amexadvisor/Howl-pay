@@ -1,50 +1,117 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { checkChannels } from '../../services/api';
 
 export default function ChannelGate({ userId, onVerified, onHaptic }) {
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState('');
+  const [isSuccess, setIsSuccess] = useState(false);
   const [channelStatuses, setChannelStatuses] = useState({
     howlnotification: false,
     howlnews: false,
     howl_community: false
   });
 
-  const handleCheckAndVerify = async () => {
-    if (loading) return;
-    setLoading(true);
-    setStatusMsg('Checking channel memberships...');
-    if (onHaptic) onHaptic('light');
+  const verifyMembership = useCallback(
+    async (isManual = false) => {
+      if (!userId || userId === 'guest_user') {
+        if (isManual) {
+          setStatusMsg('Please launch this app inside Telegram to verify.');
+        }
+        return;
+      }
 
-    try {
-      const data = await checkChannels(userId);
-      if (data && data.verified) {
-        setStatusMsg('All channels verified! Unlocking...');
-        localStorage.setItem('howl_channels_verified', '1');
-        if (onHaptic) onHaptic('success');
-        setTimeout(() => {
+      if (isManual) {
+        setLoading(true);
+        setStatusMsg('Checking your channel memberships...');
+      }
+
+      try {
+        const data = await checkChannels(userId);
+
+        if (data && Array.isArray(data.results)) {
+          const newStatuses = {};
+          let unjoined = 0;
+          data.results.forEach((ch) => {
+            newStatuses[ch.key] = !!ch.joined;
+            if (!ch.joined) unjoined++;
+          });
+          setChannelStatuses((prev) => ({ ...prev, ...newStatuses }));
+
+          const allJoined = data.allJoined || unjoined === 0 || data.verified;
+          if (allJoined) {
+            setIsSuccess(true);
+            setStatusMsg('All channels joined successfully!');
+            localStorage.setItem('howl_channels_verified', '1');
+            if (onHaptic) onHaptic('success');
+            setTimeout(() => {
+              onVerified();
+            }, 500);
+            return;
+          }
+
+          if (isManual) {
+            if (onHaptic) onHaptic('warning');
+            setStatusMsg(
+              unjoined > 0
+                ? `Please join all ${unjoined} remaining channel(s) above and tap verify.`
+                : 'Please join all channels above and tap verify.'
+            );
+          }
+        } else if (data && (data.allJoined || data.verified)) {
+          setIsSuccess(true);
+          setStatusMsg('All channels joined successfully!');
+          localStorage.setItem('howl_channels_verified', '1');
+          if (onHaptic) onHaptic('success');
+          setTimeout(() => {
+            onVerified();
+          }, 500);
+        } else if (isManual) {
+          if (onHaptic) onHaptic('warning');
+          setStatusMsg('Please join all channels above and tap verify.');
+        }
+      } catch (err) {
+        console.error('Channel verification failed:', err);
+        if (localStorage.getItem('howl_channels_verified') === '1') {
           onVerified();
-        }, 600);
+        } else if (isManual) {
+          setStatusMsg('Verification error. Please try again in a moment.');
+        }
+      } finally {
+        if (isManual) setLoading(false);
+      }
+    },
+    [userId, onVerified, onHaptic]
+  );
+
+  // Auto-check on mount
+  useEffect(() => {
+    verifyMembership(false);
+  }, [verifyMembership]);
+
+  // Auto-check when returning to the app after joining a channel
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (!document.hidden && localStorage.getItem('howl_channels_verified') !== '1') {
+        verifyMembership(false);
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [verifyMembership]);
+
+  const handleOpenChannel = (e, url) => {
+    e.preventDefault();
+    if (onHaptic) onHaptic('light');
+    try {
+      if (window.Telegram?.WebApp?.openTelegramLink && (url.includes('t.me/') || url.startsWith('tg:'))) {
+        window.Telegram.WebApp.openTelegramLink(url);
+      } else if (window.Telegram?.WebApp?.openLink) {
+        window.Telegram.WebApp.openLink(url);
       } else {
-        const missing = data?.missing || [];
-        setChannelStatuses({
-          howlnotification: !missing.includes('@howlnotification'),
-          howlnews: !missing.includes('@howlnews'),
-          howl_community: !missing.includes('@howl_community')
-        });
-        setStatusMsg('Please join all 3 channels to continue.');
-        if (onHaptic) onHaptic('error');
+        window.open(url, '_blank');
       }
     } catch (err) {
-      console.error('Channel verification failed:', err);
-      // In case of network outage, fallback to verified if already stored
-      if (localStorage.getItem('howl_channels_verified') === '1') {
-        onVerified();
-      } else {
-        setStatusMsg('Verification error. Please try again in a moment.');
-      }
-    } finally {
-      setLoading(false);
+      window.open(url, '_blank');
     }
   };
 
@@ -90,8 +157,7 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
       <div className="channel-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <a
           href="https://t.me/howlnotification"
-          target="_blank"
-          rel="noreferrer"
+          onClick={(e) => handleOpenChannel(e, 'https://t.me/howlnotification')}
           className="glass-card clickable"
           style={{
             textDecoration: 'none',
@@ -129,8 +195,7 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
 
         <a
           href="https://t.me/howlnews"
-          target="_blank"
-          rel="noreferrer"
+          onClick={(e) => handleOpenChannel(e, 'https://t.me/howlnews')}
           className="glass-card clickable"
           style={{
             textDecoration: 'none',
@@ -168,8 +233,7 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
 
         <a
           href="https://t.me/howl_community"
-          target="_blank"
-          rel="noreferrer"
+          onClick={(e) => handleOpenChannel(e, 'https://t.me/howl_community')}
           className="glass-card clickable"
           style={{
             textDecoration: 'none',
@@ -209,8 +273,8 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
       <div style={{ marginTop: '24px', textAlign: 'center' }}>
         <button
           id="gate-verify-btn"
-          onClick={handleCheckAndVerify}
-          disabled={loading}
+          onClick={() => verifyMembership(true)}
+          disabled={loading || isSuccess}
           style={{
             width: '100%',
             padding: '16px',
@@ -218,8 +282,10 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
             fontWeight: 800,
             fontSize: '15px',
             border: 'none',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            background: 'linear-gradient(135deg, #5eb3ff 0%, #0077ff 100%)',
+            cursor: loading || isSuccess ? 'not-allowed' : 'pointer',
+            background: isSuccess
+              ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)'
+              : 'linear-gradient(135deg, #5eb3ff 0%, #0077ff 100%)',
             color: '#fff',
             display: 'flex',
             alignItems: 'center',
@@ -232,6 +298,10 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
         >
           {loading ? (
             <div className="loader-spinner" style={{ width: '18px', height: '18px', borderWidth: '2px' }}></div>
+          ) : isSuccess ? (
+            <>
+              <i className="fa-solid fa-circle-check"></i> Verified! Unlocking...
+            </>
           ) : (
             <>
               <i className="fa-solid fa-circle-check"></i> CHECK &amp; VERIFY
@@ -244,7 +314,7 @@ export default function ChannelGate({ userId, onVerified, onHaptic }) {
             marginTop: '12px',
             fontSize: '13px',
             minHeight: '18px',
-            color: 'var(--text-muted)',
+            color: isSuccess ? '#10b981' : 'var(--text-muted)',
             fontWeight: 600
           }}
         >

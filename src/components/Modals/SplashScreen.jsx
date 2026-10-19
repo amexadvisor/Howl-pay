@@ -1,10 +1,18 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import LottieAnimation from '../Common/LottieAnimation';
 
 export default function SplashScreen({ onEnter }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      onEnter();
+    }, 4500);
+    return () => clearTimeout(timer);
+  }, [onEnter]);
+
   return (
     <div
       id="splash-screen"
+      onClick={onEnter}
       style={{
         position: 'fixed',
         inset: 0,
@@ -14,7 +22,8 @@ export default function SplashScreen({ onEnter }) {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        transition: 'opacity 0.5s'
+        transition: 'opacity 0.5s',
+        cursor: 'pointer'
       }}
     >
       <div
