@@ -68,12 +68,14 @@ export default function AdminView({ isActive = false }) {
   // Promo Codes Admin State
   const [promoList, setPromoList] = useState([]);
   const [promoLoading, setPromoLoading] = useState(false);
+  const [promoSpotMode, setPromoSpotMode] = useState('unlimited');
+  const [editingPromoSpot, setEditingPromoSpot] = useState(null);
   const [newPromo, setNewPromo] = useState({
     code: '',
     title: '',
     description: '',
     reward_howl: '100',
-    reward_click_howl: '200',
+    reward_click_howl: '50',
     image_url: '/assets/boinkers.jpg',
     max_claims: '0'
   });
@@ -462,6 +464,7 @@ export default function AdminView({ isActive = false }) {
     setPromoSaving(true);
     triggerHaptic('medium');
     try {
+      const claimsLimit = promoSpotMode === 'unlimited' ? 0 : Math.max(1, Number(newPromo.max_claims) || 100);
       const res = await adminCall('create_promo_code', {
         promo: {
           code: newPromo.code.trim().toUpperCase(),
@@ -470,7 +473,7 @@ export default function AdminView({ isActive = false }) {
           reward_howl: Number(newPromo.reward_howl) || 50,
           reward_click_howl: Number(newPromo.reward_click_howl) || 0,
           image_url: newPromo.image_url.trim() || '/assets/boinkers.jpg',
-          max_claims: Number(newPromo.max_claims) || 0
+          max_claims: claimsLimit
         }
       });
       if (res?.success) {
@@ -480,10 +483,11 @@ export default function AdminView({ isActive = false }) {
           title: '',
           description: '',
           reward_howl: '100',
-          reward_click_howl: '200',
+          reward_click_howl: '50',
           image_url: '/assets/boinkers.jpg',
           max_claims: '0'
         });
+        setPromoSpotMode('unlimited');
         await loadPromoCodes();
       } else {
         showTopNotification('FAILED', res?.error || 'Could not create promo code', 'error');
@@ -492,6 +496,32 @@ export default function AdminView({ isActive = false }) {
       showTopNotification('ERROR', err.message || 'Error creating promo code', 'error');
     } finally {
       setPromoSaving(false);
+    }
+  };
+
+  const handleUpdateSpots = async (id, maxClaims) => {
+    triggerHaptic('medium');
+    try {
+      const finalClaims = Math.max(0, parseInt(maxClaims, 10) || 0);
+      const res = await adminCall('update_promo_code', {
+        id,
+        patch: { max_claims: finalClaims }
+      });
+      if (res?.success) {
+        setPromoList((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, max_claims: finalClaims } : item))
+        );
+        setEditingPromoSpot(null);
+        showTopNotification(
+          'SPOTS UPDATED',
+          `Promo spots updated to ${finalClaims === 0 ? 'Unlimited' : finalClaims}!`,
+          'gold'
+        );
+      } else {
+        showTopNotification('FAILED', res?.error || 'Could not update spots', 'error');
+      }
+    } catch (err) {
+      showTopNotification('ERROR', 'Failed to update spots', 'error');
     }
   };
 
@@ -1579,9 +1609,10 @@ export default function AdminView({ isActive = false }) {
                 />
               </label>
 
+              {/* Reward Inputs with Click Count Dependency */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
                 <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>
-                  BASE AD VIEW REWARD (HOWL)
+                  BASE VIEW REWARD (HOWL)
                   <input
                     type="number"
                     min="1"
@@ -1605,7 +1636,7 @@ export default function AdminView({ isActive = false }) {
                 </label>
 
                 <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>
-                  CLICK BONUS REWARD (HOWL)
+                  BONUS PER AD CLICK (HOWL)
                   <input
                     type="number"
                     min="0"
@@ -1626,6 +1657,28 @@ export default function AdminView({ isActive = false }) {
                     }}
                   />
                 </label>
+              </div>
+
+              {/* Click Scaling Live Preview */}
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.02)',
+                  border: '1px solid var(--border-soft)',
+                  borderRadius: '10px',
+                  padding: '8px 10px',
+                  marginBottom: '12px',
+                  fontSize: '11px'
+                }}
+              >
+                <div style={{ color: 'var(--text-muted)', fontWeight: 700, marginBottom: '4px' }}>
+                  <i className="fa-solid fa-calculator" style={{ marginRight: '5px' }}></i> Click-Reward Scaling Preview (Max 3 Clicks):
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', color: '#fff', fontSize: '10px' }}>
+                  <span>0 Clicks: <b>+{Number(newPromo.reward_howl) || 0}</b></span>
+                  <span>1 Click: <b>+{(Number(newPromo.reward_howl) || 0) + (Number(newPromo.reward_click_howl) || 0)}</b></span>
+                  <span>2 Clicks: <b>+{(Number(newPromo.reward_howl) || 0) + ((Number(newPromo.reward_click_howl) || 0) * 2)}</b></span>
+                  <span style={{ color: '#eab308' }}>3+ Clicks: <b>+{(Number(newPromo.reward_howl) || 0) + ((Number(newPromo.reward_click_howl) || 0) * 3)}</b></span>
+                </div>
               </div>
 
               <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
@@ -1680,28 +1733,89 @@ export default function AdminView({ isActive = false }) {
                 </div>
               )}
 
-              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '14px' }}>
-                MAX CLAIMS (0 = UNLIMITED)
-                <input
-                  type="number"
-                  min="0"
-                  value={newPromo.max_claims}
-                  onChange={(e) => setNewPromo({ ...newPromo, max_claims: e.target.value })}
-                  style={{
-                    width: '100%',
-                    marginTop: '4px',
-                    background: 'rgba(0,0,0,0.3)',
-                    border: '1px solid var(--border-soft)',
-                    color: '#fff',
-                    padding: '10px',
-                    borderRadius: '10px',
-                    fontSize: '14px',
-                    fontWeight: 800,
-                    outline: 'none',
-                    boxSizing: 'border-box'
-                  }}
-                />
-              </label>
+              {/* Button to Adjust Spot (Unlimited vs Limited Spots) */}
+              <div style={{ marginBottom: '14px' }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '6px' }}>
+                  PARTICIPATION SPOTS
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: promoSpotMode === 'limited' ? '8px' : '0' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPromoSpotMode('unlimited');
+                      setNewPromo({ ...newPromo, max_claims: '0' });
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: promoSpotMode === 'unlimited' ? '1px solid var(--accent-main)' : '1px solid var(--border-soft)',
+                      background: promoSpotMode === 'unlimited' ? 'var(--accent-dim)' : 'rgba(0,0,0,0.3)',
+                      color: promoSpotMode === 'unlimited' ? 'var(--accent-main)' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i className="fa-solid fa-bolt"></i> Unlimited Spots
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPromoSpotMode('limited');
+                      if (!newPromo.max_claims || newPromo.max_claims === '0') {
+                        setNewPromo({ ...newPromo, max_claims: '500' });
+                      }
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: promoSpotMode === 'limited' ? '1px solid var(--accent-main)' : '1px solid var(--border-soft)',
+                      background: promoSpotMode === 'limited' ? 'var(--accent-dim)' : 'rgba(0,0,0,0.3)',
+                      color: promoSpotMode === 'limited' ? 'var(--accent-main)' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i className="fa-solid fa-users"></i> Limited Spots
+                  </button>
+                </div>
+
+                {promoSpotMode === 'limited' && (
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Enter maximum spots limit (e.g. 500)"
+                    value={newPromo.max_claims}
+                    onChange={(e) => setNewPromo({ ...newPromo, max_claims: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      marginTop: '6px',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                )}
+              </div>
 
               <button
                 type="submit"
@@ -1843,25 +1957,184 @@ export default function AdminView({ isActive = false }) {
                           </div>
                         )}
 
-                        {/* Stats Row */}
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px', marginTop: '6px' }}>
-                          <span style={{ color: 'var(--text-muted)' }}>
-                            Claims: <b style={{ color: '#fff' }}>{promo.claimed_count || 0}</b> / {promo.max_claims > 0 ? promo.max_claims : '∞'}
+                        {/* Spot Status Badge */}
+                        <div style={{ marginTop: '4px', marginBottom: '6px' }}>
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              padding: '2px 7px',
+                              borderRadius: '6px',
+                              background: Number(promo.max_claims) === 0 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(234, 179, 8, 0.15)',
+                              color: Number(promo.max_claims) === 0 ? '#38bdf8' : '#eab308'
+                            }}
+                          >
+                            {Number(promo.max_claims) === 0 ? (
+                              <><i className="fa-solid fa-bolt" style={{ marginRight: '4px' }}></i> Unlimited Spots ({promo.claimed_count || 0} claimed)</>
+                            ) : (
+                              <><i className="fa-solid fa-users" style={{ marginRight: '4px' }}></i> Limit: {promo.claimed_count || 0} / {promo.max_claims} spots ({Math.max(0, promo.max_claims - (promo.claimed_count || 0))} left)</>
+                            )}
                           </span>
+                        </div>
+
+                        {/* Stats Row */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px', marginTop: '4px' }}>
                           <span style={{ color: '#eab308', fontWeight: 700 }}>
                             Base: +{promo.reward_howl} HOWL
                           </span>
                           {Number(promo.reward_click_howl) > 0 && (
                             <span style={{ color: '#38bdf8', fontWeight: 700 }}>
-                              Click: +{promo.reward_click_howl} HOWL
+                              Click Bonus: +{promo.reward_click_howl}/click (Max +{Number(promo.reward_click_howl) * 3})
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
 
+                    {/* Inline Spot Adjuster Form */}
+                    {editingPromoSpot?.id === promo.id && (
+                      <div
+                        style={{
+                          marginTop: '10px',
+                          padding: '10px',
+                          background: 'rgba(0,0,0,0.45)',
+                          borderRadius: '10px',
+                          border: '1px solid rgba(56, 189, 248, 0.35)',
+                          animation: 'fadeIn 0.2s ease'
+                        }}
+                      >
+                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
+                          Adjust Spots for <code>{promo.code}</code>:
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
+                          <button
+                            type="button"
+                            onClick={() => setEditingPromoSpot({ ...editingPromoSpot, mode: 'unlimited' })}
+                            style={{
+                              padding: '7px',
+                              borderRadius: '8px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: editingPromoSpot.mode === 'unlimited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                              background: editingPromoSpot.mode === 'unlimited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                              color: editingPromoSpot.mode === 'unlimited' ? '#38bdf8' : 'var(--text-muted)'
+                            }}
+                          >
+                            <i className="fa-solid fa-bolt"></i> Unlimited
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setEditingPromoSpot({ ...editingPromoSpot, mode: 'limited' })}
+                            style={{
+                              padding: '7px',
+                              borderRadius: '8px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer',
+                              border: editingPromoSpot.mode === 'limited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                              background: editingPromoSpot.mode === 'limited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                              color: editingPromoSpot.mode === 'limited' ? '#38bdf8' : 'var(--text-muted)'
+                            }}
+                          >
+                            <i className="fa-solid fa-users"></i> Limited Spots
+                          </button>
+                        </div>
+
+                        {editingPromoSpot.mode === 'limited' && (
+                          <div style={{ marginBottom: '8px' }}>
+                            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Total Spots Cap:</label>
+                            <input
+                              type="number"
+                              min="1"
+                              value={editingPromoSpot.spots}
+                              onChange={(e) => setEditingPromoSpot({ ...editingPromoSpot, spots: e.target.value })}
+                              style={{
+                                width: '100%',
+                                marginTop: '4px',
+                                background: 'rgba(0,0,0,0.3)',
+                                border: '1px solid var(--border-soft)',
+                                color: '#fff',
+                                padding: '8px',
+                                borderRadius: '8px',
+                                fontSize: '13px',
+                                fontWeight: 700,
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            type="button"
+                            onClick={() => setEditingPromoSpot(null)}
+                            style={{
+                              background: 'rgba(255,255,255,0.08)',
+                              border: 'none',
+                              color: '#fff',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateSpots(promo.id, editingPromoSpot.mode === 'unlimited' ? 0 : editingPromoSpot.spots)}
+                            style={{
+                              background: 'var(--accent-main)',
+                              border: 'none',
+                              color: '#000',
+                              padding: '6px 14px',
+                              borderRadius: '8px',
+                              fontSize: '11px',
+                              fontWeight: 800,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Save Spots
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions row */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      {/* Button to Adjust Spots */}
+                      <button
+                        onClick={() => {
+                          triggerHaptic('light');
+                          setEditingPromoSpot(
+                            editingPromoSpot?.id === promo.id
+                              ? null
+                              : {
+                                  id: promo.id,
+                                  mode: Number(promo.max_claims) > 0 ? 'limited' : 'unlimited',
+                                  spots: Number(promo.max_claims) > 0 ? promo.max_claims : 500
+                                }
+                          );
+                        }}
+                        style={{
+                          background: 'rgba(56, 189, 248, 0.15)',
+                          border: 'none',
+                          color: '#38bdf8',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <i className="fa-solid fa-sliders" style={{ marginRight: '4px' }}></i> Adjust Spots
+                      </button>
+
                       <button
                         onClick={() => handleTogglePromo(promo.id, promo.is_active)}
                         style={{

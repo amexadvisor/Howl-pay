@@ -243,7 +243,7 @@ export async function checkPromoCode(code, userId) {
   return res.json();
 }
 
-export async function claimPromoCode({ code, adType, adClicked }) {
+export async function claimPromoCode({ code, adType, adClicked, clicks = 0 }) {
   const initData = getInitData();
   const res = await fetch(`${API_BASE_URL}/api/promo-code`, {
     method: 'POST',
@@ -251,7 +251,13 @@ export async function claimPromoCode({ code, adType, adClicked }) {
       'Content-Type': 'application/json',
       'X-Telegram-Init-Data': initData
     },
-    body: JSON.stringify({ code, adType, adClicked: !!adClicked, initData })
+    body: JSON.stringify({
+      code,
+      adType,
+      adClicked: !!adClicked,
+      clicks: Number(clicks) || 0,
+      initData
+    })
   });
   return res.json();
 }

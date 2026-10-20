@@ -28,7 +28,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
   const [adState, setAdState] = useState('idle');
   const [adError, setAdError] = useState('');
   const [claimResult, setClaimResult] = useState(null);
-  const [adClickDetected, setAdClickDetected] = useState(false);
+  const [adClicks, setAdClicks] = useState(0);
 
   const adsgramSlotRef = useRef(null);
   const watcherRef = useRef(null);
@@ -57,7 +57,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
       setAdState('idle');
       setAdError('');
       setClaimResult(null);
-      setAdClickDetected(false);
+      setAdClicks(0);
       if (watcherRef.current) {
         watcherRef.current.stop();
         watcherRef.current = null;
@@ -91,6 +91,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
       const res = await checkPromoCode(cleanCode, user.id);
       if (res && res.success && res.promo) {
         setPromoData(res.promo);
+        setAdClicks(0);
         triggerHaptic('success');
       } else {
         setCheckError(res?.error || 'Invalid promo code');
@@ -105,18 +106,21 @@ export default function PromoCodeModal({ isOpen, onClose }) {
   };
 
   // 2. Finalize Claim with Server
-  const handleClaim = async (adType, wasClicked) => {
+  const handleClaim = async (adType, finalClicks = 0) => {
     setAdState('claiming');
+    const clicksCount = Math.max(0, Math.min(3, Number(finalClicks) || 0));
+
     try {
       const res = await claimPromoCode({
         code: promoData.code,
         adType,
-        adClicked: wasClicked
+        adClicked: clicksCount > 0,
+        clicks: clicksCount
       });
 
       if (res && res.success) {
-        if (res.balance) {
-          applyBalance(res.balance.total_howl, res.balance.total_usd, res.balance.hold);
+        if (res.user_balance) {
+          applyBalance(res.user_balance.total_howl, res.user_balance.total_usd, res.user_balance.hold);
         } else {
           refreshBalance();
         }
@@ -172,10 +176,10 @@ export default function PromoCodeModal({ isOpen, onClose }) {
       await ctrl.show();
       // Wait a moment for any outbound click event to finish processing
       await new Promise((r) => setTimeout(r, 400));
-      const clicked = watcherRef.current ? (watcherRef.current.clicks > 0 || watcherRef.current.clicked) : false;
+      const finalClicks = watcherRef.current ? Math.min(3, watcherRef.current.clicks || 0) : 0;
       if (watcherRef.current) watcherRef.current.stop();
 
-      await handleClaim('rewarded_video', clicked);
+      await handleClaim('rewarded_video', finalClicks);
     } catch (err) {
       if (watcherRef.current) watcherRef.current.stop();
       setAdError(err?.description || 'Ad was closed early. Watch the full ad to claim giveaway.');
@@ -189,13 +193,13 @@ export default function PromoCodeModal({ isOpen, onClose }) {
 
     setAdState('watching');
     setAdError('');
-    setAdClickDetected(false);
+    setAdClicks(0);
     triggerHaptic('medium');
 
-    // Start watching clicks for higher click-bonus reward
+    // Start watching clicks for variable click-count reward
     if (watcherRef.current) watcherRef.current.stop();
     const watcher = adsrWatchClicks(() => {
-      setAdClickDetected(true);
+      setAdClicks(watcher.clicks);
     });
     watcherRef.current = watcher;
 
@@ -225,9 +229,9 @@ export default function PromoCodeModal({ isOpen, onClose }) {
         handled = true;
         if (fallbackTimerRef.current) clearTimeout(fallbackTimerRef.current);
         await new Promise((r) => setTimeout(r, 400));
-        const clicked = watcher.clicks > 0 || watcher.clicked;
+        const finalClicks = Math.min(3, watcher.clicks || 0);
         watcher.stop();
-        await handleClaim('task_block', clicked);
+        await handleClaim('task_block', finalClicks);
       });
 
       // Event: Task ad not available -> Fallback to Rewarded
@@ -264,6 +268,9 @@ export default function PromoCodeModal({ isOpen, onClose }) {
     if (img.startsWith('http://') || img.startsWith('https://')) return img;
     return `${API_BASE_URL}${img.startsWith('/') ? '' : '/'}${img}`;
   };
+
+  const baseReward = Number(promoData?.reward_howl) || 50;
+  const clickBonus = Number(promoData?.reward_click_howl) || 0;
 
   return (
     <div
@@ -405,27 +412,37 @@ export default function PromoCodeModal({ isOpen, onClose }) {
               +{claimResult.reward_howl} HOWL
             </div>
 
-            {claimResult.ad_clicked ? (
-              <div
-                style={{
-                  background: 'rgba(234, 179, 8, 0.12)',
-                  border: '1px solid rgba(234, 179, 8, 0.3)',
-                  borderRadius: '12px',
-                  padding: '10px',
-                  fontSize: '12px',
-                  color: '#fbbf24',
-                  margin: '12px 0 16px 0',
-                  lineHeight: '1.4'
-                }}
-              >
-                <i className="fa-solid fa-fire" style={{ marginRight: '6px' }}></i>
-                <b>Max Click Bonus Unlocked!</b> You engaged with the sponsor ad and earned the higher giveaway tier.
+            {/* Variable Reward Breakdown */}
+            <div
+              style={{
+                background: 'rgba(255, 255, 255, 0.04)',
+                border: '1px solid rgba(255, 255, 255, 0.08)',
+                borderRadius: '12px',
+                padding: '12px',
+                margin: '12px 0 16px 0',
+                textAlign: 'left'
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Base Ad Reward:</span>
+                <span style={{ fontWeight: 700, color: '#fff' }}>+{claimResult.base_reward || baseReward} HOWL</span>
               </div>
-            ) : (
-              <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '10px 0 16px 0' }}>
-                Your reward has been added to your live balance!
-              </p>
-            )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                <span style={{ color: '#38bdf8' }}>
+                  Ad Clicks Bonus ({claimResult.clicks_count || 0} click{(claimResult.clicks_count || 0) === 1 ? '' : 's'}):
+                </span>
+                <span style={{ fontWeight: 800, color: '#38bdf8' }}>
+                  +{claimResult.bonus_reward || 0} HOWL
+                </span>
+              </div>
+
+              {(claimResult.clicks_count || 0) >= 3 && (
+                <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.08)', fontSize: '11px', color: '#eab308', fontWeight: 800 }}>
+                  <i className="fa-solid fa-fire" style={{ marginRight: '5px' }}></i>
+                  Max Ad Engagement Bonus Unlocked!
+                </div>
+              )}
+            </div>
 
             <button
               onClick={() => {
@@ -450,24 +467,60 @@ export default function PromoCodeModal({ isOpen, onClose }) {
         )}
 
         {/* ----------------- STATE 2: VERIFIED PROMO DETAILS ----------------- */}
+        {/* Only visible if promo code is valid! */}
         {adState !== 'success' && promoData && (
           <div style={{ marginTop: '12px', textAlign: 'left', animation: 'fadeIn 0.25s ease' }}>
-            {/* Promo Banner Image */}
+            {/* Promo Badges Row: One-Time Claim & Spots */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+              <span
+                style={{
+                  background: 'rgba(234, 179, 8, 0.15)',
+                  border: '1px solid rgba(234, 179, 8, 0.35)',
+                  color: '#eab308',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  padding: '3px 8px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '5px'
+                }}
+              >
+                <i className="fa-solid fa-lock"></i> ONE-TIME CLAIM
+              </span>
+
+              <span
+                style={{
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: promoData.is_unlimited ? '#38bdf8' : (promoData.spots_left > 0 ? '#22c55e' : '#ef4444')
+                }}
+              >
+                {promoData.is_unlimited ? (
+                  <><i className="fa-solid fa-bolt" style={{ marginRight: '4px' }}></i> Unlimited Spots</>
+                ) : (
+                  <><i className="fa-solid fa-users" style={{ marginRight: '4px' }}></i> {promoData.spots_left} spot{promoData.spots_left === 1 ? '' : 's'} left</>
+                )}
+              </span>
+            </div>
+
+            {/* Promo Banner Image (Prominently visible when promo code is valid) */}
             <div
               style={{
                 width: '100%',
-                height: '140px',
+                height: '148px',
                 borderRadius: '16px',
                 overflow: 'hidden',
                 position: 'relative',
-                border: '1px solid rgba(234, 179, 8, 0.35)',
+                border: '1px solid rgba(234, 179, 8, 0.45)',
                 marginBottom: '14px',
-                background: 'rgba(0,0,0,0.5)'
+                background: 'rgba(0,0,0,0.6)',
+                boxShadow: '0 6px 25px rgba(0, 0, 0, 0.6), 0 0 20px rgba(234, 179, 8, 0.15)'
               }}
             >
               <img
                 src={getBannerUrl(promoData.image_url)}
-                alt={promoData.title || 'Promo Banner'}
+                alt={promoData.title || promoData.code}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -482,7 +535,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
                 style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(10, 15, 30, 0.9) 0%, transparent 60%)'
+                  background: 'linear-gradient(to top, rgba(10, 15, 30, 0.95) 0%, rgba(10, 15, 30, 0.3) 50%, transparent 100%)'
                 }}
               />
               <div
@@ -498,14 +551,15 @@ export default function PromoCodeModal({ isOpen, onClose }) {
               >
                 <span
                   style={{
-                    background: 'rgba(0, 0, 0, 0.75)',
-                    backdropFilter: 'blur(4px)',
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    backdropFilter: 'blur(6px)',
                     color: '#eab308',
-                    padding: '3px 8px',
+                    padding: '4px 10px',
                     borderRadius: '8px',
-                    fontSize: '11px',
-                    fontWeight: 800,
-                    border: '1px solid rgba(234, 179, 8, 0.4)'
+                    fontSize: '12px',
+                    fontWeight: 900,
+                    border: '1px solid rgba(234, 179, 8, 0.45)',
+                    letterSpacing: '0.8px'
                   }}
                 >
                   <code>{promoData.code}</code>
@@ -514,10 +568,10 @@ export default function PromoCodeModal({ isOpen, onClose }) {
                 {promoData.max_claims > 0 && (
                   <span
                     style={{
-                      background: 'rgba(0,0,0,0.7)',
+                      background: 'rgba(0,0,0,0.75)',
                       color: 'var(--text-muted)',
                       fontSize: '10px',
-                      padding: '2px 6px',
+                      padding: '3px 7px',
                       borderRadius: '6px'
                     }}
                   >
@@ -532,66 +586,134 @@ export default function PromoCodeModal({ isOpen, onClose }) {
               {promoData.title || 'Special Giveaway Code'}
             </h4>
             <p style={{ margin: '0 0 14px 0', fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>
-              {promoData.description || 'Watch the sponsor ad to claim your HOWL coins!'}
+              {promoData.description || 'Watch sponsor ad to claim your HOWL coins!'}
             </p>
 
-            {/* Reward Card */}
-            <div
-              style={{
-                background: 'rgba(255, 255, 255, 0.03)',
-                border: '1px solid rgba(255, 255, 255, 0.08)',
-                borderRadius: '14px',
-                padding: '12px',
-                marginBottom: '14px'
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
-                  <i className="fa-solid fa-eye" style={{ marginRight: '5px', color: 'var(--accent-main)' }}></i> Base Ad View Reward:
-                </span>
-                <span style={{ fontSize: '13px', fontWeight: 800, color: '#eab308' }}>
-                  +{promoData.reward_howl} HOWL
-                </span>
-              </div>
-
-              {Number(promoData.reward_click_howl) > 0 && (
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingTop: '8px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.06)'
-                  }}
-                >
-                  <span style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 700 }}>
-                    <i className="fa-solid fa-arrow-pointer" style={{ marginRight: '5px' }}></i> Ad Click Bonus:
+            {/* Variable Reward Breakdown depending on User Click Count */}
+            {clickBonus > 0 ? (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '14px',
+                  padding: '12px',
+                  marginBottom: '14px'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)' }}>
+                    REWARDS BY AD CLICKS
                   </span>
-                  <span style={{ fontSize: '13px', fontWeight: 800, color: '#38bdf8' }}>
-                    +{promoData.reward_click_howl} HOWL
+                  <span style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8' }}>
+                    +{clickBonus} HOWL / click
                   </span>
                 </div>
-              )}
-            </div>
 
-            {/* Sponsor Ad requirement notice */}
-            <div
-              style={{
-                fontSize: '11px',
-                color: 'var(--text-muted)',
-                lineHeight: '1.4',
-                marginBottom: '16px',
-                background: 'rgba(14, 165, 233, 0.06)',
-                border: '1px solid rgba(14, 165, 233, 0.2)',
-                borderRadius: '10px',
-                padding: '8px 10px'
-              }}
-            >
-              <i className="fa-solid fa-circle-info" style={{ color: '#38bdf8', marginRight: '6px' }}></i>
-              Clicking the sponsor ad inside the view earns the <b>full click bonus</b>!
-            </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
+                  <div
+                    style={{
+                      background: adClicks === 0 ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0,0,0,0.25)',
+                      border: adClicks === 0 ? '1px solid var(--accent-main)' : '1px solid var(--border-soft)',
+                      borderRadius: '8px',
+                      padding: '6px 2px'
+                    }}
+                  >
+                    <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>0 Clicks</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff' }}>
+                      +{baseReward}
+                    </div>
+                  </div>
 
-            {/* AdsGram Task Block hidden mount slot */}
+                  <div
+                    style={{
+                      background: adClicks === 1 ? 'rgba(56, 189, 248, 0.18)' : 'rgba(0,0,0,0.25)',
+                      border: adClicks === 1 ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                      borderRadius: '8px',
+                      padding: '6px 2px'
+                    }}
+                  >
+                    <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>1 Click</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#38bdf8' }}>
+                      +{baseReward + clickBonus}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: adClicks === 2 ? 'rgba(56, 189, 248, 0.18)' : 'rgba(0,0,0,0.25)',
+                      border: adClicks === 2 ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                      borderRadius: '8px',
+                      padding: '6px 2px'
+                    }}
+                  >
+                    <div style={{ fontSize: '9px', color: 'var(--text-muted)' }}>2 Clicks</div>
+                    <div style={{ fontSize: '12px', fontWeight: 800, color: '#38bdf8' }}>
+                      +{baseReward + clickBonus * 2}
+                    </div>
+                  </div>
+
+                  <div
+                    style={{
+                      background: adClicks >= 3 ? 'rgba(234, 179, 8, 0.22)' : 'rgba(0,0,0,0.25)',
+                      border: adClicks >= 3 ? '1px solid #eab308' : '1px solid var(--border-soft)',
+                      borderRadius: '8px',
+                      padding: '6px 2px'
+                    }}
+                  >
+                    <div style={{ fontSize: '9px', color: '#eab308', fontWeight: 800 }}>3+ (Max)</div>
+                    <div style={{ fontSize: '12px', fontWeight: 900, color: '#eab308' }}>
+                      +{baseReward + clickBonus * 3}
+                    </div>
+                  </div>
+                </div>
+
+                {adState === 'watching' && (
+                  <div
+                    style={{
+                      marginTop: '10px',
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: adClicks > 0 ? 'rgba(34, 197, 94, 0.15)' : 'rgba(234, 179, 8, 0.12)',
+                      border: adClicks > 0 ? '1px solid rgba(34, 197, 94, 0.35)' : '1px solid rgba(234, 179, 8, 0.3)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      fontSize: '11px'
+                    }}
+                  >
+                    <span style={{ color: '#fff' }}>
+                      <i className="fa-solid fa-arrow-pointer" style={{ marginRight: '6px', color: adClicks > 0 ? '#22c55e' : '#eab308' }}></i>
+                      Ad Clicks: <b>{adClicks}</b>
+                    </span>
+                    <span style={{ fontWeight: 800, color: '#eab308' }}>
+                      +{baseReward + (Math.min(3, adClicks) * clickBonus)} HOWL
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                style={{
+                  background: 'rgba(255, 255, 255, 0.03)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '14px',
+                  padding: '12px',
+                  marginBottom: '14px',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center'
+                }}
+              >
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  <i className="fa-solid fa-eye" style={{ marginRight: '5px', color: 'var(--accent-main)' }}></i> Ad View Reward:
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: 800, color: '#eab308' }}>
+                  +{baseReward} HOWL
+                </span>
+              </div>
+            )}
+
+            {/* AdsGram Task Block mount slot */}
             <div
               ref={adsgramSlotRef}
               style={{
@@ -694,6 +816,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
         )}
 
         {/* ----------------- STATE 3: INPUT CODE FORM ----------------- */}
+        {/* Specific promo image is NOT visible here until valid code is entered! */}
         {adState !== 'success' && !promoData && (
           <form onSubmit={handleCheckCode} style={{ marginTop: '14px' }}>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', margin: '0 0 16px 0', lineHeight: '1.4' }}>
