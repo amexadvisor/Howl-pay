@@ -471,7 +471,7 @@ export default function PromoCodeModal({ isOpen, onClose }) {
         {adState !== 'success' && promoData && (
           <div style={{ marginTop: '12px', textAlign: 'left', animation: 'fadeIn 0.25s ease' }}>
             {/* Promo Badges Row: One-Time Claim & Spots */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span
                 style={{
                   background: 'rgba(234, 179, 8, 0.15)',
@@ -503,6 +503,30 @@ export default function PromoCodeModal({ isOpen, onClose }) {
                 )}
               </span>
             </div>
+
+            {/* Expiration Date Indicator (if set) */}
+            {promoData.expires_at && (
+              <div
+                style={{
+                  marginBottom: '10px',
+                  fontSize: '11px',
+                  fontWeight: 700,
+                  color: '#fbbf24',
+                  background: 'rgba(245, 158, 11, 0.12)',
+                  border: '1px solid rgba(245, 158, 11, 0.25)',
+                  borderRadius: '8px',
+                  padding: '5px 8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                <i className="fa-regular fa-clock"></i>
+                <span>
+                  Expires: {new Date(promoData.expires_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })} at {new Date(promoData.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
 
             {/* Promo Banner Image (Prominently visible when promo code is valid) */}
             <div

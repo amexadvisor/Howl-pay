@@ -69,6 +69,8 @@ export default function AdminView({ isActive = false }) {
   const [promoList, setPromoList] = useState([]);
   const [promoLoading, setPromoLoading] = useState(false);
   const [promoSpotMode, setPromoSpotMode] = useState('unlimited');
+  const [promoExpiryMode, setPromoExpiryMode] = useState('none');
+  const [promoExpiryDate, setPromoExpiryDate] = useState('');
   const [editingPromoSpot, setEditingPromoSpot] = useState(null);
   const [newPromo, setNewPromo] = useState({
     code: '',
@@ -80,6 +82,15 @@ export default function AdminView({ isActive = false }) {
     max_claims: '0'
   });
   const [promoSaving, setPromoSaving] = useState(false);
+
+  const setQuickExpiry = (days) => {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    const pad = (n) => String(n).padStart(2, '0');
+    const str = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    setPromoExpiryDate(str);
+    setPromoExpiryMode('custom');
+  };
 
   // Load initial admin configs
   useEffect(() => {
@@ -465,6 +476,8 @@ export default function AdminView({ isActive = false }) {
     triggerHaptic('medium');
     try {
       const claimsLimit = promoSpotMode === 'unlimited' ? 0 : Math.max(1, Number(newPromo.max_claims) || 100);
+      const expiryVal = promoExpiryMode === 'custom' && promoExpiryDate ? new Date(promoExpiryDate).toISOString() : null;
+
       const res = await adminCall('create_promo_code', {
         promo: {
           code: newPromo.code.trim().toUpperCase(),
@@ -473,7 +486,8 @@ export default function AdminView({ isActive = false }) {
           reward_howl: Number(newPromo.reward_howl) || 50,
           reward_click_howl: Number(newPromo.reward_click_howl) || 0,
           image_url: newPromo.image_url.trim() || '/assets/boinkers.jpg',
-          max_claims: claimsLimit
+          max_claims: claimsLimit,
+          expires_at: expiryVal
         }
       });
       if (res?.success) {
@@ -488,6 +502,8 @@ export default function AdminView({ isActive = false }) {
           max_claims: '0'
         });
         setPromoSpotMode('unlimited');
+        setPromoExpiryMode('none');
+        setPromoExpiryDate('');
         await loadPromoCodes();
       } else {
         showTopNotification('FAILED', res?.error || 'Could not create promo code', 'error');
@@ -499,29 +515,24 @@ export default function AdminView({ isActive = false }) {
     }
   };
 
-  const handleUpdateSpots = async (id, maxClaims) => {
+  const handleUpdatePromoLimits = async (id, patch) => {
     triggerHaptic('medium');
     try {
-      const finalClaims = Math.max(0, parseInt(maxClaims, 10) || 0);
       const res = await adminCall('update_promo_code', {
         id,
-        patch: { max_claims: finalClaims }
+        patch
       });
       if (res?.success) {
         setPromoList((prev) =>
-          prev.map((item) => (item.id === id ? { ...item, max_claims: finalClaims } : item))
+          prev.map((item) => (item.id === id ? { ...item, ...patch } : item))
         );
         setEditingPromoSpot(null);
-        showTopNotification(
-          'SPOTS UPDATED',
-          `Promo spots updated to ${finalClaims === 0 ? 'Unlimited' : finalClaims}!`,
-          'gold'
-        );
+        showTopNotification('UPDATED', 'Promo code settings updated successfully!', 'gold');
       } else {
-        showTopNotification('FAILED', res?.error || 'Could not update spots', 'error');
+        showTopNotification('FAILED', res?.error || 'Could not update settings', 'error');
       }
     } catch (err) {
-      showTopNotification('ERROR', 'Failed to update spots', 'error');
+      showTopNotification('ERROR', 'Failed to update promo settings', 'error');
     }
   };
 
@@ -1817,6 +1828,119 @@ export default function AdminView({ isActive = false }) {
                 )}
               </div>
 
+              {/* Expiration Date Section */}
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '6px' }}>
+                  EXPIRATION DATE
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: promoExpiryMode === 'custom' ? '8px' : '0' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPromoExpiryMode('none');
+                      setPromoExpiryDate('');
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: promoExpiryMode === 'none' ? '1px solid var(--accent-main)' : '1px solid var(--border-soft)',
+                      background: promoExpiryMode === 'none' ? 'var(--accent-dim)' : 'rgba(0,0,0,0.3)',
+                      color: promoExpiryMode === 'none' ? 'var(--accent-main)' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i className="fa-solid fa-infinity"></i> Never Expires
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      triggerHaptic('light');
+                      setPromoExpiryMode('custom');
+                      if (!promoExpiryDate) setQuickExpiry(7);
+                    }}
+                    style={{
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '12px',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      border: promoExpiryMode === 'custom' ? '1px solid var(--accent-main)' : '1px solid var(--border-soft)',
+                      background: promoExpiryMode === 'custom' ? 'var(--accent-dim)' : 'rgba(0,0,0,0.3)',
+                      color: promoExpiryMode === 'custom' ? 'var(--accent-main)' : 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <i className="fa-regular fa-clock"></i> Set Expiry Date
+                  </button>
+                </div>
+
+                {promoExpiryMode === 'custom' && (
+                  <div>
+                    {/* Quick presets */}
+                    <div style={{ display: 'flex', gap: '6px', margin: '8px 0', overflowX: 'auto', paddingBottom: '2px' }}>
+                      <button
+                        type="button"
+                        onClick={() => setQuickExpiry(1)}
+                        style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-soft)', color: '#fff', cursor: 'pointer' }}
+                      >
+                        +24 Hours
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuickExpiry(3)}
+                        style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-soft)', color: '#fff', cursor: 'pointer' }}
+                      >
+                        +3 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuickExpiry(7)}
+                        style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-soft)', color: '#fff', cursor: 'pointer' }}
+                      >
+                        +7 Days
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQuickExpiry(30)}
+                        style={{ padding: '4px 10px', borderRadius: '6px', fontSize: '11px', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--border-soft)', color: '#fff', cursor: 'pointer' }}
+                      >
+                        +30 Days
+                      </button>
+                    </div>
+
+                    <input
+                      type="datetime-local"
+                      value={promoExpiryDate}
+                      onChange={(e) => setPromoExpiryDate(e.target.value)}
+                      required
+                      style={{
+                        width: '100%',
+                        background: 'rgba(0,0,0,0.3)',
+                        border: '1px solid var(--border-soft)',
+                        color: '#fff',
+                        padding: '10px',
+                        borderRadius: '10px',
+                        fontSize: '13px',
+                        fontWeight: 700,
+                        outline: 'none',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
               <button
                 type="submit"
                 disabled={promoSaving}
@@ -1957,8 +2081,8 @@ export default function AdminView({ isActive = false }) {
                           </div>
                         )}
 
-                        {/* Spot Status Badge */}
-                        <div style={{ marginTop: '4px', marginBottom: '6px' }}>
+                        {/* Badges Row: Spots & Expiration Status */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '4px', marginBottom: '6px' }}>
                           <span
                             style={{
                               fontSize: '10px',
@@ -1975,6 +2099,39 @@ export default function AdminView({ isActive = false }) {
                               <><i className="fa-solid fa-users" style={{ marginRight: '4px' }}></i> Limit: {promo.claimed_count || 0} / {promo.max_claims} spots ({Math.max(0, promo.max_claims - (promo.claimed_count || 0))} left)</>
                             )}
                           </span>
+
+                          {/* Expiry Badge */}
+                          {promo.expires_at ? (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: new Date(promo.expires_at).getTime() < Date.now() ? 'rgba(239, 68, 68, 0.18)' : 'rgba(234, 179, 8, 0.15)',
+                                color: new Date(promo.expires_at).getTime() < Date.now() ? '#ef4444' : '#eab308'
+                              }}
+                            >
+                              {new Date(promo.expires_at).getTime() < Date.now() ? (
+                                <><i className="fa-solid fa-clock-rotate-left" style={{ marginRight: '4px' }}></i> Expired ({new Date(promo.expires_at).toLocaleDateString()})</>
+                              ) : (
+                                <><i className="fa-regular fa-clock" style={{ marginRight: '4px' }}></i> Expires {new Date(promo.expires_at).toLocaleDateString()} {new Date(promo.expires_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                              )}
+                            </span>
+                          ) : (
+                            <span
+                              style={{
+                                fontSize: '10px',
+                                fontWeight: 800,
+                                padding: '2px 7px',
+                                borderRadius: '6px',
+                                background: 'rgba(255, 255, 255, 0.06)',
+                                color: 'var(--text-muted)'
+                              }}
+                            >
+                              <i className="fa-solid fa-infinity" style={{ marginRight: '4px' }}></i> Never Expires
+                            </span>
+                          )}
                         </div>
 
                         {/* Stats Row */}
@@ -1991,69 +2148,73 @@ export default function AdminView({ isActive = false }) {
                       </div>
                     </div>
 
-                    {/* Inline Spot Adjuster Form */}
+                    {/* Inline Spots & Expiry Adjuster Form */}
                     {editingPromoSpot?.id === promo.id && (
                       <div
                         style={{
                           marginTop: '10px',
-                          padding: '10px',
+                          padding: '12px',
                           background: 'rgba(0,0,0,0.45)',
-                          borderRadius: '10px',
+                          borderRadius: '12px',
                           border: '1px solid rgba(56, 189, 248, 0.35)',
                           animation: 'fadeIn 0.2s ease'
                         }}
                       >
-                        <div style={{ fontSize: '11px', fontWeight: 800, color: '#38bdf8', marginBottom: '8px' }}>
-                          Adjust Spots for <code>{promo.code}</code>:
+                        <div style={{ fontSize: '12px', fontWeight: 800, color: '#38bdf8', marginBottom: '10px' }}>
+                          <i className="fa-solid fa-sliders" style={{ marginRight: '6px' }}></i>
+                          Adjust Spots &amp; Expiry for <code>{promo.code}</code>:
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '8px' }}>
-                          <button
-                            type="button"
-                            onClick={() => setEditingPromoSpot({ ...editingPromoSpot, mode: 'unlimited' })}
-                            style={{
-                              padding: '7px',
-                              borderRadius: '8px',
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              border: editingPromoSpot.mode === 'unlimited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
-                              background: editingPromoSpot.mode === 'unlimited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
-                              color: editingPromoSpot.mode === 'unlimited' ? '#38bdf8' : 'var(--text-muted)'
-                            }}
-                          >
-                            <i className="fa-solid fa-bolt"></i> Unlimited
-                          </button>
+                        {/* Spots adjustment */}
+                        <div style={{ marginBottom: '10px' }}>
+                          <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                            Participation Spots:
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingPromoSpot({ ...editingPromoSpot, spotMode: 'unlimited' })}
+                              style={{
+                                padding: '7px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                border: editingPromoSpot.spotMode === 'unlimited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                                background: editingPromoSpot.spotMode === 'unlimited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                                color: editingPromoSpot.spotMode === 'unlimited' ? '#38bdf8' : 'var(--text-muted)'
+                              }}
+                            >
+                              <i className="fa-solid fa-bolt"></i> Unlimited
+                            </button>
 
-                          <button
-                            type="button"
-                            onClick={() => setEditingPromoSpot({ ...editingPromoSpot, mode: 'limited' })}
-                            style={{
-                              padding: '7px',
-                              borderRadius: '8px',
-                              fontSize: '11px',
-                              fontWeight: 800,
-                              cursor: 'pointer',
-                              border: editingPromoSpot.mode === 'limited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
-                              background: editingPromoSpot.mode === 'limited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
-                              color: editingPromoSpot.mode === 'limited' ? '#38bdf8' : 'var(--text-muted)'
-                            }}
-                          >
-                            <i className="fa-solid fa-users"></i> Limited Spots
-                          </button>
-                        </div>
+                            <button
+                              type="button"
+                              onClick={() => setEditingPromoSpot({ ...editingPromoSpot, spotMode: 'limited' })}
+                              style={{
+                                padding: '7px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                border: editingPromoSpot.spotMode === 'limited' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                                background: editingPromoSpot.spotMode === 'limited' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                                color: editingPromoSpot.spotMode === 'limited' ? '#38bdf8' : 'var(--text-muted)'
+                              }}
+                            >
+                              <i className="fa-solid fa-users"></i> Limited Spots
+                            </button>
+                          </div>
 
-                        {editingPromoSpot.mode === 'limited' && (
-                          <div style={{ marginBottom: '8px' }}>
-                            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>Total Spots Cap:</label>
+                          {editingPromoSpot.spotMode === 'limited' && (
                             <input
                               type="number"
                               min="1"
+                              placeholder="Spots limit"
                               value={editingPromoSpot.spots}
                               onChange={(e) => setEditingPromoSpot({ ...editingPromoSpot, spots: e.target.value })}
                               style={{
                                 width: '100%',
-                                marginTop: '4px',
                                 background: 'rgba(0,0,0,0.3)',
                                 border: '1px solid var(--border-soft)',
                                 color: '#fff',
@@ -2065,9 +2226,78 @@ export default function AdminView({ isActive = false }) {
                                 boxSizing: 'border-box'
                               }}
                             />
-                          </div>
-                        )}
+                          )}
+                        </div>
 
+                        {/* Expiry adjustment */}
+                        <div style={{ marginBottom: '12px' }}>
+                          <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
+                            Expiration Date:
+                          </label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', marginBottom: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setEditingPromoSpot({ ...editingPromoSpot, expiryMode: 'none', expiryDate: '' })}
+                              style={{
+                                padding: '7px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                border: editingPromoSpot.expiryMode === 'none' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                                background: editingPromoSpot.expiryMode === 'none' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                                color: editingPromoSpot.expiryMode === 'none' ? '#38bdf8' : 'var(--text-muted)'
+                              }}
+                            >
+                              <i className="fa-solid fa-infinity"></i> Never Expires
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const d = new Date();
+                                d.setDate(d.getDate() + 7);
+                                const pad = (n) => String(n).padStart(2, '0');
+                                const str = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                                setEditingPromoSpot({ ...editingPromoSpot, expiryMode: 'custom', expiryDate: str });
+                              }}
+                              style={{
+                                padding: '7px',
+                                borderRadius: '8px',
+                                fontSize: '11px',
+                                fontWeight: 800,
+                                cursor: 'pointer',
+                                border: editingPromoSpot.expiryMode === 'custom' ? '1px solid #38bdf8' : '1px solid var(--border-soft)',
+                                background: editingPromoSpot.expiryMode === 'custom' ? 'rgba(56, 189, 248, 0.2)' : 'rgba(0,0,0,0.2)',
+                                color: editingPromoSpot.expiryMode === 'custom' ? '#38bdf8' : 'var(--text-muted)'
+                              }}
+                            >
+                              <i className="fa-regular fa-clock"></i> Set Expiry
+                            </button>
+                          </div>
+
+                          {editingPromoSpot.expiryMode === 'custom' && (
+                            <input
+                              type="datetime-local"
+                              value={editingPromoSpot.expiryDate}
+                              onChange={(e) => setEditingPromoSpot({ ...editingPromoSpot, expiryDate: e.target.value })}
+                              style={{
+                                width: '100%',
+                                background: 'rgba(0,0,0,0.3)',
+                                border: '1px solid var(--border-soft)',
+                                color: '#fff',
+                                padding: '8px',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                fontWeight: 700,
+                                outline: 'none',
+                                boxSizing: 'border-box'
+                              }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Adjuster Action Buttons */}
                         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                           <button
                             type="button"
@@ -2087,7 +2317,16 @@ export default function AdminView({ isActive = false }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleUpdateSpots(promo.id, editingPromoSpot.mode === 'unlimited' ? 0 : editingPromoSpot.spots)}
+                            onClick={() => {
+                              const newMaxClaims = editingPromoSpot.spotMode === 'unlimited' ? 0 : Number(editingPromoSpot.spots) || 100;
+                              const newExpiry = editingPromoSpot.expiryMode === 'custom' && editingPromoSpot.expiryDate
+                                ? new Date(editingPromoSpot.expiryDate).toISOString()
+                                : null;
+                              handleUpdatePromoLimits(promo.id, {
+                                max_claims: newMaxClaims,
+                                expires_at: newExpiry
+                              });
+                            }}
                             style={{
                               background: 'var(--accent-main)',
                               border: 'none',
@@ -2099,7 +2338,7 @@ export default function AdminView({ isActive = false }) {
                               cursor: 'pointer'
                             }}
                           >
-                            Save Spots
+                            Save Changes
                           </button>
                         </div>
                       </div>
@@ -2107,19 +2346,27 @@ export default function AdminView({ isActive = false }) {
 
                     {/* Actions row */}
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
-                      {/* Button to Adjust Spots */}
+                      {/* Button to Adjust Spots & Expiry */}
                       <button
                         onClick={() => {
                           triggerHaptic('light');
-                          setEditingPromoSpot(
-                            editingPromoSpot?.id === promo.id
-                              ? null
-                              : {
-                                  id: promo.id,
-                                  mode: Number(promo.max_claims) > 0 ? 'limited' : 'unlimited',
-                                  spots: Number(promo.max_claims) > 0 ? promo.max_claims : 500
-                                }
-                          );
+                          if (editingPromoSpot?.id === promo.id) {
+                            setEditingPromoSpot(null);
+                          } else {
+                            const pad = (n) => String(n).padStart(2, '0');
+                            let dtLocal = '';
+                            if (promo.expires_at) {
+                              const d = new Date(promo.expires_at);
+                              dtLocal = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                            }
+                            setEditingPromoSpot({
+                              id: promo.id,
+                              spotMode: Number(promo.max_claims) > 0 ? 'limited' : 'unlimited',
+                              spots: Number(promo.max_claims) > 0 ? promo.max_claims : 500,
+                              expiryMode: promo.expires_at ? 'custom' : 'none',
+                              expiryDate: dtLocal
+                            });
+                          }
                         }}
                         style={{
                           background: 'rgba(56, 189, 248, 0.15)',
@@ -2132,7 +2379,7 @@ export default function AdminView({ isActive = false }) {
                           cursor: 'pointer'
                         }}
                       >
-                        <i className="fa-solid fa-sliders" style={{ marginRight: '4px' }}></i> Adjust Spots
+                        <i className="fa-solid fa-sliders" style={{ marginRight: '4px' }}></i> Adjust
                       </button>
 
                       <button
