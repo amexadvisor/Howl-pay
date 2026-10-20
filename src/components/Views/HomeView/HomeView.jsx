@@ -5,7 +5,7 @@ import WatchAndEarn from './WatchAndEarn';
 import FeaturedTasksSection from './FeaturedTasksSection';
 
 export default function HomeView({ isActive = true }) {
-  const { user, balance, setActiveView, openLeaderboard, triggerHaptic } = useApp();
+  const { user, balance, setActiveView, openLeaderboard, triggerHaptic, setPromoModalOpen } = useApp();
 
   const handleEarnClick = () => {
     triggerHaptic('light');
@@ -97,6 +97,54 @@ export default function HomeView({ isActive = true }) {
           <div className="glass-card action-btn" style={{ marginBottom: 0, padding: '16px' }}>
             <i className="fa-solid fa-download"></i> WITHDRAW
           </div>
+        </div>
+      </div>
+
+      {/* Promo Code Giveaway row */}
+      <div
+        className="clickable"
+        onClick={() => {
+          triggerHaptic('light');
+          setPromoModalOpen(true);
+        }}
+      >
+        <div
+          className="glass-card task-row"
+          style={{
+            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(14, 165, 233, 0.08))',
+            borderColor: 'rgba(234, 179, 8, 0.35)',
+            boxShadow: '0 4px 20px rgba(234, 179, 8, 0.12)'
+          }}
+        >
+          <div
+            className="task-icon"
+            style={{
+              background: 'rgba(234, 179, 8, 0.18)',
+              color: '#eab308'
+            }}
+          >
+            <i className="fa-solid fa-gift" style={{ fontSize: '18px' }}></i>
+          </div>
+          <div className="task-text">
+            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              Promo Code Giveaway
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #eab308, #ca8a04)',
+                  color: '#000',
+                  fontSize: '9px',
+                  fontWeight: 900,
+                  padding: '2px 7px',
+                  borderRadius: '6px',
+                  letterSpacing: '0.5px'
+                }}
+              >
+                CLAIM
+              </span>
+            </h4>
+            <p>Enter promo code to claim bonus HOWL giveaway</p>
+          </div>
+          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
       </div>
 

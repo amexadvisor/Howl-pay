@@ -124,7 +124,6 @@ export async function fetchReferralList() {
   return res.json();
 }
 
-
 export async function claimMonetagReward() {
   const initData = getInitData();
   const res = await fetch(`${API_BASE_URL}/api/claim-bonus`, {
@@ -229,6 +228,30 @@ export async function adminCall(action, data = {}) {
       'X-Telegram-Init-Data': initData
     },
     body: JSON.stringify({ action, ...data, initData })
+  });
+  return res.json();
+}
+
+export async function checkPromoCode(code, userId) {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/promo-code?code=${encodeURIComponent(code)}&userId=${encodeURIComponent(userId || '')}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    }
+  });
+  return res.json();
+}
+
+export async function claimPromoCode({ code, adType, adClicked }) {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/promo-code`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ code, adType, adClicked: !!adClicked, initData })
   });
   return res.json();
 }

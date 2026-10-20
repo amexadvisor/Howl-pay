@@ -65,6 +65,20 @@ export default function AdminView({ isActive = false }) {
     totals: {}
   });
 
+  // Promo Codes Admin State
+  const [promoList, setPromoList] = useState([]);
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [newPromo, setNewPromo] = useState({
+    code: '',
+    title: '',
+    description: '',
+    reward_howl: '100',
+    reward_click_howl: '200',
+    image_url: '/assets/boinkers.jpg',
+    max_claims: '0'
+  });
+  const [promoSaving, setPromoSaving] = useState(false);
+
   // Load initial admin configs
   useEffect(() => {
     loadAdConfig();
@@ -72,6 +86,7 @@ export default function AdminView({ isActive = false }) {
     loadQtConfig();
     loadFtAdminTasks();
     loadBoinkersAdmin();
+    loadPromoCodes();
   }, []);
 
   const loadAdConfig = async () => {
@@ -423,6 +438,92 @@ export default function AdminView({ isActive = false }) {
   const inWith = (boinkersStats.inbound || []).find((s) => s.endpoint === 'withdrawal');
   const bTotals = boinkersStats.totals || {};
 
+  // Promo Code Admin Handlers
+  const loadPromoCodes = async () => {
+    setPromoLoading(true);
+    try {
+      const res = await adminCall('get_promo_codes');
+      if (res?.success && Array.isArray(res.promo_codes)) {
+        setPromoList(res.promo_codes);
+      }
+    } catch (e) {
+      console.error('Failed to load promo codes', e);
+    } finally {
+      setPromoLoading(false);
+    }
+  };
+
+  const handleCreatePromoCode = async (e) => {
+    if (e) e.preventDefault();
+    if (!newPromo.code.trim()) {
+      showTopNotification('MISSING CODE', 'Please enter a promo code.', 'error');
+      return;
+    }
+    setPromoSaving(true);
+    triggerHaptic('medium');
+    try {
+      const res = await adminCall('create_promo_code', {
+        promo: {
+          code: newPromo.code.trim().toUpperCase(),
+          title: newPromo.title.trim() || 'Giveaway Promo',
+          description: newPromo.description.trim() || 'Watch sponsor ad to claim your HOWL coins!',
+          reward_howl: Number(newPromo.reward_howl) || 50,
+          reward_click_howl: Number(newPromo.reward_click_howl) || 0,
+          image_url: newPromo.image_url.trim() || '/assets/boinkers.jpg',
+          max_claims: Number(newPromo.max_claims) || 0
+        }
+      });
+      if (res?.success) {
+        showTopNotification('PROMO CREATED', `Code ${res.promo?.code || newPromo.code} created!`, 'gold');
+        setNewPromo({
+          code: '',
+          title: '',
+          description: '',
+          reward_howl: '100',
+          reward_click_howl: '200',
+          image_url: '/assets/boinkers.jpg',
+          max_claims: '0'
+        });
+        await loadPromoCodes();
+      } else {
+        showTopNotification('FAILED', res?.error || 'Could not create promo code', 'error');
+      }
+    } catch (err) {
+      showTopNotification('ERROR', err.message || 'Error creating promo code', 'error');
+    } finally {
+      setPromoSaving(false);
+    }
+  };
+
+  const handleTogglePromo = async (id, currentStatus) => {
+    triggerHaptic('light');
+    try {
+      const res = await adminCall('toggle_promo_code', { id, is_active: !currentStatus });
+      if (res?.success) {
+        setPromoList((prev) =>
+          prev.map((item) => (item.id === id ? { ...item, is_active: !currentStatus } : item))
+        );
+        showTopNotification('UPDATED', 'Promo code status updated', 'gold');
+      }
+    } catch (err) {
+      showTopNotification('ERROR', 'Failed to update promo code', 'error');
+    }
+  };
+
+  const handleDeletePromo = async (id, code) => {
+    if (!window.confirm(`Are you sure you want to delete promo code "${code}"?`)) return;
+    triggerHaptic('medium');
+    try {
+      const res = await adminCall('delete_promo_code', { id });
+      if (res?.success) {
+        setPromoList((prev) => prev.filter((item) => item.id !== id));
+        showTopNotification('DELETED', `Promo code ${code} deleted`, 'gold');
+      }
+    } catch (err) {
+      showTopNotification('ERROR', 'Failed to delete promo code', 'error');
+    }
+  };
+
   return (
     <div id="admin-view" className={`view ${isActive ? 'active' : ''}`}>
       {/* Admin Header */}
@@ -478,6 +579,7 @@ export default function AdminView({ isActive = false }) {
       <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', marginBottom: '16px', paddingBottom: '4px' }}>
         {[
           { id: 'lookup', label: 'User Lookup', icon: 'fa-solid fa-magnifying-glass' },
+          { id: 'promos', label: 'Promo Codes', icon: 'fa-solid fa-ticket' },
           { id: 'ads', label: 'Ad Rewards', icon: 'fa-solid fa-sliders' },
           { id: 'adsr', label: 'AdsGram Block', icon: 'fa-solid fa-gift' },
           { id: 'featured', label: 'Featured Tasks', icon: 'fa-solid fa-star' },
@@ -1391,6 +1493,412 @@ export default function AdminView({ isActive = false }) {
           >
             {qtSaving ? 'Saving...' : 'Save Quick Tasks Settings'}
           </button>
+        </div>
+      )}
+
+      {/* TAB: Promo Codes Management */}
+      {activeTab === 'promos' && (
+        <div>
+          {/* Create Promo Code Card */}
+          <div className="glass-card" style={{ marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '14px' }}>
+              <i className="fa-solid fa-gift" style={{ color: 'var(--accent-main)', fontSize: '16px' }}></i>
+              <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 800, color: '#fff' }}>
+                Create Promo Code Giveaway
+              </h3>
+            </div>
+
+            <form onSubmit={handleCreatePromoCode}>
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
+                PROMO CODE (UPPERCASE)
+                <input
+                  type="text"
+                  placeholder="e.g. HOWL500"
+                  value={newPromo.code}
+                  onChange={(e) => setNewPromo({ ...newPromo, code: e.target.value.toUpperCase() })}
+                  required
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid var(--border-soft)',
+                    color: '#fff',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    letterSpacing: '1px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </label>
+
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
+                TITLE
+                <input
+                  type="text"
+                  placeholder="e.g. Community Special Giveaway"
+                  value={newPromo.title}
+                  onChange={(e) => setNewPromo({ ...newPromo, title: e.target.value })}
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid var(--border-soft)',
+                    color: '#fff',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </label>
+
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
+                DESCRIPTION
+                <textarea
+                  rows="2"
+                  placeholder="e.g. Watch sponsor ad & claim 200 HOWL coins!"
+                  value={newPromo.description}
+                  onChange={(e) => setNewPromo({ ...newPromo, description: e.target.value })}
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid var(--border-soft)',
+                    color: '#fff',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    fontSize: '13px',
+                    outline: 'none',
+                    resize: 'vertical',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '8px' }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>
+                  BASE AD VIEW REWARD (HOWL)
+                  <input
+                    type="number"
+                    min="1"
+                    value={newPromo.reward_howl}
+                    onChange={(e) => setNewPromo({ ...newPromo, reward_howl: e.target.value })}
+                    required
+                    style={{
+                      width: '100%',
+                      marginTop: '4px',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </label>
+
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800 }}>
+                  CLICK BONUS REWARD (HOWL)
+                  <input
+                    type="number"
+                    min="0"
+                    value={newPromo.reward_click_howl}
+                    onChange={(e) => setNewPromo({ ...newPromo, reward_click_howl: e.target.value })}
+                    style={{
+                      width: '100%',
+                      marginTop: '4px',
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '14px',
+                      fontWeight: 800,
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </label>
+              </div>
+
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '8px' }}>
+                BANNER IMAGE URL
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <input
+                    type="text"
+                    placeholder="https://... or /assets/boinkers.jpg"
+                    value={newPromo.image_url}
+                    onChange={(e) => setNewPromo({ ...newPromo, image_url: e.target.value })}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(0,0,0,0.3)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '10px',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      outline: 'none',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setNewPromo({ ...newPromo, image_url: '/assets/boinkers.jpg' })}
+                    style={{
+                      background: 'rgba(255,255,255,0.08)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '0 12px',
+                      borderRadius: '10px',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
+                    Default
+                  </button>
+                </div>
+              </label>
+
+              {/* Banner Preview */}
+              {newPromo.image_url && (
+                <div style={{ marginBottom: '10px', borderRadius: '10px', overflow: 'hidden', height: '80px', border: '1px solid var(--border-soft)' }}>
+                  <img
+                    src={newPromo.image_url}
+                    alt="Preview"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={(e) => { e.currentTarget.src = '/assets/boinkers.jpg'; }}
+                  />
+                </div>
+              )}
+
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, display: 'block', marginBottom: '14px' }}>
+                MAX CLAIMS (0 = UNLIMITED)
+                <input
+                  type="number"
+                  min="0"
+                  value={newPromo.max_claims}
+                  onChange={(e) => setNewPromo({ ...newPromo, max_claims: e.target.value })}
+                  style={{
+                    width: '100%',
+                    marginTop: '4px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid var(--border-soft)',
+                    color: '#fff',
+                    padding: '10px',
+                    borderRadius: '10px',
+                    fontSize: '14px',
+                    fontWeight: 800,
+                    outline: 'none',
+                    boxSizing: 'border-box'
+                  }}
+                />
+              </label>
+
+              <button
+                type="submit"
+                disabled={promoSaving}
+                style={{
+                  width: '100%',
+                  background: 'var(--accent-main)',
+                  color: '#000',
+                  border: 'none',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  fontWeight: 800,
+                  fontSize: '13px',
+                  cursor: promoSaving ? 'wait' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {promoSaving ? (
+                  <>
+                    <div className="loader-spinner" style={{ width: '16px', height: '16px', borderWidth: '2px' }}></div>
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-plus"></i> Create Promo Code
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+
+          {/* Existing Promo Codes List */}
+          <div className="glass-card">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <i className="fa-solid fa-list-check" style={{ color: 'var(--accent-main)' }}></i>
+                <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 800, color: '#fff' }}>
+                  Existing Promo Codes ({promoList.length})
+                </h3>
+              </div>
+              <button
+                onClick={loadPromoCodes}
+                disabled={promoLoading}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--accent-main)',
+                  fontSize: '12px',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}
+              >
+                <i className={`fa-solid fa-rotate-right ${promoLoading ? 'fa-spin' : ''}`}></i> Refresh
+              </button>
+            </div>
+
+            {promoList.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', padding: '16px 0' }}>
+                {promoLoading ? 'Loading promo codes...' : 'No promo codes created yet.'}
+              </p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {promoList.map((promo) => (
+                  <div
+                    key={promo.id}
+                    style={{
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: promo.is_active ? '1px solid rgba(234, 179, 8, 0.35)' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '14px',
+                      padding: '12px',
+                      opacity: promo.is_active ? 1 : 0.65,
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                      {/* Image Thumbnail */}
+                      <div
+                        style={{
+                          width: '56px',
+                          height: '56px',
+                          borderRadius: '10px',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid var(--border-soft)'
+                        }}
+                      >
+                        <img
+                          src={promo.image_url || '/assets/boinkers.jpg'}
+                          alt=""
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => { e.currentTarget.src = '/assets/boinkers.jpg'; }}
+                        />
+                      </div>
+
+                      {/* Info */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                          <span
+                            style={{
+                              background: 'rgba(234, 179, 8, 0.2)',
+                              color: '#eab308',
+                              fontWeight: 900,
+                              fontSize: '12px',
+                              padding: '2px 8px',
+                              borderRadius: '6px',
+                              letterSpacing: '0.5px'
+                            }}
+                          >
+                            <code>{promo.code}</code>
+                          </span>
+
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontWeight: 800,
+                              padding: '2px 6px',
+                              borderRadius: '4px',
+                              background: promo.is_active ? 'rgba(34, 197, 94, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                              color: promo.is_active ? '#22c55e' : '#ef4444'
+                            }}
+                          >
+                            {promo.is_active ? 'ACTIVE' : 'INACTIVE'}
+                          </span>
+                        </div>
+
+                        <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {promo.title || 'Giveaway'}
+                        </div>
+                        {promo.description && (
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '2px 0 6px 0', lineHeight: '1.3' }}>
+                            {promo.description}
+                          </div>
+                        )}
+
+                        {/* Stats Row */}
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '11px', marginTop: '6px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>
+                            Claims: <b style={{ color: '#fff' }}>{promo.claimed_count || 0}</b> / {promo.max_claims > 0 ? promo.max_claims : '∞'}
+                          </span>
+                          <span style={{ color: '#eab308', fontWeight: 700 }}>
+                            Base: +{promo.reward_howl} HOWL
+                          </span>
+                          {Number(promo.reward_click_howl) > 0 && (
+                            <span style={{ color: '#38bdf8', fontWeight: 700 }}>
+                              Click: +{promo.reward_click_howl} HOWL
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions row */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                      <button
+                        onClick={() => handleTogglePromo(promo.id, promo.is_active)}
+                        style={{
+                          background: promo.is_active ? 'rgba(234, 179, 8, 0.15)' : 'rgba(34, 197, 94, 0.15)',
+                          border: 'none',
+                          color: promo.is_active ? '#eab308' : '#22c55e',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {promo.is_active ? 'Deactivate' : 'Activate'}
+                      </button>
+
+                      <button
+                        onClick={() => handleDeletePromo(promo.id, promo.code)}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.12)',
+                          border: 'none',
+                          color: '#ef4444',
+                          padding: '6px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11px',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <i className="fa-solid fa-trash-can" style={{ marginRight: '4px' }}></i> Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

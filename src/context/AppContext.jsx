@@ -75,6 +75,7 @@ export function AppProvider({ children }) {
     task: null,
     errorMsg: ''
   });
+  const [promoModalOpen, setPromoModalOpen] = useState(false);
 
   const [referralStats, setReferralStats] = useState({ friends_count: 0, total_howl: 0, total_usdt: 0 });
 
@@ -365,6 +366,8 @@ export function AppProvider({ children }) {
     setAdsrCompletedModal,
     ftModal,
     setFtModal,
+    promoModalOpen,
+    setPromoModalOpen,
     notification,
     showTopNotification,
     dismissTopNotification,

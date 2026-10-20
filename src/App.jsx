@@ -11,6 +11,7 @@ import TosModal from './components/Modals/TosModal';
 import AdsGramPreWatchModal from './components/Modals/AdsGramPreWatchModal';
 import AdsGramCompletedModal from './components/Modals/AdsGramCompletedModal';
 import FeaturedTaskModal from './components/Modals/FeaturedTaskModal';
+import PromoCodeModal from './components/Modals/PromoCodeModal';
 import LegacySwitchBanner from './components/Common/LegacySwitchBanner';
 
 import HomeView from './components/Views/HomeView/HomeView';
@@ -46,6 +47,8 @@ export default function App() {
     setAdsrCompletedModal,
     ftModal,
     setFtModal,
+    promoModalOpen,
+    setPromoModalOpen,
     notification,
     dismissTopNotification,
     triggerHaptic,
@@ -131,6 +134,12 @@ export default function App() {
             }
           }
         }}
+      />
+
+      {/* Promo Code Giveaway Modal */}
+      <PromoCodeModal
+        isOpen={promoModalOpen}
+        onClose={() => setPromoModalOpen(false)}
       />
 
 
