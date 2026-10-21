@@ -33,17 +33,24 @@
     idb: (function () {
       const open = () => new Promise((res, rej) => {
         try {
+          if (typeof indexedDB === 'undefined' || !indexedDB) return rej(new Error('no_idb'));
           const r = indexedDB.open('howl_vault', 1);
-          r.onupgradeneeded = () => r.result.createObjectStore('kv');
+          r.onupgradeneeded = () => {
+            try { r.result.createObjectStore('kv'); } catch (e) {}
+          };
           r.onsuccess = () => res(r.result);
           r.onerror = () => rej(r.error);
         } catch (e) { rej(e); }
       });
       const run = (mode, fn) => open().then((db) => new Promise((res) => {
         try {
-          const tx = db.transaction('kv', mode); const out = fn(tx.objectStore('kv'));
+          if (!db || typeof db.transaction !== 'function') return res(null);
+          const tx = db.transaction('kv', mode);
+          const store = tx.objectStore('kv');
+          const out = fn(store);
           tx.oncomplete = () => res(out && out.result !== undefined ? out.result : null);
           tx.onerror = () => res(null);
+          tx.onabort = () => res(null);
         } catch (e) { res(null); }
       })).catch(() => null);
       return {
