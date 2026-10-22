@@ -35,6 +35,7 @@ export function AppProvider({ children }) {
   // Active View Navigation
   const [activeView, setActiveView] = useState('home-view');
   const [leaderboardSource, setLeaderboardSource] = useState('home-view');
+  const [offerwallTab, setOfferwallTab] = useState('cpx');
 
   // Channel Gate Status
   const [isGateVerified, setIsGateVerified] = useState(() => {
@@ -346,6 +347,8 @@ export function AppProvider({ children }) {
     refreshBalance,
     activeView,
     setActiveView,
+    offerwallTab,
+    setOfferwallTab,
     leaderboardSource,
     openLeaderboard,
     goBackFromLeaderboard,

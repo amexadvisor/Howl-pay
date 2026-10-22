@@ -66,7 +66,7 @@ export default function HistoryView({ isActive = false }) {
             let valueStr = '';
             if (item.task_type && item.task_type.includes('HOWL')) {
               valueStr = `+${Math.round(item.reward_amount).toLocaleString()} HOWL`;
-            } else if (String(item.task_type || '').startsWith('TimeWall')) {
+            } else if (String(item.task_type || '').startsWith('TimeWall') || String(item.task_type || '').includes('CPX')) {
               const sign = item.reward_amount < 0 ? '-' : '+';
               valueStr = `${sign}${Math.round(Math.abs(item.reward_amount) / 0.00002).toLocaleString()} HOWL`;
             } else {
@@ -84,8 +84,24 @@ export default function HistoryView({ isActive = false }) {
                     <i className={`fa-solid ${isDeduction ? 'fa-arrow-up' : 'fa-check'}`}></i>
                   </div>
                   <div>
-                    <h4>{item.task_type || 'Reward'}</h4>
-                    <p>{dateStr}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <h4 style={{ margin: 0 }}>{item.task_type || 'Reward'}</h4>
+                      {item.status === 'hold' && (
+                        <span
+                          style={{
+                            fontSize: '9px',
+                            fontWeight: 800,
+                            padding: '1px 5px',
+                            borderRadius: '4px',
+                            background: 'rgba(245, 158, 11, 0.2)',
+                            color: '#f59e0b'
+                          }}
+                        >
+                          ON HOLD
+                        </span>
+                      )}
+                    </div>
+                    <p style={{ margin: '2px 0 0' }}>{dateStr}</p>
                   </div>
                 </div>
                 <div
