@@ -16,11 +16,28 @@ export default function TasksView({ isActive = false }) {
     }
   };
 
-  // CPX Research SurveyWall URL
-  const cpxUrl = `https://offers.cpx-research.com/index.php?app_id=35131&ext_user_id=${encodeURIComponent(user.id)}&username=${encodeURIComponent(user.username || user.first_name || '')}`;
+  const [signedCpxUrl, setSignedCpxUrl] = React.useState('');
+
+  // CPX Research SurveyWall URL (with fallback and backend MD5 signature)
+  const fallbackCpxUrl = `https://offers.cpx-research.com/index.php?app_id=35131&ext_user_id=${encodeURIComponent(user?.id || '')}&username=${encodeURIComponent(user?.username || user?.first_name || '')}`;
+
+  React.useEffect(() => {
+    if (!user?.id) return;
+    const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+    fetch(`${apiBase}/api/cpx-postback?action=url&user_id=${encodeURIComponent(user.id)}&username=${encodeURIComponent(user.username || user.first_name || '')}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && data.url) {
+          setSignedCpxUrl(data.url);
+        }
+      })
+      .catch(() => {});
+  }, [user?.id, user?.username, user?.first_name]);
+
+  const activeCpxUrl = signedCpxUrl || fallbackCpxUrl;
 
   // TimeWall Offerwall URL
-  const timewallUrl = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${encodeURIComponent(user.id)}`;
+  const timewallUrl = `https://timewall.io/users/login?oid=78a1ef4a7932308b&uid=${encodeURIComponent(user?.id || '')}`;
 
   const currentTab = offerwallTab || 'cpx';
 
@@ -140,7 +157,7 @@ export default function TasksView({ isActive = false }) {
           <iframe
             id="cpx-iframe"
             key="cpx-iframe"
-            src={cpxUrl}
+            src={activeCpxUrl}
             title="CPX Research Surveys"
             allow="geolocation"
             style={{ width: '100%', height: '100%', minHeight: '520px', border: 'none', borderRadius: '12px' }}
