@@ -5,11 +5,10 @@ import WatchAndEarn from './WatchAndEarn';
 import FeaturedTasksSection from './FeaturedTasksSection';
 
 export default function HomeView({ isActive = true }) {
-  const { user, balance, setActiveView, openLeaderboard, triggerHaptic, setPromoModalOpen, setOfferwallTab } = useApp();
+  const { user, balance, setActiveView, openLeaderboard, triggerHaptic, setPromoModalOpen } = useApp();
 
   const handleEarnClick = () => {
     triggerHaptic('light');
-    if (typeof setOfferwallTab === 'function') setOfferwallTab('cpx');
     setActiveView('tasks-view');
   };
 
@@ -163,47 +162,6 @@ export default function HomeView({ isActive = true }) {
         </div>
       </div>
 
-      {/* CPX Research Surveys row */}
-      <div
-        className="clickable"
-        onClick={() => {
-          triggerHaptic('light');
-          if (typeof setOfferwallTab === 'function') setOfferwallTab('cpx');
-          setActiveView('tasks-view');
-        }}
-      >
-        <div
-          className="glass-card task-row"
-          style={{
-            border: '1px solid rgba(56, 189, 248, 0.3)',
-            background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(15, 23, 42, 0.5) 100%)'
-          }}
-        >
-          <div className="task-icon" style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8' }}>
-            <i className="fa-solid fa-square-poll-vertical" style={{ fontSize: '18px' }}></i>
-          </div>
-          <div className="task-text">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <h4 style={{ margin: 0 }}>CPX Research Surveys</h4>
-              <span
-                style={{
-                  fontSize: '9px',
-                  fontWeight: 800,
-                  padding: '1px 5px',
-                  borderRadius: '4px',
-                  background: 'rgba(34, 197, 94, 0.25)',
-                  color: '#22c55e'
-                }}
-              >
-                HOT
-              </span>
-            </div>
-            <p>High payout market surveys &amp; instant credit</p>
-          </div>
-          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
-        </div>
-      </div>
-
       {/* Quick Tasks row */}
       <div className="clickable" onClick={() => setActiveView('quick-view')}>
         <div className="glass-card task-row">
@@ -224,12 +182,11 @@ export default function HomeView({ isActive = true }) {
         </div>
       </div>
 
-      {/* TimeWall Offerwall row */}
+      {/* Single Offerwall row (Contains both CPX & TimeWall inside) */}
       <div
         className="clickable"
         onClick={() => {
           triggerHaptic('light');
-          if (typeof setOfferwallTab === 'function') setOfferwallTab('timewall');
           setActiveView('tasks-view');
         }}
       >
@@ -244,8 +201,8 @@ export default function HomeView({ isActive = true }) {
             </div>
           </div>
           <div className="task-text">
-            <h4>TimeWall Offerwall</h4>
-            <p>Micro tasks, clicks &amp; partner offers</p>
+            <h4>Offerwall</h4>
+            <p>High paying surveys, micro tasks &amp; more</p>
           </div>
           <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
