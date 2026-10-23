@@ -173,6 +173,7 @@ export default function AdminView({ isActive = false }) {
             start: Number(adsrConfig.start),
             step: Number(adsrConfig.step),
             limit: Number(adsrConfig.limit),
+            cooldown_hours: Number(adsrConfig.cooldown_hours),
             cooldown_min: Math.round(Number(adsrConfig.cooldown_hours) * 60),
             noclick_pct: Number(adsrConfig.noclick_pct),
             tier1_pct: Number(adsrConfig.tier1_pct),
