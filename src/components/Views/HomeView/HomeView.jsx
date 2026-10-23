@@ -3,6 +3,7 @@ import { useApp } from '../../../context/AppContext';
 import LottieAnimation from '../../Common/LottieAnimation';
 import WatchAndEarn from './WatchAndEarn';
 import FeaturedTasksSection from './FeaturedTasksSection';
+import CpxOneRowWidget from './CpxOneRowWidget';
 
 export default function HomeView({ isActive = true }) {
   const { user, balance, setActiveView, openLeaderboard, triggerHaptic, setPromoModalOpen } = useApp();
@@ -207,6 +208,9 @@ export default function HomeView({ isActive = true }) {
           <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
       </div>
+
+      {/* CPX Research Surveys - One Row Content Widget (Design 4) */}
+      <CpxOneRowWidget />
 
       {/* Watch & Earn Section */}
       <WatchAndEarn />
