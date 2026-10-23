@@ -12,6 +12,9 @@ import {
 import { adsrWatchClicks } from '../../../utils/adsrClicks';
 import LottieAnimation from '../../Common/LottieAnimation';
 
+// Temporary toggle: set to true to restore AdsGram earn blocks on Home screen
+const SHOW_ADSGRAM = false;
+
 export default function WatchAndEarn() {
   const {
     user,
@@ -149,7 +152,7 @@ export default function WatchAndEarn() {
 
   // 5. Mount AdsGram task element if enabled
   useEffect(() => {
-    if (adsgramLimit <= 0 || adsgramWatched >= adsgramLimit) return;
+    if (!SHOW_ADSGRAM || adsgramLimit <= 0 || adsgramWatched >= adsgramLimit) return;
     if (!adsgramSlotRef.current) return;
 
     if (window.customElements && customElements.get('adsgram-task')) {
@@ -391,9 +394,9 @@ export default function WatchAndEarn() {
         </div>
       </div>
 
-      <div className="adsr-row">
+      <div className="adsr-row" style={!SHOW_ADSGRAM ? { gridTemplateColumns: '1fr' } : {}}>
         {/* Monetag Card */}
-        <div className="glass-card watch-card" id="monetagCard">
+        <div className="glass-card watch-card" id="monetagCard" style={!SHOW_ADSGRAM ? { gridColumn: 'auto' } : {}}>
           <div className="watch-top">
             <span style={{ color: '#fff', fontWeight: 800, letterSpacing: '1px' }}>AD #1</span>
             <span id="monetagLimit" style={{ color: 'var(--accent-main)', fontSize: '13px' }}>
@@ -476,7 +479,7 @@ export default function WatchAndEarn() {
         </div>
 
         {/* AdsGram Reward Card (adsr) */}
-        <div className="glass-card watch-card" id="adsrCard">
+        <div className="glass-card watch-card" id="adsrCard" style={{ display: SHOW_ADSGRAM ? undefined : 'none' }}>
           <div className="watch-top">
             <span style={{ color: '#fff', fontWeight: 800, letterSpacing: '1px' }}>ADSGRAM</span>
             <span id="adsrLimit" style={{ color: 'var(--accent-main)', fontSize: '13px' }}>
@@ -556,7 +559,7 @@ export default function WatchAndEarn() {
 
       {/* AdsGram Task Ads (widget - only shown if enabled) */}
       {adsgramLimit > 0 && (
-        <div className="glass-card watch-card" id="adsgramCard" style={{ marginTop: '12px' }}>
+        <div className="glass-card watch-card" id="adsgramCard" style={{ marginTop: '12px', display: SHOW_ADSGRAM ? undefined : 'none' }}>
           <div className="watch-top">
             <span style={{ color: '#fff', fontWeight: 800, letterSpacing: '1px' }}>ADSGRAM TASKS</span>
             <span id="adsgramLimit" style={{ color: 'var(--accent-main)', fontSize: '13px' }}>
