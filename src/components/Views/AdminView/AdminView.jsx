@@ -108,39 +108,83 @@ export default function AdminView({ isActive = false }) {
       const res = await adminCall('get_ad_config');
       if (res?.success && res.config) {
         setAdConfig({
-          monetag: res.config.monetag ? {
-            start: String(res.config.monetag.start != null ? res.config.monetag.start : 100),
-            step: String(res.config.monetag.step != null ? res.config.monetag.step : 5),
-            limit: String(res.config.monetag.limit != null ? res.config.monetag.limit : 10),
-            cooldown_sec: String(res.config.monetag.cooldown_sec != null ? res.config.monetag.cooldown_sec : 15)
-          } : { start: '100', step: '5', limit: '10', cooldown_sec: '15' },
-          adsgram: res.config.adsgram || { start: '170', step: '10', limit: '5' }
+          monetag: {
+            start: String(res.config.monetag?.start ?? 100),
+            step: String(res.config.monetag?.step ?? 5),
+            limit: String(res.config.monetag?.limit ?? 10),
+            cooldown_sec: String(res.config.monetag?.cooldown_sec ?? 15)
+          },
+          adsgram: {
+            start: String(res.config.adsgram?.start ?? 170),
+            step: String(res.config.adsgram?.step ?? 10),
+            limit: String(res.config.adsgram?.limit ?? 5)
+          }
         });
       }
     } catch (e) {}
   };
 
   const saveAdConfig = async () => {
+    const mStart = Number(adConfig.monetag?.start);
+    const mStep = Number(adConfig.monetag?.step);
+    const mLimit = Number(adConfig.monetag?.limit);
+    const mCool = Number(adConfig.monetag?.cooldown_sec);
+
+    const aStart = Number(adConfig.adsgram?.start);
+    const aStep = Number(adConfig.adsgram?.step);
+    const aLimit = Number(adConfig.adsgram?.limit);
+
+    if (isNaN(mStart) || mStart < 1) {
+      showTopNotification('INVALID', 'Monetag starting reward must be at least 1 HOWL', 'error');
+      return;
+    }
+    if (isNaN(mStep) || mStep < 0) {
+      showTopNotification('INVALID', 'Monetag reduction must be 0 or more', 'error');
+      return;
+    }
+    if (isNaN(mLimit) || mLimit < 0) {
+      showTopNotification('INVALID', 'Monetag daily limit must be 0 or more (0 disables ad)', 'error');
+      return;
+    }
+    if (isNaN(mCool) || mCool < 1 || mCool > 600) {
+      showTopNotification('INVALID', 'Monetag cooldown must be between 1 and 600 seconds', 'error');
+      return;
+    }
+
+    if (isNaN(aStart) || aStart < 1) {
+      showTopNotification('INVALID', 'AdsGram task starting reward must be at least 1 HOWL', 'error');
+      return;
+    }
+    if (isNaN(aStep) || aStep < 0) {
+      showTopNotification('INVALID', 'AdsGram task reduction must be 0 or more', 'error');
+      return;
+    }
+    if (isNaN(aLimit) || aLimit < 0) {
+      showTopNotification('INVALID', 'AdsGram task daily limit must be 0 or more (0 disables ad)', 'error');
+      return;
+    }
+
     setAdSaving(true);
     triggerHaptic('medium');
     try {
       const res = await adminCall('set_ad_config', {
         config: {
           monetag: {
-            start: Number(adConfig.monetag.start),
-            step: Number(adConfig.monetag.step),
-            limit: Number(adConfig.monetag.limit),
-            cooldown_sec: Number(adConfig.monetag.cooldown_sec || 15)
+            start: mStart,
+            step: mStep,
+            limit: mLimit,
+            cooldown_sec: mCool
           },
           adsgram: {
-            start: Number(adConfig.adsgram.start),
-            step: Number(adConfig.adsgram.step),
-            limit: Number(adConfig.adsgram.limit)
+            start: aStart,
+            step: aStep,
+            limit: aLimit
           }
         }
       });
       if (res?.success) {
         showTopNotification('SAVED', 'Ad settings updated successfully', 'success');
+        await loadAdConfig();
       } else {
         showTopNotification('ERROR', res?.error || 'Failed to save settings', 'error');
       }
@@ -157,42 +201,66 @@ export default function AdminView({ isActive = false }) {
       if (res?.success && res.config?.adsreward) {
         const c = res.config.adsreward;
         setAdsrConfig({
-          start: String(c.start != null ? c.start : 180),
-          step: String(c.step != null ? c.step : 10),
-          limit: String(c.limit != null ? c.limit : 5),
+          start: String(c.start ?? 180),
+          step: String(c.step ?? 10),
+          limit: String(c.limit ?? 5),
           cooldown_hours: String((c.cooldown_min != null ? c.cooldown_min : 60) / 60),
-          cooldown_sec: String(c.cooldown_sec != null ? c.cooldown_sec : 15),
-          noclick_pct: String(c.noclick_pct != null ? c.noclick_pct : 25),
-          tier1_pct: String(c.tier1_pct != null ? c.tier1_pct : 33),
-          tier2_pct: String(c.tier2_pct != null ? c.tier2_pct : 75),
-          click_window_sec: String(c.click_window_sec != null ? c.click_window_sec : 300)
+          cooldown_sec: String(c.cooldown_sec ?? 15),
+          noclick_pct: String(c.noclick_pct ?? 25),
+          tier1_pct: String(c.tier1_pct ?? 33),
+          tier2_pct: String(c.tier2_pct ?? 75),
+          click_window_sec: String(c.click_window_sec ?? 300)
         });
       }
     } catch (e) {}
   };
 
   const saveAdsrConfig = async () => {
+    const start = Number(adsrConfig.start);
+    const step = Number(adsrConfig.step);
+    const limit = Number(adsrConfig.limit);
+    const hours = Number(adsrConfig.cooldown_hours);
+    const cSec = Number(adsrConfig.cooldown_sec);
+    const noclick = Number(adsrConfig.noclick_pct);
+    const tier1 = Number(adsrConfig.tier1_pct);
+    const tier2 = Number(adsrConfig.tier2_pct);
+    const winSec = Number(adsrConfig.click_window_sec);
+
+    if (isNaN(start) || start < 1) {
+      showTopNotification('INVALID', 'AdsGram block starting reward must be at least 1 HOWL', 'error');
+      return;
+    }
+    if (isNaN(limit) || limit < 0) {
+      showTopNotification('INVALID', 'Ads per cycle must be 0 or more (0 disables ad)', 'error');
+      return;
+    }
+    if (isNaN(hours) || hours < 0.1 || hours > 168) {
+      showTopNotification('INVALID', 'Cycle lock must be between 0.1 and 168 hours', 'error');
+      return;
+    }
+
     setAdsrSaving(true);
     triggerHaptic('medium');
     try {
       const res = await adminCall('set_ad_config', {
         config: {
           adsreward: {
-            start: Number(adsrConfig.start),
-            step: Number(adsrConfig.step),
-            limit: Number(adsrConfig.limit),
-            cooldown_hours: Number(adsrConfig.cooldown_hours),
-            cooldown_min: Math.round(Number(adsrConfig.cooldown_hours) * 60),
-            cooldown_sec: Number(adsrConfig.cooldown_sec || 15),
-            noclick_pct: Number(adsrConfig.noclick_pct),
-            tier1_pct: Number(adsrConfig.tier1_pct),
-            tier2_pct: Number(adsrConfig.tier2_pct),
-            click_window_sec: Number(adsrConfig.click_window_sec)
+            start,
+            step: isNaN(step) ? 0 : step,
+            limit,
+            cooldown_hours: hours,
+            cooldown_min: Math.round(hours * 60),
+            cooldown_sec: isNaN(cSec) ? 15 : cSec,
+            noclick_pct: isNaN(noclick) ? 25 : noclick,
+            tier1_pct: isNaN(tier1) ? 33 : tier1,
+            tier2_pct: isNaN(tier2) ? 75 : tier2,
+            click_window_sec: isNaN(winSec) ? 300 : winSec
           }
         }
       });
       if (res?.success) {
-        showTopNotification('SAVED', 'Reward block settings saved', 'success');
+        showTopNotification('SAVED', 'AdsGram block settings saved', 'success');
+        await loadAdsrConfig();
       } else {
         showTopNotification('ERROR', res?.error || 'Could not save reward settings', 'error');
       }
@@ -631,8 +699,8 @@ export default function AdminView({ isActive = false }) {
         {[
           { id: 'lookup', label: 'User Lookup', icon: 'fa-solid fa-magnifying-glass' },
           { id: 'promos', label: 'Promo Codes', icon: 'fa-solid fa-ticket' },
-          { id: 'ads', label: 'Ad Rewards', icon: 'fa-solid fa-sliders' },
-          { id: 'adsr', label: 'AdsGram Block', icon: 'fa-solid fa-gift' },
+          { id: 'ads', label: 'Monetag & Task Ads', icon: 'fa-solid fa-sliders' },
+          { id: 'adsr', label: 'AdsGram Video Block', icon: 'fa-solid fa-gift' },
           { id: 'featured', label: 'Featured Tasks', icon: 'fa-solid fa-star' },
           { id: 'boinkers', label: 'Boinkers', icon: 'fa-solid fa-handshake' },
           { id: 'quick', label: 'Quick Tasks', icon: 'fa-solid fa-bolt' }
@@ -848,37 +916,39 @@ export default function AdminView({ isActive = false }) {
       {activeTab === 'ads' && (
         <div className="glass-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', margin: '0 0 4px 0' }}>
-            <i className="fa-solid fa-sliders" style={{ color: 'var(--accent-main)' }}></i> Ad Rewards
+            <i className="fa-solid fa-sliders" style={{ color: 'var(--accent-main)' }}></i> Monetag &amp; Task Ads
           </h3>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
             Reward per ad = Start − Step × Watched. Daily limit 0 turns ad off.
           </p>
 
-          <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Monetag Ads</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: 'var(--accent-main)' }}>●</span> Monetag Ads (Ad #1)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '16px' }}>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              START
+              START REWARD (HOWL)
               <input
                 type="number"
-                value={adConfig.monetag?.start || 100}
+                value={adConfig.monetag?.start ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, start: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              REDUCE BY
+              REDUCE BY (HOWL)
               <input
                 type="number"
-                value={adConfig.monetag?.step || 5}
+                value={adConfig.monetag?.step ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, step: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              DAILY LIMIT
+              DAILY ADS LIMIT (0 = OFF)
               <input
                 type="number"
-                value={adConfig.monetag?.limit || 10}
+                value={adConfig.monetag?.limit ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, limit: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -887,38 +957,40 @@ export default function AdminView({ isActive = false }) {
               COOLDOWN (SECONDS)
               <input
                 type="number"
-                value={adConfig.monetag?.cooldown_sec || 15}
+                value={adConfig.monetag?.cooldown_sec ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, cooldown_sec: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
           </div>
 
-          <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>AdsGram Tasks</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 800, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span style={{ color: 'var(--accent-main)' }}>●</span> AdsGram Task Block Ads (Tasks Widget)
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '16px' }}>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              START
+              START REWARD (HOWL)
               <input
                 type="number"
-                value={adConfig.adsgram?.start || 170}
+                value={adConfig.adsgram?.start ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, adsgram: { ...adConfig.adsgram, start: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              REDUCE BY
+              REDUCE BY (HOWL)
               <input
                 type="number"
-                value={adConfig.adsgram?.step || 10}
+                value={adConfig.adsgram?.step ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, adsgram: { ...adConfig.adsgram, step: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              DAILY LIMIT
+              DAILY ADS LIMIT (0 = OFF)
               <input
                 type="number"
-                value={adConfig.adsgram?.limit || 5}
+                value={adConfig.adsgram?.limit ?? ''}
                 onChange={(e) => setAdConfig({ ...adConfig, adsgram: { ...adConfig.adsgram, limit: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -939,55 +1011,55 @@ export default function AdminView({ isActive = false }) {
       {activeTab === 'adsr' && (
         <div className="glass-card">
           <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', margin: '0 0 4px 0' }}>
-            <i className="fa-solid fa-gift" style={{ color: 'var(--accent-main)' }}></i> AdsGram Reward Block
+            <i className="fa-solid fa-gift" style={{ color: 'var(--accent-main)' }}></i> AdsGram Video Block (Rewarded Ads)
           </h3>
           <p style={{ fontSize: '11px', color: 'var(--text-muted)', margin: '0 0 14px 0', lineHeight: 1.5 }}>
-            Block ID: {ADSR_BLOCK_ID}. Configure rewards, click tiers, and cooldowns.
+            Block ID: {ADSR_BLOCK_ID}. Controls the main "ADSGRAM" video card on the home screen.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              START (HOWL)
+              START REWARD (HOWL)
               <input
                 type="number"
-                value={adsrConfig.start}
+                value={adsrConfig.start ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, start: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              REDUCE BY
+              REDUCE BY (HOWL)
               <input
                 type="number"
-                value={adsrConfig.step}
+                value={adsrConfig.step ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, step: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              ADS PER CYCLE
+              ADS LIMIT PER CYCLE (0 = OFF)
               <input
                 type="number"
-                value={adsrConfig.limit}
+                value={adsrConfig.limit ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, limit: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              CYCLE LOCK (HOURS)
+              CYCLE LOCK / RESET (HOURS)
               <input
                 type="number"
                 step="0.25"
-                value={adsrConfig.cooldown_hours}
+                value={adsrConfig.cooldown_hours ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, cooldown_hours: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              AD COOLDOWN (SEC)
+              AD COOLDOWN (SECONDS)
               <input
                 type="number"
-                value={adsrConfig.cooldown_sec || 15}
+                value={adsrConfig.cooldown_sec ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, cooldown_sec: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -996,7 +1068,7 @@ export default function AdminView({ isActive = false }) {
               NO CLICK PAYS (%)
               <input
                 type="number"
-                value={adsrConfig.noclick_pct}
+                value={adsrConfig.noclick_pct ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, noclick_pct: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -1005,7 +1077,7 @@ export default function AdminView({ isActive = false }) {
               1-CLICK TIER (%)
               <input
                 type="number"
-                value={adsrConfig.tier1_pct}
+                value={adsrConfig.tier1_pct ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, tier1_pct: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -1014,7 +1086,7 @@ export default function AdminView({ isActive = false }) {
               2-CLICKS TIER (%)
               <input
                 type="number"
-                value={adsrConfig.tier2_pct}
+                value={adsrConfig.tier2_pct ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, tier2_pct: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -1023,7 +1095,7 @@ export default function AdminView({ isActive = false }) {
               CLICK WINDOW (SEC)
               <input
                 type="number"
-                value={adsrConfig.click_window_sec}
+                value={adsrConfig.click_window_sec ?? ''}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, click_window_sec: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
