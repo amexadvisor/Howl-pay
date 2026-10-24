@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useApp } from '../../../context/AppContext';
 import {
   claimMonetagReward,
@@ -53,6 +53,7 @@ export default function WatchAndEarn() {
   const [adsrTimerStr, setAdsrTimerStr] = useState('');
   const [adsrCooldownSec, setAdsrCooldownSec] = useState(15);
   const [adsrInterCooldown, setAdsrInterCooldown] = useState(0);
+  const adsrCooldownEndRef = useRef(0);
   const adsrWatcherRef = useRef(null);
 
   // AdsGram Tasks State (widget)
@@ -65,40 +66,58 @@ export default function WatchAndEarn() {
   // Midnight reset countdown
   const [resetTimerStr, setResetTimerStr] = useState('');
 
-  // 1. Initial Sync
-  useEffect(() => {
-    const fetchStatus = async () => {
-      try {
-        const data = await syncAdStatusFromServer();
-        if (data && data.success) {
-          if (data.user_balance) {
-            applyBalance(data.user_balance.total_howl, data.user_balance.total_usd, data.user_balance.hold);
-          }
-          if (data.ads?.monetag) {
-            setMonetagWatched(data.ads.monetag.watched || 0);
-            if (Number.isFinite(data.ads.monetag.limit)) setMonetagLimit(data.ads.monetag.limit);
-            if (data.ads.monetag.next_reward) setMonetagReward(data.ads.monetag.next_reward);
-            if (data.ads.monetag.cooldown_sec) setMonetagCooldownSec(data.ads.monetag.cooldown_sec);
-          }
-          if (data.ads?.adsgram) {
-            setAdsgramWatched(data.ads.adsgram.watched || 0);
-            if (Number.isFinite(data.ads.adsgram.limit)) setAdsgramLimit(data.ads.adsgram.limit);
-            if (data.ads.adsgram.next_reward) setAdsgramReward(data.ads.adsgram.next_reward);
-          }
+  // 1. Initial Sync & Visibility / Focus Listener
+  const fetchStatus = useCallback(async () => {
+    try {
+      const data = await syncAdStatusFromServer();
+      if (data && data.success) {
+        if (data.user_balance) {
+          applyBalance(data.user_balance.total_howl, data.user_balance.total_usd, data.user_balance.hold);
         }
-      } catch (e) {}
+        if (data.ads?.monetag) {
+          setMonetagWatched(data.ads.monetag.watched || 0);
+          if (Number.isFinite(data.ads.monetag.limit)) setMonetagLimit(data.ads.monetag.limit);
+          if (data.ads.monetag.next_reward) setMonetagReward(data.ads.monetag.next_reward);
+          if (data.ads.monetag.cooldown_sec) setMonetagCooldownSec(data.ads.monetag.cooldown_sec);
+        }
+        if (data.ads?.adsgram) {
+          setAdsgramWatched(data.ads.adsgram.watched || 0);
+          if (Number.isFinite(data.ads.adsgram.limit)) setAdsgramLimit(data.ads.adsgram.limit);
+          if (data.ads.adsgram.next_reward) setAdsgramReward(data.ads.adsgram.next_reward);
+        }
+      }
+    } catch (e) {}
 
-      try {
-        const rData = await syncAdsr();
-        if (rData && rData.success && rData.reward) {
-          setAdsrState(rData.reward);
-          if (rData.reward.cooldown_sec) setAdsrCooldownSec(rData.reward.cooldown_sec);
+    try {
+      const rData = await syncAdsr();
+      if (rData && rData.success && rData.reward) {
+        setAdsrState(rData.reward);
+        if (rData.reward.cooldown_sec) setAdsrCooldownSec(rData.reward.cooldown_sec);
+      }
+    } catch (e) {}
+  }, [applyBalance]);
+
+  useEffect(() => {
+    fetchStatus();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        if (adsrCooldownEndRef.current > 0) {
+          const remaining = Math.max(0, Math.ceil((adsrCooldownEndRef.current - Date.now()) / 1000));
+          setAdsrInterCooldown(remaining);
+          if (remaining <= 0) adsrCooldownEndRef.current = 0;
         }
-      } catch (e) {}
+        fetchStatus();
+      }
     };
 
-    fetchStatus();
-  }, [applyBalance]);
+    document.addEventListener('visibilitychange', handleVisibility);
+    window.addEventListener('focus', handleVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      window.removeEventListener('focus', handleVisibility);
+    };
+  }, [fetchStatus]);
 
   // 2. Midnight countdown
   useEffect(() => {
@@ -127,7 +146,20 @@ export default function WatchAndEarn() {
     return () => clearTimeout(timer);
   }, [monetagCooldown]);
 
-  // 4. AdsGram cooldown timer (adsr)
+  // 3b. AdsGram inter-ad cooldown timer (counts down 15s -> 0)
+  useEffect(() => {
+    if (adsrInterCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setAdsrInterCooldown((prev) => {
+        const next = Math.max(0, prev - 1);
+        if (next <= 0) adsrCooldownEndRef.current = 0;
+        return next;
+      });
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [adsrInterCooldown]);
+
+  // 4. AdsGram cycle cooldown timer (adsr multi-hour lock)
   useEffect(() => {
     if (!adsrState.locked || adsrState.seconds_left <= 0) {
       setAdsrTimerStr('');
@@ -135,6 +167,8 @@ export default function WatchAndEarn() {
     }
 
     const endsAt = Date.now() + adsrState.seconds_left * 1000;
+    let timerId = null;
+
     const tick = () => {
       const left = Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
       const h = String(Math.floor(left / 3600)).padStart(2, '0');
@@ -143,7 +177,7 @@ export default function WatchAndEarn() {
       setAdsrTimerStr(`${h}:${m}:${s}`);
 
       if (left <= 0) {
-        clearInterval(interval);
+        if (timerId) clearInterval(timerId);
         syncAdsr().then((res) => {
           if (res?.success && res.reward) setAdsrState(res.reward);
         });
@@ -151,8 +185,10 @@ export default function WatchAndEarn() {
     };
 
     tick();
-    const interval = setInterval(tick, 1000);
-    return () => clearInterval(interval);
+    timerId = setInterval(tick, 1000);
+    return () => {
+      if (timerId) clearInterval(timerId);
+    };
   }, [adsrState.locked, adsrState.seconds_left]);
 
   // 5. Mount AdsGram task element if enabled
@@ -353,7 +389,10 @@ export default function WatchAndEarn() {
         if (sData?.success && sData.reward && sData.reward.last_at !== before) {
           credited = true;
           setAdsrState(sData.reward);
-          if (!sData.reward.locked) setAdsrInterCooldown(adsrCooldownSec);
+          if (!sData.reward.locked) {
+            adsrCooldownEndRef.current = Date.now() + adsrCooldownSec * 1000;
+            setAdsrInterCooldown(adsrCooldownSec);
+          }
           triggerHaptic('medium');
           break;
         }
