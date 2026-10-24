@@ -13,7 +13,7 @@ import { adsrWatchClicks } from '../../../utils/adsrClicks';
 import LottieAnimation from '../../Common/LottieAnimation';
 
 // Temporary toggle: set to true to restore AdsGram earn blocks on Home screen
-const SHOW_ADSGRAM = false;
+const SHOW_ADSGRAM = true;
 
 export default function WatchAndEarn() {
   const {
