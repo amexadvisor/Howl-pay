@@ -57,7 +57,7 @@ export default function WatchAndEarn() {
 
   // AdsGram Tasks State (widget)
   const [adsgramWatched, setAdsgramWatched] = useState(0);
-  const [adsgramLimit, setAdsgramLimit] = useState(0); // 0 hides if not enabled
+  const [adsgramLimit, setAdsgramLimit] = useState(5); // Defaults to 5 (or synced limit)
   const [adsgramReward, setAdsgramReward] = useState(170);
   const [adsgramMsg, setAdsgramMsg] = useState('');
   const adsgramSlotRef = useRef(null);
@@ -160,7 +160,10 @@ export default function WatchAndEarn() {
     if (!SHOW_ADSGRAM || adsgramLimit <= 0 || adsgramWatched >= adsgramLimit) return;
     if (!adsgramSlotRef.current) return;
 
-    if (window.customElements && customElements.get('adsgram-task')) {
+    let cancelled = false;
+
+    const mountTask = () => {
+      if (cancelled || !adsgramSlotRef.current) return;
       adsgramSlotRef.current.innerHTML = '';
       setAdsgramMsg('');
       const el = document.createElement('adsgram-task');
@@ -208,7 +211,25 @@ export default function WatchAndEarn() {
       });
 
       adsgramSlotRef.current.appendChild(el);
+    };
+
+    if (window.customElements) {
+      if (customElements.get('adsgram-task')) {
+        mountTask();
+      } else {
+        customElements.whenDefined('adsgram-task').then(() => {
+          mountTask();
+        }).catch(() => {
+          if (!cancelled) setAdsgramMsg('AdsGram task widget is loading or blocked.');
+        });
+      }
+    } else {
+      setAdsgramMsg('Custom elements not supported in this browser.');
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [adsgramLimit, adsgramWatched, adsgramReward, applyBalance, triggerHaptic, showTopNotification]);
 
   // Handle Monetag Watch Click
