@@ -15,7 +15,7 @@ export default function AdminView({ isActive = false }) {
 
   // Ad Settings State
   const [adConfig, setAdConfig] = useState({
-    monetag: { start: '100', step: '5', limit: '10' },
+    monetag: { start: '100', step: '5', limit: '10', cooldown_sec: '15' },
     adsgram: { start: '170', step: '10', limit: '5' }
   });
   const [adSaving, setAdSaving] = useState(false);
@@ -26,6 +26,7 @@ export default function AdminView({ isActive = false }) {
     step: '10',
     limit: '5',
     cooldown_hours: '1',
+    cooldown_sec: '15',
     noclick_pct: '25',
     tier1_pct: '33',
     tier2_pct: '75',
@@ -107,7 +108,12 @@ export default function AdminView({ isActive = false }) {
       const res = await adminCall('get_ad_config');
       if (res?.success && res.config) {
         setAdConfig({
-          monetag: res.config.monetag || { start: '100', step: '5', limit: '10' },
+          monetag: res.config.monetag ? {
+            start: String(res.config.monetag.start != null ? res.config.monetag.start : 100),
+            step: String(res.config.monetag.step != null ? res.config.monetag.step : 5),
+            limit: String(res.config.monetag.limit != null ? res.config.monetag.limit : 10),
+            cooldown_sec: String(res.config.monetag.cooldown_sec != null ? res.config.monetag.cooldown_sec : 15)
+          } : { start: '100', step: '5', limit: '10', cooldown_sec: '15' },
           adsgram: res.config.adsgram || { start: '170', step: '10', limit: '5' }
         });
       }
@@ -123,7 +129,8 @@ export default function AdminView({ isActive = false }) {
           monetag: {
             start: Number(adConfig.monetag.start),
             step: Number(adConfig.monetag.step),
-            limit: Number(adConfig.monetag.limit)
+            limit: Number(adConfig.monetag.limit),
+            cooldown_sec: Number(adConfig.monetag.cooldown_sec || 15)
           },
           adsgram: {
             start: Number(adConfig.adsgram.start),
@@ -154,6 +161,7 @@ export default function AdminView({ isActive = false }) {
           step: String(c.step != null ? c.step : 10),
           limit: String(c.limit != null ? c.limit : 5),
           cooldown_hours: String((c.cooldown_min != null ? c.cooldown_min : 60) / 60),
+          cooldown_sec: String(c.cooldown_sec != null ? c.cooldown_sec : 15),
           noclick_pct: String(c.noclick_pct != null ? c.noclick_pct : 25),
           tier1_pct: String(c.tier1_pct != null ? c.tier1_pct : 33),
           tier2_pct: String(c.tier2_pct != null ? c.tier2_pct : 75),
@@ -175,6 +183,7 @@ export default function AdminView({ isActive = false }) {
             limit: Number(adsrConfig.limit),
             cooldown_hours: Number(adsrConfig.cooldown_hours),
             cooldown_min: Math.round(Number(adsrConfig.cooldown_hours) * 60),
+            cooldown_sec: Number(adsrConfig.cooldown_sec || 15),
             noclick_pct: Number(adsrConfig.noclick_pct),
             tier1_pct: Number(adsrConfig.tier1_pct),
             tier2_pct: Number(adsrConfig.tier2_pct),
@@ -845,8 +854,8 @@ export default function AdminView({ isActive = false }) {
             Reward per ad = Start − Step × Watched. Daily limit 0 turns ad off.
           </p>
 
-          <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Monetag</div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: '14px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Monetag Ads</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '14px' }}>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
               START
               <input
@@ -871,6 +880,15 @@ export default function AdminView({ isActive = false }) {
                 type="number"
                 value={adConfig.monetag?.limit || 10}
                 onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, limit: e.target.value } })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              COOLDOWN (SECONDS)
+              <input
+                type="number"
+                value={adConfig.monetag?.cooldown_sec || 15}
+                onChange={(e) => setAdConfig({ ...adConfig, monetag: { ...adConfig.monetag, cooldown_sec: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -956,12 +974,21 @@ export default function AdminView({ isActive = false }) {
               />
             </label>
             <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              COOLDOWN (HOURS)
+              CYCLE LOCK (HOURS)
               <input
                 type="number"
                 step="0.25"
                 value={adsrConfig.cooldown_hours}
                 onChange={(e) => setAdsrConfig({ ...adsrConfig, cooldown_hours: e.target.value })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              AD COOLDOWN (SEC)
+              <input
+                type="number"
+                value={adsrConfig.cooldown_sec || 15}
+                onChange={(e) => setAdsrConfig({ ...adsrConfig, cooldown_sec: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>

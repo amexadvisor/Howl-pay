@@ -33,6 +33,7 @@ export default function WatchAndEarn() {
   const [monetagLimit, setMonetagLimit] = useState(10);
   const [monetagReward, setMonetagReward] = useState(100);
   const [monetagCooldown, setMonetagCooldown] = useState(0);
+  const [monetagCooldownSec, setMonetagCooldownSec] = useState(15);
   const [monetagInFlight, setMonetagInFlight] = useState(false);
 
   // AdsGram Reward State (adsr)
@@ -50,6 +51,8 @@ export default function WatchAndEarn() {
   });
   const [adsrBusy, setAdsrBusy] = useState(false);
   const [adsrTimerStr, setAdsrTimerStr] = useState('');
+  const [adsrCooldownSec, setAdsrCooldownSec] = useState(15);
+  const [adsrInterCooldown, setAdsrInterCooldown] = useState(0);
   const adsrWatcherRef = useRef(null);
 
   // AdsGram Tasks State (widget)
@@ -75,6 +78,7 @@ export default function WatchAndEarn() {
             setMonetagWatched(data.ads.monetag.watched || 0);
             if (Number.isFinite(data.ads.monetag.limit)) setMonetagLimit(data.ads.monetag.limit);
             if (data.ads.monetag.next_reward) setMonetagReward(data.ads.monetag.next_reward);
+            if (data.ads.monetag.cooldown_sec) setMonetagCooldownSec(data.ads.monetag.cooldown_sec);
           }
           if (data.ads?.adsgram) {
             setAdsgramWatched(data.ads.adsgram.watched || 0);
@@ -88,6 +92,7 @@ export default function WatchAndEarn() {
         const rData = await syncAdsr();
         if (rData && rData.success && rData.reward) {
           setAdsrState(rData.reward);
+          if (rData.reward.cooldown_sec) setAdsrCooldownSec(rData.reward.cooldown_sec);
         }
       } catch (e) {}
     };
@@ -223,7 +228,7 @@ export default function WatchAndEarn() {
         .show_11935325()
         .then(async () => {
           setMonetagInFlight(false);
-          setMonetagCooldown(5);
+          setMonetagCooldown(monetagCooldownSec);
           triggerHaptic('medium');
 
           try {
@@ -247,7 +252,7 @@ export default function WatchAndEarn() {
         })
         .catch((e) => {
           setMonetagInFlight(false);
-          setMonetagCooldown(5);
+          setMonetagCooldown(monetagCooldownSec);
           alert('No ads available right now. Please try again later.');
         });
     } else {
@@ -327,6 +332,7 @@ export default function WatchAndEarn() {
         if (sData?.success && sData.reward && sData.reward.last_at !== before) {
           credited = true;
           setAdsrState(sData.reward);
+          if (!sData.reward.locked) setAdsrInterCooldown(adsrCooldownSec);
           triggerHaptic('medium');
           break;
         }
@@ -544,12 +550,14 @@ export default function WatchAndEarn() {
             className="watch-btn"
             id="adsrBtn"
             onClick={handleWatchAdsr}
-            disabled={adsrBusy || adsrState.locked || !adsrState.enabled}
+            disabled={adsrBusy || adsrState.locked || !adsrState.enabled || adsrInterCooldown > 0}
           >
             {!adsrState.enabled
               ? 'UNAVAILABLE'
               : adsrState.locked
               ? 'COOLDOWN'
+              : adsrInterCooldown > 0
+              ? `COOLDOWN: ${adsrInterCooldown}s`
               : adsrBusy
               ? 'LOADING...'
               : 'WATCH'}
