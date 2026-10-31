@@ -269,7 +269,7 @@ export default function FeaturedTasksSection() {
                         color: '#60a5fa'
                       }}
                     >
-                      <i className="fa-solid fa-arrows-rotate"></i> WEEKLY
+                      <i className="fa-solid fa-arrows-rotate"></i> 7D REFRESH
                     </span>
                   )}
                 </div>
