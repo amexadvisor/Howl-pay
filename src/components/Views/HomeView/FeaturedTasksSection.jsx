@@ -16,7 +16,19 @@ export default function FeaturedTasksSection() {
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [miniappTimers, setMiniappTimers] = useState({});
+  const [resetCountdowns, setResetCountdowns] = useState({});
   const timerIntervalRef = useRef(null);
+
+  const formatCountdown = (targetMs) => {
+    if (!targetMs) return '';
+    const diff = Math.max(0, Math.floor((targetMs - Date.now()) / 1000));
+    if (diff <= 0) return 'Ready';
+    const days = Math.floor(diff / 86400);
+    const hours = Math.floor((diff % 86400) / 3600);
+    const mins = Math.floor((diff % 3600) / 60);
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h ${mins}m`;
+  };
 
   const sortTasks = (taskList) => {
     if (!Array.isArray(taskList)) return [];
@@ -60,11 +72,14 @@ export default function FeaturedTasksSection() {
     loadTasks();
   }, []);
 
-  // Timer loop for miniapp 15-second countdowns
+  // Timer loop for miniapp 15s wait & weekly task resets
   useEffect(() => {
     timerIntervalRef.current = setInterval(() => {
       const now = Date.now();
       const updated = {};
+      const updatedResets = {};
+      let shouldReload = false;
+
       tasks.forEach((t) => {
         if (t.type === 'miniapp' && !t.done) {
           const startTime = Number(localStorage.getItem('ft_miniapp_' + t.id) || 0);
@@ -75,7 +90,17 @@ export default function FeaturedTasksSection() {
             }
           }
         }
+
+        if (t.recurring === 'weekly' && t.resets_at) {
+          const remaining = Math.max(0, Math.floor((t.resets_at - now) / 1000));
+          if (remaining <= 0 && t.done) {
+            shouldReload = true;
+          } else {
+            updatedResets[t.id] = formatCountdown(t.resets_at);
+          }
+        }
       });
+
       setMiniappTimers((prev) => {
         const prevKeys = Object.keys(prev);
         const newKeys = Object.keys(updated);
@@ -83,6 +108,18 @@ export default function FeaturedTasksSection() {
         const changed = newKeys.length !== prevKeys.length || newKeys.some((k) => prev[k] !== updated[k]);
         return changed ? updated : prev;
       });
+
+      setResetCountdowns((prev) => {
+        const prevKeys = Object.keys(prev);
+        const newKeys = Object.keys(updatedResets);
+        if (prevKeys.length === 0 && newKeys.length === 0) return prev;
+        const changed = newKeys.length !== prevKeys.length || newKeys.some((k) => prev[k] !== updatedResets[k]);
+        return changed ? updatedResets : prev;
+      });
+
+      if (shouldReload) {
+        loadTasks();
+      }
     }, 1000);
 
     return () => clearInterval(timerIntervalRef.current);
@@ -223,6 +260,18 @@ export default function FeaturedTasksSection() {
                       <i className="fa-solid fa-star"></i> BOINKERS
                     </span>
                   )}
+                  {task.recurring === 'weekly' && (
+                    <span
+                      className="golden-partner-badge"
+                      style={{
+                        background: 'rgba(59, 130, 246, 0.18)',
+                        borderColor: 'rgba(59, 130, 246, 0.45)',
+                        color: '#60a5fa'
+                      }}
+                    >
+                      <i className="fa-solid fa-arrows-rotate"></i> WEEKLY
+                    </span>
+                  )}
                 </div>
 
                 {task.description && <div className="ft-desc">{task.description}</div>}
@@ -251,9 +300,32 @@ export default function FeaturedTasksSection() {
 
               <div className="ft-actions-col">
                 {task.done ? (
-                  <button className="ft-btn ft-btn-done" disabled>
-                    <i className="fa-solid fa-check"></i> DONE
-                  </button>
+                  task.recurring === 'weekly' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '3px' }}>
+                      <button className="ft-btn ft-btn-done" disabled style={{ padding: '6px 10px', fontSize: '11px' }}>
+                        <i className="fa-solid fa-check"></i> DONE
+                      </button>
+                      {resetCountdowns[task.id] && (
+                        <div
+                          style={{
+                            fontSize: '9px',
+                            color: 'var(--accent-orange)',
+                            fontWeight: 700,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '3px',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          <i className="fa-regular fa-clock"></i> Resets: {resetCountdowns[task.id]}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <button className="ft-btn ft-btn-done" disabled>
+                      <i className="fa-solid fa-check"></i> DONE
+                    </button>
+                  )
                 ) : task.type === 'channel' ? (
                   !startedChannel ? (
                     <button className="ft-btn ft-btn-go" onClick={() => handleGoChannel(task)}>

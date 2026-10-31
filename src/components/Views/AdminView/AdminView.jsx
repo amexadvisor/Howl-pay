@@ -63,7 +63,9 @@ export default function AdminView({ isActive = false }) {
   const [boinkersStats, setBoinkersStats] = useState({
     inbound: [],
     outbound: [],
-    totals: {}
+    totals: {},
+    weekly_history: [],
+    current_week: null
   });
 
   // Promo Codes Admin State
@@ -1528,6 +1530,72 @@ export default function AdminView({ isActive = false }) {
                 </div>
               </div>
             </div>
+
+            {/* Weekly History Breakdown */}
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 800, marginTop: '14px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span>WEEKLY BREAKDOWN & HISTORY</span>
+              {boinkersStats.current_week && (
+                <span style={{ color: 'var(--accent-main)' }}>
+                  Active: {boinkersStats.current_week.weekLabel}
+                </span>
+              )}
+            </div>
+
+            {Array.isArray(boinkersStats.weekly_history) && boinkersStats.weekly_history.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {boinkersStats.weekly_history.map((w, idx) => (
+                  <div
+                    key={w.week_start || idx}
+                    style={{
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid var(--border-soft)',
+                      borderRadius: '8px',
+                      padding: '8px 10px',
+                      fontSize: '11px'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                      <span style={{ fontWeight: 800, color: '#fff' }}>
+                        📅 {w.week_label || 'Week'}
+                      </span>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                        {new Date(w.week_start).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                      </span>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '10px' }}>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px' }}>
+                        <div style={{ color: 'var(--accent-main)', fontWeight: 700, marginBottom: '2px' }}>
+                          Inbound (Boinkers Users)
+                        </div>
+                        <div style={{ color: 'var(--text-muted)' }}>
+                          • 10+ Ads Qualified: <b style={{ color: '#fff' }}>{w.qualified_users || 0}</b>
+                        </div>
+                        <div style={{ color: 'var(--text-muted)' }}>
+                          • Active Ad Viewers: <b style={{ color: '#fff' }}>{w.active_ad_users || 0}</b> ({w.total_ads || 0} ads)
+                        </div>
+                      </div>
+
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: '6px', borderRadius: '6px' }}>
+                        <div style={{ color: 'var(--accent-orange)', fontWeight: 700, marginBottom: '2px' }}>
+                          Outbound (Howl Users)
+                        </div>
+                        <div style={{ color: 'var(--text-muted)' }}>
+                          • Total Claims: <b style={{ color: '#fff' }}>{w.total_claims || 0}</b>
+                        </div>
+                        <div style={{ color: 'var(--text-muted)' }}>
+                          • Open: {w.open_claims || 0} | Spins: {w.spins_claims || 0} | Stars: {w.moon_claims || 0}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '10px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px' }}>
+                No weekly history recorded yet. Data will appear as users participate each week.
+              </div>
+            )}
           </div>
         </div>
       )}
