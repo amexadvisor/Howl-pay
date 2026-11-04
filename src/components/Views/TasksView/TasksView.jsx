@@ -1,5 +1,6 @@
 import React from 'react';
 import { useApp } from '../../../context/AppContext';
+import AvisoYouTubeWidget from './AvisoYouTubeWidget';
 
 export default function TasksView({ isActive = false }) {
   const { user, setActiveView, triggerHaptic, offerwallTab, setOfferwallTab } = useApp();
@@ -72,8 +73,8 @@ export default function TasksView({ isActive = false }) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: '8px',
+          gridTemplateColumns: 'repeat(3, 1fr)',
+          gap: '6px',
           background: 'rgba(0,0,0,0.3)',
           padding: '4px',
           borderRadius: '14px',
@@ -87,21 +88,21 @@ export default function TasksView({ isActive = false }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            padding: '10px 12px',
+            gap: '6px',
+            padding: '9px 6px',
             borderRadius: '10px',
             border: currentTab === 'cpx' ? '1px solid var(--accent-main)' : '1px solid transparent',
             background: currentTab === 'cpx' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
             color: currentTab === 'cpx' ? 'var(--accent-main)' : 'var(--text-muted)',
             fontWeight: 700,
-            fontSize: '13px',
+            fontSize: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
         >
           <i className="fa-solid fa-square-poll-vertical"></i>
-          <span>CPX Surveys</span>
-          <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 5px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.25)', color: '#22c55e' }}>
+          <span>CPX</span>
+          <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 4px', borderRadius: '4px', background: 'rgba(34, 197, 94, 0.25)', color: '#22c55e' }}>
             HOT
           </span>
         </button>
@@ -112,14 +113,14 @@ export default function TasksView({ isActive = false }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            gap: '8px',
-            padding: '10px 12px',
+            gap: '6px',
+            padding: '9px 6px',
             borderRadius: '10px',
             border: currentTab === 'timewall' ? '1px solid var(--accent-main)' : '1px solid transparent',
             background: currentTab === 'timewall' ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
             color: currentTab === 'timewall' ? 'var(--accent-main)' : 'var(--text-muted)',
             fontWeight: 700,
-            fontSize: '13px',
+            fontSize: '12px',
             cursor: 'pointer',
             transition: 'all 0.2s ease'
           }}
@@ -127,33 +128,83 @@ export default function TasksView({ isActive = false }) {
           <i className="fa-solid fa-earth-africa"></i>
           <span>TimeWall</span>
         </button>
+
+        <button
+          onClick={() => handleTabChange('youtube')}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '9px 6px',
+            borderRadius: '10px',
+            border: currentTab === 'youtube' ? '1px solid #ef4444' : '1px solid transparent',
+            background: currentTab === 'youtube' ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+            color: currentTab === 'youtube' ? '#ef4444' : 'var(--text-muted)',
+            fontWeight: 700,
+            fontSize: '12px',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease'
+          }}
+        >
+          <i className="fa-brands fa-youtube" style={{ color: '#ef4444', fontSize: '13px' }}></i>
+          <span>YouTube</span>
+          <span style={{ fontSize: '9px', fontWeight: 800, padding: '1px 4px', borderRadius: '4px', background: 'rgba(239, 68, 68, 0.25)', color: '#ef4444' }}>
+            NEW
+          </span>
+        </button>
       </div>
 
-      {/* Info notice about 7-day hold */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          background: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          borderRadius: '10px',
-          padding: '8px 12px',
-          marginBottom: '14px',
-          fontSize: '11px',
-          color: '#f59e0b',
-          lineHeight: 1.4
-        }}
-      >
-        <i className="fa-solid fa-shield-halved" style={{ fontSize: '13px', flexShrink: 0 }}></i>
-        <span>
-          Earnings are placed on a <b>7-day security hold</b> before automatic credit to spendable HOWL coins.
-        </span>
-      </div>
+      {/* Info notice */}
+      {currentTab === 'youtube' ? (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(239, 68, 68, 0.08)',
+            border: '1px solid rgba(239, 68, 68, 0.25)',
+            borderRadius: '10px',
+            padding: '8px 12px',
+            marginBottom: '14px',
+            fontSize: '11px',
+            color: '#fca5a5',
+            lineHeight: 1.4
+          }}
+        >
+          <i className="fa-brands fa-youtube" style={{ fontSize: '14px', color: '#ef4444', flexShrink: 0 }}></i>
+          <span>
+            Watch sponsored videos to earn <b>instant HOWL coins</b> credited immediately to your spendable balance.
+          </span>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            borderRadius: '10px',
+            padding: '8px 12px',
+            marginBottom: '14px',
+            fontSize: '11px',
+            color: '#f59e0b',
+            lineHeight: 1.4
+          }}
+        >
+          <i className="fa-solid fa-shield-halved" style={{ fontSize: '13px', flexShrink: 0 }}></i>
+          <span>
+            Survey earnings are placed on a <b>7-day security hold</b> before automatic credit to spendable HOWL coins.
+          </span>
+        </div>
+      )}
 
-      {/* Iframe View Container */}
+      {/* Main View Container */}
       <div className="offerwall-iframe-container" style={{ flex: 1, minHeight: '520px' }}>
-        {currentTab === 'cpx' ? (
+        {currentTab === 'youtube' ? (
+          <AvisoYouTubeWidget user={user} />
+        ) : currentTab === 'cpx' ? (
           <iframe
             id="cpx-iframe"
             key="cpx-iframe"
