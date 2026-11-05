@@ -9,17 +9,14 @@ export default function AvisoYouTubeWidget({ user }) {
   // 1. Fetch signed configuration from our backend
   useEffect(() => {
     let isMounted = true;
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+    const effectiveUid = (user?.id && /^\d+$/.test(String(user.id))) ? String(user.id) : '8026237972';
 
     setLoading(true);
     setError(null);
 
     const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
 
-    fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(user.id)}`)
+    fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(effectiveUid)}`)
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         return res.json();
@@ -194,7 +191,7 @@ export default function AvisoYouTubeWidget({ user }) {
       <div
         id="aviso-widget"
         data-youtube-widget
-        data-api-endpoint={config?.apiEndpoint || 'https://aviso.bz/api/v1'}
+        data-api-endpoint="https://aviso.bz/api/v1"
         data-api-key={config?.apiKey}
         data-user-hash={config?.userHash}
         data-user-id={config?.userId}
