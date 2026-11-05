@@ -6,7 +6,15 @@ import FeaturedTasksSection from './FeaturedTasksSection';
 import CpxOneRowWidget from './CpxOneRowWidget';
 
 export default function HomeView({ isActive = true }) {
-  const { user, balance, setActiveView, openLeaderboard, triggerHaptic, setPromoModalOpen } = useApp();
+  const {
+    user,
+    balance,
+    setActiveView,
+    openLeaderboard,
+    triggerHaptic,
+    setPromoModalOpen,
+    setOfferwallTab
+  } = useApp();
 
   const handleEarnClick = () => {
     triggerHaptic('light');
@@ -16,6 +24,14 @@ export default function HomeView({ isActive = true }) {
   const handleWithdrawClick = () => {
     triggerHaptic('light');
     setActiveView('withdraw-view');
+  };
+
+  const handleYouTubeClick = () => {
+    triggerHaptic('light');
+    if (typeof setOfferwallTab === 'function') {
+      setOfferwallTab('youtube');
+    }
+    setActiveView('tasks-view');
   };
 
   const avatarInitial = (user.first_name || user.username || 'U').charAt(0).toUpperCase();
@@ -87,8 +103,8 @@ export default function HomeView({ isActive = true }) {
         </div>
       </div>
 
-      {/* Action Grid */}
-      <div className="action-grid">
+      {/* Action Grid (Earn & Withdraw) */}
+      <div className="action-grid" style={{ marginBottom: '12px' }}>
         <div className="clickable" onClick={handleEarnClick}>
           <div className="glass-card action-btn" style={{ marginBottom: 0, padding: '16px' }}>
             <i className="fa-solid fa-bolt"></i> EARN
@@ -101,38 +117,33 @@ export default function HomeView({ isActive = true }) {
         </div>
       </div>
 
-      {/* Promo Code Giveaway row */}
-      <div
-        className="clickable"
-        onClick={() => {
-          triggerHaptic('light');
-          setPromoModalOpen(true);
-        }}
-      >
+      {/* Featured YouTube Tasks Button (Prominent on First Screen) */}
+      <div className="clickable" onClick={handleYouTubeClick} style={{ marginBottom: '12px' }}>
         <div
           className="glass-card task-row"
           style={{
-            background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(14, 165, 233, 0.08))',
-            borderColor: 'rgba(234, 179, 8, 0.35)',
-            boxShadow: '0 4px 20px rgba(234, 179, 8, 0.12)'
+            background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.18), rgba(220, 38, 38, 0.08))',
+            borderColor: 'rgba(239, 68, 68, 0.45)',
+            boxShadow: '0 4px 20px rgba(239, 68, 68, 0.15)',
+            marginBottom: 0
           }}
         >
           <div
             className="task-icon"
             style={{
-              background: 'rgba(234, 179, 8, 0.18)',
-              color: '#eab308'
+              background: 'rgba(239, 68, 68, 0.22)',
+              color: '#ef4444'
             }}
           >
-            <i className="fa-solid fa-gift" style={{ fontSize: '18px' }}></i>
+            <i className="fa-brands fa-youtube" style={{ fontSize: '20px' }}></i>
           </div>
           <div className="task-text">
             <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Promo Code Giveaway
+              YouTube Tasks
               <span
                 style={{
-                  background: 'linear-gradient(135deg, #eab308, #ca8a04)',
-                  color: '#000',
+                  background: '#ef4444',
+                  color: '#fff',
                   fontSize: '9px',
                   fontWeight: 900,
                   padding: '2px 7px',
@@ -140,26 +151,136 @@ export default function HomeView({ isActive = true }) {
                   letterSpacing: '0.5px'
                 }}
               >
-                CLAIM
+                NEW
               </span>
             </h4>
-            <p>Enter promo code to claim bonus HOWL giveaway</p>
+            <p>Watch sponsored videos &amp; earn instant HOWL coins</p>
           </div>
           <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
       </div>
 
-      {/* Top Earners Leaderboard row */}
-      <div className="clickable" onClick={() => openLeaderboard('home-view')}>
-        <div className="glass-card task-row">
-          <div className="task-icon">
-            <i className="fa-solid fa-trophy" style={{ color: '#eab308' }}></i>
+      {/* Compact Side-by-Side: Promo Code & Top Earners Leaderboard */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '10px',
+          marginBottom: '12px'
+        }}
+      >
+        {/* Promo Code Button */}
+        <div
+          className="clickable"
+          onClick={() => {
+            triggerHaptic('light');
+            setPromoModalOpen(true);
+          }}
+        >
+          <div
+            className="glass-card"
+            style={{
+              padding: '12px 14px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(234, 179, 8, 0.12), rgba(14, 165, 233, 0.08))',
+              border: '1px solid rgba(234, 179, 8, 0.35)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: 0,
+              minHeight: '58px'
+            }}
+          >
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'rgba(234, 179, 8, 0.2)',
+                color: '#eab308',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <i className="fa-solid fa-gift" style={{ fontSize: '15px' }}></i>
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                Promo Code
+              </div>
+              <div style={{ fontSize: '10px', color: '#eab308', fontWeight: 700 }}>
+                Claim Bonus
+              </div>
+            </div>
           </div>
-          <div className="task-text">
-            <h4>Top Earners Leaderboard</h4>
-            <p>See global rankings &amp; community earners</p>
+        </div>
+
+        {/* Top Earners Leaderboard Button */}
+        <div
+          className="clickable"
+          onClick={() => {
+            triggerHaptic('light');
+            openLeaderboard('home-view');
+          }}
+        >
+          <div
+            className="glass-card"
+            style={{
+              padding: '12px 14px',
+              borderRadius: '14px',
+              background: 'linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(14, 165, 233, 0.04))',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              marginBottom: 0,
+              minHeight: '58px'
+            }}
+          >
+            <div
+              style={{
+                width: '34px',
+                height: '34px',
+                borderRadius: '10px',
+                background: 'rgba(56, 189, 248, 0.2)',
+                color: 'var(--accent-main)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}
+            >
+              <i className="fa-solid fa-trophy" style={{ fontSize: '15px' }}></i>
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div
+                style={{
+                  fontSize: '12px',
+                  fontWeight: 800,
+                  color: '#fff',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}
+              >
+                Top Earners
+              </div>
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Leaderboard
+              </div>
+            </div>
           </div>
-          <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
       </div>
 
