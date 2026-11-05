@@ -2085,7 +2085,7 @@
     let adsgramClaiming = false;
     let adsgramUnavailableUntil = 0;
     let lastMidnightSync = 0;
-    const ADSGRAM_BLOCK_ID = 'task-51892';
+    const ADSGRAM_BLOCK_ID = 'task-58147';
     const ADSGRAM_DEBUG = false;   // true = AdsGram test tasks. Rewards are still paid, so use only on a test account.
 
     function applyAdStatus(ads) {
@@ -2757,7 +2757,8 @@
     // The VIEW reward is credited by AdsGram's server callback to /api/adsgram-reward (nothing here can be spoofed to get that).
     // The CLICK bonus is claimed from here, after the app detects that the user opened the ad. AdsGram sends no click
     // data, so this detection is our own method: it watches for the ad opening a link, or the user leaving the app and coming back.
-    const ADSR_BLOCK_ID = '51923';
+    const ADSGRAM_INTERSTITIAL_BLOCK_ID = 'int-58148';
+    const ADSR_BLOCK_ID = '58149';
     let adsrCtrl = null, adsrBusy = false, adsrTickId = null, adsrEndsAt = 0, adsrLastAt = 0;
     let adsrState = null, adsrWatcher = null, adsrTotalAds = 3;
 
