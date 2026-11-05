@@ -71,9 +71,13 @@
       window.reportDebugError = sendErrorToBackend;
       
       window.addEventListener('error', function(event) {
+        if (!event.filename || event.message === 'Script error.') return;
         sendErrorToBackend('Uncaught Exception', { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno, stack: event.error ? event.error.stack : null });
       });
       window.addEventListener('unhandledrejection', function(event) { 
+        var reason = event.reason;
+        var msg = (reason && (reason.message || (typeof reason === 'string' ? reason : ''))) || '';
+        if (msg.includes('Script error.') || msg.includes('ResizeObserver') || msg.includes('Adsgram') || msg.includes('monetag')) return;
         sendErrorToBackend('Unhandled Promise Rejection', event.reason); 
       });
     })();
