@@ -7,7 +7,8 @@ import {
   syncAdsr,
   sendAdsrClick,
   ADSR_BLOCK_ID,
-  ADSGRAM_BLOCK_ID
+  ADSGRAM_BLOCK_ID,
+  ADSGRAM_INTERSTITIAL_BLOCK_ID
 } from '../../../services/api';
 import { adsrWatchClicks } from '../../../utils/adsrClicks';
 import LottieAnimation from '../../Common/LottieAnimation';
@@ -268,8 +269,8 @@ export default function WatchAndEarn() {
     };
   }, [adsgramLimit, adsgramWatched, adsgramReward, applyBalance, triggerHaptic, showTopNotification]);
 
-  // Handle Monetag Watch Click
-  const handleWatchMonetag = () => {
+  // Handle Ad #1 Watch Click (AdsGram Interstitial + Monetag Video Cascade)
+  const handleWatchMonetag = async () => {
     if (monetagWatched >= monetagLimit) {
       alert(`Daily limit of ${monetagLimit} ads reached! Come back tomorrow.`);
       return;
@@ -278,41 +279,53 @@ export default function WatchAndEarn() {
     if (monetagInFlight || monetagCooldown > 0) return;
 
     triggerHaptic('light');
+    setMonetagInFlight(true);
 
+    // 1. First trigger AdsGram Interstitial ad
+    if (window.Adsgram && ADSGRAM_INTERSTITIAL_BLOCK_ID) {
+      try {
+        const intCtrl = window.Adsgram.init({ blockId: ADSGRAM_INTERSTITIAL_BLOCK_ID });
+        if (intCtrl) {
+          await intCtrl.show();
+        }
+      } catch (err) {
+        console.warn('[AdsGram Interstitial]', err);
+      }
+    }
+
+    // 2. Next trigger Monetag Rewarded Video
     if (typeof window.show_11935325 === 'function') {
-      setMonetagInFlight(true);
-      window
-        .show_11935325()
-        .then(async () => {
-          setMonetagInFlight(false);
-          setMonetagCooldown(monetagCooldownSec);
-          triggerHaptic('medium');
+      try {
+        await window.show_11935325();
+        setMonetagInFlight(false);
+        setMonetagCooldown(monetagCooldownSec);
+        triggerHaptic('medium');
 
-          try {
-            const res = await claimMonetagReward();
-            if (res && res.success) {
-              triggerHaptic('success');
-              if (res.user_balance) {
-                applyBalance(res.user_balance.total_howl, res.user_balance.total_usd, res.user_balance.hold);
-              } else {
-                refreshBalance();
-              }
-              setMonetagWatched((prev) => prev + 1);
-              showTopNotification({
-                title: 'AD REWARD CREDITED!',
-                message: `+${res.reward_howl || monetagReward} HOWL added to your balance!`,
-                type: 'gold',
-                icon: 'fa-solid fa-coins'
-              });
+        try {
+          const res = await claimMonetagReward();
+          if (res && res.success) {
+            triggerHaptic('success');
+            if (res.user_balance) {
+              applyBalance(res.user_balance.total_howl, res.user_balance.total_usd, res.user_balance.hold);
+            } else {
+              refreshBalance();
             }
-          } catch (e) {}
-        })
-        .catch((e) => {
-          setMonetagInFlight(false);
-          setMonetagCooldown(monetagCooldownSec);
-          alert('No ads available right now. Please try again later.');
-        });
+            setMonetagWatched((prev) => prev + 1);
+            showTopNotification({
+              title: 'AD REWARD CREDITED!',
+              message: `+${res.reward_howl || monetagReward} HOWL added to your balance!`,
+              type: 'gold',
+              icon: 'fa-solid fa-coins'
+            });
+          }
+        } catch (e) {}
+      } catch (e) {
+        setMonetagInFlight(false);
+        setMonetagCooldown(monetagCooldownSec);
+        alert('No ads available right now. Please try again later.');
+      }
     } else {
+      setMonetagInFlight(false);
       alert('Ad network is still loading or blocked by your browser. Please try again in a few seconds.');
     }
   };
@@ -394,6 +407,14 @@ export default function WatchAndEarn() {
             setAdsrInterCooldown(adsrCooldownSec);
           }
           triggerHaptic('medium');
+          // Cascade Monetag Rewarded Ad immediately after AdsGram
+          if (typeof window.show_11935325 === 'function') {
+            try {
+              await window.show_11935325();
+            } catch (mErr) {
+              console.warn('[Monetag cascade error]', mErr);
+            }
+          }
           break;
         }
       }
