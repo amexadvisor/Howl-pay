@@ -12,4 +12,13 @@ services:
     headers:
       - path: /*
         name: Cache-Control
-        value: no-cache, no-store, must-revalidate
+        value: no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0
+      - path: /*
+        name: Pragma
+        value: no-cache
+      - path: /*
+        name: Expires
+        value: "0"
+      - path: /*
+        name: Surrogate-Control
+        value: no-store

@@ -1,33 +1,63 @@
 import React, { useEffect, useState, useRef } from 'react';
 
+// Module-level cache so we never re-fetch credentials repeatedly
+let cachedAvisoConfig = null;
+let configInFlightPromise = null;
+
+export function prefetchAvisoConfig(userId) {
+  const effectiveUid = (userId && /^\d+$/.test(String(userId))) ? String(userId) : '8026237972';
+  if (cachedAvisoConfig && cachedAvisoConfig.userId === effectiveUid) {
+    return Promise.resolve(cachedAvisoConfig);
+  }
+  if (configInFlightPromise) return configInFlightPromise;
+
+  const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+  configInFlightPromise = fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(effectiveUid)}`)
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      return res.json();
+    })
+    .then((data) => {
+      configInFlightPromise = null;
+      if (data && data.success) {
+        cachedAvisoConfig = data;
+        return data;
+      }
+      throw new Error(data?.error || 'Failed to load widget credentials');
+    })
+    .catch((err) => {
+      configInFlightPromise = null;
+      throw err;
+    });
+
+  return configInFlightPromise;
+}
+
 export default function AvisoYouTubeWidget({ user }) {
-  const [config, setConfig] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [config, setConfig] = useState(cachedAvisoConfig);
+  const [loading, setLoading] = useState(!cachedAvisoConfig);
   const [error, setError] = useState(null);
   const widgetInstanceRef = useRef(null);
+  const containerRef = useRef(null);
 
-  // 1. Fetch signed configuration from our backend
+  // 1. Ensure config is fetched
   useEffect(() => {
     let isMounted = true;
     const effectiveUid = (user?.id && /^\d+$/.test(String(user.id))) ? String(user.id) : '8026237972';
 
+    if (cachedAvisoConfig && cachedAvisoConfig.userId === effectiveUid) {
+      setConfig(cachedAvisoConfig);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
-    const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
-
-    fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(effectiveUid)}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
+    prefetchAvisoConfig(effectiveUid)
+      .then((cfg) => {
         if (!isMounted) return;
-        if (data && data.success) {
-          setConfig(data);
-        } else {
-          throw new Error(data?.error || 'Failed to load widget credentials');
-        }
+        setConfig(cfg);
       })
       .catch((err) => {
         if (!isMounted) return;
@@ -41,63 +71,77 @@ export default function AvisoYouTubeWidget({ user }) {
     };
   }, [user?.id]);
 
-  // 2. Initialize the widget as soon as config is ready
+  // 2. Initialize the widget safely and idempotently once config and DOM are ready
   useEffect(() => {
     if (!config) return;
 
     let isCancelled = false;
+    let pollInterval = null;
+    let timeoutId = null;
 
-    const initWidget = () => {
+    const mountInstance = () => {
       if (isCancelled) return;
       const container = document.getElementById('aviso-widget');
-      if (!container) return;
+      if (!container || !window.YouTubeWidget) return;
 
-      if (window.YouTubeWidget) {
+      // If an instance was already mounted on this ref, destroy it first
+      if (widgetInstanceRef.current && typeof widgetInstanceRef.current.destroy === 'function') {
         try {
-          if (widgetInstanceRef.current && typeof widgetInstanceRef.current.destroy === 'function') {
-            try { widgetInstanceRef.current.destroy(); } catch (_) {}
-          }
-          widgetInstanceRef.current = new window.YouTubeWidget('aviso-widget', {
-            apiEndpoint: config.apiEndpoint || 'https://aviso.bz/api/v1',
-            apiKey: config.apiKey,
-            userHash: config.userHash,
-            userId: String(config.userId),
-            userSig: config.userSig,
-            theme: 'dark'
-          });
-          if (!isCancelled) setLoading(false);
-        } catch (e) {
-          console.warn('[AvisoYouTubeWidget] Init warning:', e);
-          if (!isCancelled) setLoading(false);
+          widgetInstanceRef.current.destroy();
+        } catch (_) {}
+        widgetInstanceRef.current = null;
+      }
+
+      try {
+        // Explicitly create single instance via the official JavaScript SDK
+        widgetInstanceRef.current = new window.YouTubeWidget('aviso-widget', {
+          apiEndpoint: config.apiEndpoint || 'https://aviso.bz/api/v1',
+          apiKey: config.apiKey,
+          userHash: config.userHash,
+          userId: String(config.userId),
+          userSig: config.userSig,
+          theme: 'dark'
+        });
+
+        if (!isCancelled) {
+          setLoading(false);
+        }
+      } catch (err) {
+        console.warn('[AvisoYouTubeWidget] Mount exception:', err);
+        if (!isCancelled) {
+          setLoading(false);
         }
       }
     };
 
-    // Load widget.js script if not present
-    const existingScript = document.querySelector('script[src*="aviso.bz/widget/widget.js"]');
-    if (!existingScript) {
-      const script = document.createElement('script');
-      script.src = 'https://aviso.bz/widget/widget.js';
-      script.async = true;
-      script.onload = () => {
-        initWidget();
-      };
-      script.onerror = () => {
-        if (!isCancelled) {
-          setError('Failed to load YouTube widget script. Please check your network.');
+    if (window.YouTubeWidget) {
+      // Script is already loaded and ready
+      requestAnimationFrame(mountInstance);
+    } else {
+      // Poll every 50ms for SDK readiness (it is loaded with defer in index.html)
+      pollInterval = setInterval(() => {
+        if (window.YouTubeWidget) {
+          clearInterval(pollInterval);
+          pollInterval = null;
+          mountInstance();
+        }
+      }, 50);
+
+      // Fallback timeout after 8 seconds
+      timeoutId = setTimeout(() => {
+        if (pollInterval) clearInterval(pollInterval);
+        if (!window.YouTubeWidget && !isCancelled) {
+          setError('Failed to load YouTube widget SDK. Please check your network connection.');
           setLoading(false);
         }
-      };
-      document.body.appendChild(script);
-    } else {
-      // Script already in document: init with requestAnimationFrame to ensure container is ready
-      requestAnimationFrame(() => {
-        initWidget();
-      });
+      }, 8000);
     }
 
     return () => {
       isCancelled = true;
+      if (pollInterval) clearInterval(pollInterval);
+      if (timeoutId) clearTimeout(timeoutId);
+
       if (widgetInstanceRef.current && typeof widgetInstanceRef.current.destroy === 'function') {
         try {
           widgetInstanceRef.current.destroy();
@@ -106,6 +150,21 @@ export default function AvisoYouTubeWidget({ user }) {
       }
     };
   }, [config]);
+
+  const handleRetry = () => {
+    setError(null);
+    setLoading(true);
+    const effectiveUid = (user?.id && /^\d+$/.test(String(user.id))) ? String(user.id) : '8026237972';
+    cachedAvisoConfig = null;
+    prefetchAvisoConfig(effectiveUid)
+      .then((cfg) => {
+        setConfig(cfg);
+      })
+      .catch(() => {
+        setError('Retry failed. Please check your connection and try again.');
+        setLoading(false);
+      });
+  };
 
   return (
     <div
@@ -170,19 +229,7 @@ export default function AvisoYouTubeWidget({ user }) {
           <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '32px', color: '#ef4444' }}></i>
           <div style={{ fontSize: '13px', color: '#f87171', maxWidth: '300px' }}>{error}</div>
           <button
-            onClick={() => {
-              setError(null);
-              setLoading(true);
-              const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
-              const effectiveUid = (user?.id && /^\d+$/.test(String(user.id))) ? String(user.id) : '8026237972';
-              fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(effectiveUid)}`)
-                .then((r) => r.json())
-                .then((d) => d?.success && setConfig(d))
-                .catch(() => {
-                  setError('Retry failed. Please try again later.');
-                  setLoading(false);
-                });
-            }}
+            onClick={handleRetry}
             style={{
               background: 'var(--accent-main)',
               border: 'none',
@@ -200,16 +247,15 @@ export default function AvisoYouTubeWidget({ user }) {
         </div>
       )}
 
-      {/* Persistent Widget DOM Container - always in DOM */}
+      {/* 
+        Persistent Widget Container
+        NOTE: Do NOT add 'data-youtube-widget' here.
+        'data-youtube-widget' triggers the auto-init routine in widget.js,
+        which conflicts with the programmatic new window.YouTubeWidget() call.
+      */}
       <div
         id="aviso-widget"
-        data-youtube-widget
-        data-api-endpoint="https://aviso.bz/api/v1"
-        data-api-key={config?.apiKey}
-        data-user-hash={config?.userHash}
-        data-user-id={config?.userId}
-        data-user-sig={config?.userSig}
-        data-theme="dark"
+        ref={containerRef}
         style={{ width: '100%', minHeight: '500px' }}
       ></div>
     </div>

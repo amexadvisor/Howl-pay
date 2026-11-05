@@ -1,6 +1,6 @@
 import React from 'react';
 import { useApp } from '../../../context/AppContext';
-import AvisoYouTubeWidget from './AvisoYouTubeWidget';
+import AvisoYouTubeWidget, { prefetchAvisoConfig } from './AvisoYouTubeWidget';
 
 export default function TasksView({ isActive = false }) {
   const { user, setActiveView, triggerHaptic, offerwallTab, setOfferwallTab } = useApp();
@@ -33,6 +33,9 @@ export default function TasksView({ isActive = false }) {
         }
       })
       .catch(() => {});
+
+    // Prefetch Aviso credentials immediately so YouTube tasks open with zero latency
+    prefetchAvisoConfig(user.id).catch(() => {});
   }, [user?.id, user?.username, user?.first_name]);
 
   const activeCpxUrl = signedCpxUrl || fallbackCpxUrl;
