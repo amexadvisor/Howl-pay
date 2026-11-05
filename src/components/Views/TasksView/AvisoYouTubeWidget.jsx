@@ -33,9 +33,7 @@ export default function AvisoYouTubeWidget({ user }) {
         if (!isMounted) return;
         console.error('[AvisoYouTubeWidget] Config load error:', err);
         setError('Could not load YouTube tasks. Please check your connection and try again.');
-      })
-      .finally(() => {
-        if (isMounted) setLoading(false);
+        setLoading(false);
       });
 
     return () => {
@@ -43,9 +41,9 @@ export default function AvisoYouTubeWidget({ user }) {
     };
   }, [user?.id]);
 
-  // 2. Initialize the widget when config is ready
+  // 2. Initialize the widget as soon as config is ready
   useEffect(() => {
-    if (!config || !user?.id) return;
+    if (!config) return;
 
     let isCancelled = false;
 
@@ -57,7 +55,7 @@ export default function AvisoYouTubeWidget({ user }) {
       if (window.YouTubeWidget) {
         try {
           if (widgetInstanceRef.current && typeof widgetInstanceRef.current.destroy === 'function') {
-            widgetInstanceRef.current.destroy();
+            try { widgetInstanceRef.current.destroy(); } catch (_) {}
           }
           widgetInstanceRef.current = new window.YouTubeWidget('aviso-widget', {
             apiEndpoint: config.apiEndpoint || 'https://aviso.bz/api/v1',
@@ -67,8 +65,10 @@ export default function AvisoYouTubeWidget({ user }) {
             userSig: config.userSig,
             theme: 'dark'
           });
+          if (!isCancelled) setLoading(false);
         } catch (e) {
-          console.warn('[AvisoYouTubeWidget] Manual init warning:', e);
+          console.warn('[AvisoYouTubeWidget] Init warning:', e);
+          if (!isCancelled) setLoading(false);
         }
       }
     };
@@ -85,12 +85,15 @@ export default function AvisoYouTubeWidget({ user }) {
       script.onerror = () => {
         if (!isCancelled) {
           setError('Failed to load YouTube widget script. Please check your network.');
+          setLoading(false);
         }
       };
       document.body.appendChild(script);
     } else {
-      // Script already loaded in document
-      setTimeout(initWidget, 100);
+      // Script already in document: init with requestAnimationFrame to ensure container is ready
+      requestAnimationFrame(() => {
+        initWidget();
+      });
     }
 
     return () => {
@@ -102,83 +105,12 @@ export default function AvisoYouTubeWidget({ user }) {
         widgetInstanceRef.current = null;
       }
     };
-  }, [config, user?.id]);
-
-  if (loading) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '420px',
-          background: 'rgba(0,0,0,0.2)',
-          borderRadius: '14px',
-          border: '1px solid var(--border-soft)',
-          padding: '24px',
-          textAlign: 'center',
-          gap: '12px'
-        }}
-      >
-        <i className="fa-brands fa-youtube fa-bounce" style={{ fontSize: '38px', color: '#ef4444' }}></i>
-        <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Loading YouTube Tasks...</div>
-        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Preparing sponsored videos &amp; rewards</div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '360px',
-          background: 'rgba(239, 68, 68, 0.05)',
-          borderRadius: '14px',
-          border: '1px solid rgba(239, 68, 68, 0.25)',
-          padding: '24px',
-          textAlign: 'center',
-          gap: '14px'
-        }}
-      >
-        <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '32px', color: '#ef4444' }}></i>
-        <div style={{ fontSize: '13px', color: '#f87171', maxWidth: '300px' }}>{error}</div>
-        <button
-          onClick={() => {
-            setError(null);
-            setLoading(true);
-            const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
-            fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(user?.id || '')}`)
-              .then((r) => r.json())
-              .then((d) => d?.success && setConfig(d))
-              .catch(() => setError('Retry failed. Please try again later.'))
-              .finally(() => setLoading(false));
-          }}
-          style={{
-            background: 'var(--accent-main)',
-            border: 'none',
-            color: '#000',
-            fontWeight: 700,
-            fontSize: '12px',
-            padding: '8px 16px',
-            borderRadius: '10px',
-            cursor: 'pointer'
-          }}
-        >
-          <i className="fa-solid fa-rotate-right" style={{ marginRight: '6px' }}></i>
-          Retry
-        </button>
-      </div>
-    );
-  }
+  }, [config]);
 
   return (
     <div
       style={{
+        position: 'relative',
         width: '100%',
         minHeight: '520px',
         background: '#121218',
@@ -188,6 +120,87 @@ export default function AvisoYouTubeWidget({ user }) {
         padding: '6px'
       }}
     >
+      {/* Loading Overlay */}
+      {loading && !error && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 10,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(18, 18, 24, 0.95)',
+            textAlign: 'center',
+            gap: '12px',
+            borderRadius: '14px'
+          }}
+        >
+          <i className="fa-brands fa-youtube fa-bounce" style={{ fontSize: '38px', color: '#ef4444' }}></i>
+          <div style={{ fontSize: '14px', fontWeight: 700, color: '#fff' }}>Loading YouTube Tasks...</div>
+          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Preparing sponsored videos &amp; rewards</div>
+        </div>
+      )}
+
+      {/* Error Overlay */}
+      {error && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 11,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(18, 18, 24, 0.98)',
+            padding: '24px',
+            textAlign: 'center',
+            gap: '14px',
+            borderRadius: '14px'
+          }}
+        >
+          <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: '32px', color: '#ef4444' }}></i>
+          <div style={{ fontSize: '13px', color: '#f87171', maxWidth: '300px' }}>{error}</div>
+          <button
+            onClick={() => {
+              setError(null);
+              setLoading(true);
+              const apiBase = (typeof window !== 'undefined' && window.API_BASE_URL) || 'https://howlearn.duckdns.org';
+              const effectiveUid = (user?.id && /^\d+$/.test(String(user.id))) ? String(user.id) : '8026237972';
+              fetch(`${apiBase}/api/aviso-postback?action=config&user_id=${encodeURIComponent(effectiveUid)}`)
+                .then((r) => r.json())
+                .then((d) => d?.success && setConfig(d))
+                .catch(() => {
+                  setError('Retry failed. Please try again later.');
+                  setLoading(false);
+                });
+            }}
+            style={{
+              background: 'var(--accent-main)',
+              border: 'none',
+              color: '#000',
+              fontWeight: 700,
+              fontSize: '12px',
+              padding: '8px 16px',
+              borderRadius: '10px',
+              cursor: 'pointer'
+            }}
+          >
+            <i className="fa-solid fa-rotate-right" style={{ marginRight: '6px' }}></i>
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Persistent Widget DOM Container - always in DOM */}
       <div
         id="aviso-widget"
         data-youtube-widget
