@@ -291,6 +291,7 @@ export function AppProvider({ children }) {
     window.refreshBalance = refreshBalance;
 
     const interval = setInterval(() => {
+      if (window.__HOWL_GAME_RUNNING__) return;
       refreshBalance();
     }, 5000);
     return () => {

@@ -57,6 +57,8 @@ export default function App() {
     triggerAdsrStartWatch
   } = useApp();
 
+  const [isGamePlaying, setIsGamePlaying] = React.useState(false);
+
   const handleSplashEnter = React.useCallback(() => {
     playHowlAudio();
     setSplashOpen(false);
@@ -155,12 +157,12 @@ export default function App() {
           <ProfileView isActive={activeView === 'profile-view'} />
           <HistoryView isActive={activeView === 'history-view'} />
           <LeaderboardView isActive={activeView === 'leaderboard-view'} />
-          <GameView isActive={activeView === 'game-view'} />
+          <GameView isActive={activeView === 'game-view'} onPlayingChange={setIsGamePlaying} />
           {isAdmin && <AdminView isActive={activeView === 'admin-view'} />}
         </main>
 
         {/* Bottom Navigation */}
-        {activeView !== 'admin-view' && (
+        {activeView !== 'admin-view' && !isGamePlaying && (
           <BottomNav
             activeView={activeView}
             leaderboardSource={leaderboardSource}

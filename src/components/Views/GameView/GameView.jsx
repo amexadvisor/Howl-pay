@@ -11,7 +11,7 @@ import {
 import LottieAnimation from '../../Common/LottieAnimation';
 import './GameView.css';
 
-export default function GameView({ isActive = false }) {
+export default function GameView({ isActive = false, onPlayingChange }) {
   const {
     balance,
     applyBalance,
@@ -59,6 +59,28 @@ export default function GameView({ isActive = false }) {
     score: 0,
     cooldownTriggered: false
   });
+
+  // Sync game playing status with global flag to pause background balance polling
+  useEffect(() => {
+    window.__HOWL_GAME_RUNNING__ = runActive;
+    if (typeof onPlayingChange === 'function') {
+      onPlayingChange(runActive);
+    }
+    return () => {
+      window.__HOWL_GAME_RUNNING__ = false;
+      if (typeof onPlayingChange === 'function') {
+        onPlayingChange(false);
+      }
+    };
+  }, [runActive, onPlayingChange]);
+
+  // Reset run if user navigates away from game view
+  useEffect(() => {
+    if (!isActive && runActive) {
+      setRunActive(false);
+      setSessionToken(null);
+    }
+  }, [isActive, runActive]);
 
   // Fetch status from server
   const fetchStatus = useCallback(async () => {
@@ -302,7 +324,6 @@ export default function GameView({ isActive = false }) {
           if (ctrl) {
             const adResult = await ctrl.show();
             adSuccess = true;
-            // Adsgram reports click or engagement
             if (adResult && (adResult.done || adResult.state === 'load')) {
               // Ad played successfully
             }
@@ -383,45 +404,39 @@ export default function GameView({ isActive = false }) {
   return (
     <div id="game-view" className={`view ${isActive ? 'active' : ''}`}>
       <div className="game-view-container">
-        {/* Top Header Bar */}
-        <div className="game-top-bar">
-          <button
-            className="game-back-btn"
-            onClick={() => {
-              triggerHaptic('light');
-              if (runActive) {
-                if (window.confirm('Leave run? Current game progress will be forfeited.')) {
-                  setRunActive(false);
-                  setSessionToken(null);
-                  setActiveView('home-view');
-                }
-              } else {
+        {/* Top Header Bar (Shown in Lobby, Hidden during active run) */}
+        {!runActive && (
+          <div className="game-top-bar">
+            <button
+              className="game-back-btn"
+              onClick={() => {
+                triggerHaptic('light');
                 setActiveView('home-view');
-              }
-            }}
-          >
-            <i className="fa-solid fa-arrow-left"></i> Back
-          </button>
+              }}
+            >
+              <i className="fa-solid fa-arrow-left"></i> Back
+            </button>
 
-          <div className="game-title-badge">
-            <i className="fa-solid fa-gamepad"></i> Wolf Runner
-          </div>
+            <div className="game-title-badge">
+              <i className="fa-solid fa-gamepad"></i> Wolf Runner
+            </div>
 
-          <div className="game-status-pills">
-            {cooldownSec > 0 ? (
-              <span className="game-pill cooldown">
-                <i className="fa-solid fa-hourglass-half"></i> {formatTimer(cooldownSec)}
-              </span>
-            ) : (
-              <span className="game-pill runs">
-                <i className="fa-solid fa-bolt"></i> Runs: {status.runs_remaining}/{status.runs_per_session}
-              </span>
-            )}
+            <div className="game-status-pills">
+              {cooldownSec > 0 ? (
+                <span className="game-pill cooldown">
+                  <i className="fa-solid fa-hourglass-half"></i> {formatTimer(cooldownSec)}
+                </span>
+              ) : (
+                <span className="game-pill runs">
+                  <i className="fa-solid fa-bolt"></i> Runs: {status.runs_remaining}/{status.runs_per_session}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* State 1: Disabled / Maintenance */}
-        {!status.enabled && (
+        {!status.enabled && !runActive && (
           <div className="game-lobby-card">
             <div className="lobby-hero-art">
               <i className="fa-solid fa-screwdriver-wrench" style={{ fontSize: '64px', color: '#f59e0b' }}></i>
@@ -553,9 +568,22 @@ export default function GameView({ isActive = false }) {
           </div>
         )}
 
-        {/* State 4: Active Game Iframe */}
+        {/* State 4: Active Game Iframe (Full-bleed screen, no bottom gap) */}
         {runActive && (
-          <div className="game-iframe-wrapper">
+          <div className="game-iframe-wrapper fullscreen-mode">
+            <button
+              className="game-float-exit-btn"
+              onClick={() => {
+                triggerHaptic('light');
+                if (window.confirm('Leave run? Current game score will be lost.')) {
+                  setRunActive(false);
+                  setSessionToken(null);
+                  fetchStatus();
+                }
+              }}
+            >
+              <i className="fa-solid fa-arrow-left"></i> Exit Run
+            </button>
             <iframe
               ref={iframeRef}
               src="/wolf-runner.html"
