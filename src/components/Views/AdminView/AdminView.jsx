@@ -522,7 +522,21 @@ export default function AdminView({ isActive = false }) {
   const saveGameConfig = async () => {
     try {
       setGameConfigSaving(true);
-      const res = await adminCall('set_game_config', { game_config: gameConfig });
+      const payload = {
+        enabled: Boolean(gameConfig.enabled),
+        min_reward: parseInt(gameConfig.min_reward, 10) || 15,
+        max_reward: parseInt(gameConfig.max_reward, 10) || 100,
+        target_score: parseInt(gameConfig.target_score, 10) || 50,
+        runs_per_session: parseInt(gameConfig.runs_per_session, 10) || 3,
+        cooldown_min: parseInt(gameConfig.cooldown_min, 10) || 30,
+        diminishing_pct: gameConfig.diminishing_pct !== '' && !isNaN(parseInt(gameConfig.diminishing_pct, 10))
+          ? Math.max(0, Math.min(50, parseInt(gameConfig.diminishing_pct, 10)))
+          : 15,
+        max_revives: gameConfig.max_revives !== '' && !isNaN(parseInt(gameConfig.max_revives, 10))
+          ? Math.max(0, Math.min(10, parseInt(gameConfig.max_revives, 10)))
+          : 2
+      };
+      const res = await adminCall('set_game_config', { game_config: payload });
       if (res?.success) {
         showTopNotification('SAVED', 'Wolf Runner game configuration updated successfully!', 'success');
         if (res.game_config) {
@@ -1793,8 +1807,8 @@ export default function AdminView({ isActive = false }) {
               MIN REWARD (HOWL)
               <input
                 type="number"
-                value={gameConfig.min_reward}
-                onChange={(e) => setGameConfig({ ...gameConfig, min_reward: parseInt(e.target.value, 10) || 1 })}
+                value={gameConfig.min_reward ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, min_reward: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1803,8 +1817,8 @@ export default function AdminView({ isActive = false }) {
               MAX REWARD (HOWL)
               <input
                 type="number"
-                value={gameConfig.max_reward}
-                onChange={(e) => setGameConfig({ ...gameConfig, max_reward: parseInt(e.target.value, 10) || 10 })}
+                value={gameConfig.max_reward ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, max_reward: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1813,8 +1827,8 @@ export default function AdminView({ isActive = false }) {
               TARGET SCORE FOR MAX REWARD
               <input
                 type="number"
-                value={gameConfig.target_score}
-                onChange={(e) => setGameConfig({ ...gameConfig, target_score: parseInt(e.target.value, 10) || 10 })}
+                value={gameConfig.target_score ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, target_score: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1823,8 +1837,8 @@ export default function AdminView({ isActive = false }) {
               RUNS PER SESSION
               <input
                 type="number"
-                value={gameConfig.runs_per_session}
-                onChange={(e) => setGameConfig({ ...gameConfig, runs_per_session: parseInt(e.target.value, 10) || 1 })}
+                value={gameConfig.runs_per_session ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, runs_per_session: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1833,8 +1847,8 @@ export default function AdminView({ isActive = false }) {
               COOLDOWN (MINUTES)
               <input
                 type="number"
-                value={gameConfig.cooldown_min}
-                onChange={(e) => setGameConfig({ ...gameConfig, cooldown_min: parseInt(e.target.value, 10) || 1 })}
+                value={gameConfig.cooldown_min ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, cooldown_min: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1843,8 +1857,8 @@ export default function AdminView({ isActive = false }) {
               DIMINISHING RATE (%) PER RUN
               <input
                 type="number"
-                value={gameConfig.diminishing_pct}
-                onChange={(e) => setGameConfig({ ...gameConfig, diminishing_pct: parseInt(e.target.value, 10) || 0 })}
+                value={gameConfig.diminishing_pct ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, diminishing_pct: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
@@ -1853,8 +1867,8 @@ export default function AdminView({ isActive = false }) {
               MAX REVIVES PER RUN
               <input
                 type="number"
-                value={gameConfig.max_revives}
-                onChange={(e) => setGameConfig({ ...gameConfig, max_revives: parseInt(e.target.value, 10) || 0 })}
+                value={gameConfig.max_revives ?? ''}
+                onChange={(e) => setGameConfig({ ...gameConfig, max_revives: e.target.value })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
