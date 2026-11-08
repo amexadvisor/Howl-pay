@@ -284,57 +284,6 @@ export default function HomeView({ isActive = true }) {
         </div>
       </div>
 
-      {/* Wolf Runner Game Banner */}
-      <div
-        className="clickable"
-        onClick={() => {
-          triggerHaptic('medium');
-          setActiveView('game-view');
-        }}
-        style={{ marginBottom: '12px' }}
-      >
-        <div
-          className="glass-card task-row"
-          style={{
-            background: 'linear-gradient(135deg, rgba(14, 165, 233, 0.22), rgba(99, 102, 241, 0.14))',
-            borderColor: 'rgba(56, 189, 248, 0.45)',
-            boxShadow: '0 6px 24px rgba(14, 165, 233, 0.2)',
-            marginBottom: 0
-          }}
-        >
-          <div
-            className="task-icon"
-            style={{
-              background: 'linear-gradient(135deg, #0284c7, #2563eb)',
-              color: '#ffffff',
-              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.4)'
-            }}
-          >
-            <i className="fa-solid fa-gamepad" style={{ fontSize: '20px' }}></i>
-          </div>
-          <div className="task-text">
-            <h4 style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              Wolf Runner Game
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
-                  color: '#0f172a',
-                  fontSize: '9px',
-                  fontWeight: 900,
-                  padding: '2px 7px',
-                  borderRadius: '6px',
-                  letterSpacing: '0.5px'
-                }}
-              >
-                PLAY &amp; EARN
-              </span>
-            </h4>
-            <p>Sprint, dodge hazards &amp; earn up to 100+ HOWL per run</p>
-          </div>
-          <i className="fa-solid fa-chevron-right" style={{ color: '#38bdf8' }}></i>
-        </div>
-      </div>
-
       {/* Quick Tasks row */}
       <div className="clickable" onClick={() => setActiveView('quick-view')}>
         <div className="glass-card task-row">

@@ -544,7 +544,7 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                 </li>
                 <li>
                   <i className="fa-solid fa-coins"></i>
-                  <span>Watch an ad to unlock your final HOWL reward. <strong>Click the ad for +20% bonus!</strong></span>
+                  <span>Watch an ad to unlock your final HOWL reward.</span>
                 </li>
               </ul>
             </div>
@@ -614,14 +614,10 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                 <div className="reward-preview-amount">
                   <i className="fa-solid fa-paw"></i> +{rewardPreview.base} HOWL
                 </div>
-                <div className="reward-click-bonus-note">
-                  <i className="fa-solid fa-wand-magic-sparkles"></i>
-                  Click ad to earn +{rewardPreview.bonus} extra (+20% bonus!)
-                </div>
               </div>
 
               <div className="game-modal-actions">
-                {/* Choice B: Revive / Continue */}
+                {/* 1. Continue playing by watching an interstitial ad */}
                 <button
                   className="btn-revive"
                   onClick={handleRevive}
@@ -631,8 +627,8 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                     <span><i className="fa-solid fa-spinner fa-spin"></i> Reviving...</span>
                   ) : revivesLeft > 0 ? (
                     <>
-                      <span><i className="fa-solid fa-heart-pulse"></i> Continue Run ({revivesLeft} Left)</span>
-                      <span className="subtext">Watch ad to restore 100% HP &amp; 3s shield</span>
+                      <span><i className="fa-solid fa-heart-pulse"></i> Continue Playing</span>
+                      <span className="subtext">Watch interstitial ad to revive ({revivesLeft} left)</span>
                     </>
                   ) : (
                     <>
@@ -642,7 +638,7 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                   )}
                 </button>
 
-                {/* Choice A: Claim Reward */}
+                {/* 2. Claim reward */}
                 <button
                   className="btn-claim"
                   onClick={() => handleClaim(false)}
@@ -652,26 +648,10 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                     <span><i className="fa-solid fa-spinner fa-spin"></i> Processing Claim...</span>
                   ) : (
                     <>
-                      <span><i className="fa-solid fa-gift"></i> Claim +{rewardPreview.base} HOWL</span>
+                      <span><i className="fa-solid fa-gift"></i> Claim Reward (+{rewardPreview.base} HOWL)</span>
                       <span className="subtext">Watch ad to credit reward to balance</span>
                     </>
                   )}
-                </button>
-
-                {/* Claim with Ad Click Engagement Bonus */}
-                <button
-                  className="btn-claim"
-                  style={{
-                    background: 'linear-gradient(135deg, #10b981 0%, #047857 100%)',
-                    color: '#ffffff'
-                  }}
-                  onClick={() => handleClaim(true)}
-                  disabled={actionBusy}
-                >
-                  <span>
-                    <i className="fa-solid fa-fire"></i> Claim with Ad Click (+{rewardPreview.totalWithBonus} HOWL)
-                  </span>
-                  <span className="subtext">Includes +20% engagement bonus</span>
                 </button>
               </div>
             </div>
