@@ -1774,21 +1774,22 @@ function drawFullScreenShadowBanner() {
 
 function triggerGameOver() {
   gameState = 'GAMEOVER';
-  overlayTitle.textContent = 'Run Ended';
-  overlayDesc.innerHTML = `Skill Score: <strong style="color:#fbbf24;">${skillScore}</strong> &bull; Hazard Tiers Unlocked: <strong>${highestTierUnlocked} / ${UNLOCK_TIERS.length}</strong>`;
-  startBtn.textContent = 'RUN AGAIN';
-  restartFromPauseBtn.classList.add('hidden');
-  overlay.classList.remove('hidden');
 
-  try {
-    if (window.parent && window.parent !== window) {
+  if (window.parent && window.parent !== window) {
+    try {
       window.parent.postMessage({
         type: 'WOLF_GAME_OVER',
         score: Math.max(0, Math.floor(skillScore)),
         highestTier: highestTierUnlocked
       }, '*');
-    }
-  } catch (err) {}
+    } catch (err) {}
+  } else {
+    overlayTitle.textContent = 'Run Ended';
+    overlayDesc.innerHTML = `Skill Score: <strong style="color:#fbbf24;">${skillScore}</strong> &bull; Hazard Tiers Unlocked: <strong>${highestTierUnlocked} / ${UNLOCK_TIERS.length}</strong>`;
+    startBtn.textContent = 'RUN AGAIN';
+    restartFromPauseBtn.classList.add('hidden');
+    overlay.classList.remove('hidden');
+  }
 }
 
 function reviveWolf() {

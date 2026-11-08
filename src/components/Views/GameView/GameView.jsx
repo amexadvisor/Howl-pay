@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../../../context/AppContext';
 import {
   getGameStatus,
@@ -568,8 +569,8 @@ export default function GameView({ isActive = false, onPlayingChange }) {
           </div>
         )}
 
-        {/* State 4: Active Game Iframe (Full-bleed screen, no bottom gap) */}
-        {runActive && (
+        {/* State 4: Active Game Iframe (Portaled to document.body for true full screen) */}
+        {runActive && typeof document !== 'undefined' && createPortal(
           <div className="game-iframe-wrapper fullscreen-mode">
             <button
               className="game-float-exit-btn"
@@ -591,11 +592,12 @@ export default function GameView({ isActive = false, onPlayingChange }) {
               className="game-iframe"
               allow="autoplay; fullscreen"
             />
-          </div>
+          </div>,
+          document.body
         )}
 
-        {/* Game Over Modal: Claim vs Continue */}
-        {gameOverModal.open && (
+        {/* Game Over Modal: Portaled directly to document.body so it NEVER gets cut off or pushed up */}
+        {gameOverModal.open && typeof document !== 'undefined' && createPortal(
           <div className="game-modal-backdrop">
             <div className="game-modal-content">
               <div className="game-over-badge">
@@ -655,11 +657,12 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                 </button>
               </div>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
-        {/* Claim Success Celebration Splash Modal */}
-        {claimSuccessModal.open && (
+        {/* Claim Success Celebration Splash Modal: Portaled to document.body */}
+        {claimSuccessModal.open && typeof document !== 'undefined' && createPortal(
           <div className="game-modal-backdrop">
             <div className="game-modal-content">
               <div className="success-coin-icon">
@@ -712,7 +715,8 @@ export default function GameView({ isActive = false, onPlayingChange }) {
                 Continue
               </button>
             </div>
-          </div>
+          </div>,
+          document.body
         )}
       </div>
     </div>
