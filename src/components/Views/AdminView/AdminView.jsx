@@ -86,6 +86,20 @@ export default function AdminView({ isActive = false }) {
   });
   const [promoSaving, setPromoSaving] = useState(false);
 
+  // Wolf Runner Game Admin State
+  const [gameConfig, setGameConfig] = useState({
+    enabled: true,
+    min_reward: 15,
+    max_reward: 100,
+    target_score: 50,
+    runs_per_session: 3,
+    cooldown_min: 30,
+    diminishing_pct: 15,
+    max_revives: 2
+  });
+  const [gameConfigLoading, setGameConfigLoading] = useState(false);
+  const [gameConfigSaving, setGameConfigSaving] = useState(false);
+
   const setQuickExpiry = (days) => {
     const d = new Date();
     d.setDate(d.getDate() + days);
@@ -103,6 +117,7 @@ export default function AdminView({ isActive = false }) {
     loadFtAdminTasks();
     loadBoinkersAdmin();
     loadPromoCodes();
+    loadGameConfig();
   }, []);
 
   const loadAdConfig = async () => {
@@ -481,6 +496,48 @@ export default function AdminView({ isActive = false }) {
     }
   };
 
+  const loadGameConfig = async () => {
+    try {
+      setGameConfigLoading(true);
+      const res = await adminCall('get_game_config');
+      if (res?.success && res.game_config) {
+        setGameConfig({
+          enabled: Boolean(res.game_config.enabled),
+          min_reward: res.game_config.min_reward ?? 15,
+          max_reward: res.game_config.max_reward ?? 100,
+          target_score: res.game_config.target_score ?? 50,
+          runs_per_session: res.game_config.runs_per_session ?? 3,
+          cooldown_min: res.game_config.cooldown_min ?? 30,
+          diminishing_pct: res.game_config.diminishing_pct ?? 15,
+          max_revives: res.game_config.max_revives ?? 2
+        });
+      }
+    } catch (e) {
+      console.warn('[AdminView] Error loading game config:', e);
+    } finally {
+      setGameConfigLoading(false);
+    }
+  };
+
+  const saveGameConfig = async () => {
+    try {
+      setGameConfigSaving(true);
+      const res = await adminCall('set_game_config', { game_config: gameConfig });
+      if (res?.success) {
+        showTopNotification('SAVED', 'Wolf Runner game configuration updated successfully!', 'success');
+        if (res.game_config) {
+          setGameConfig(res.game_config);
+        }
+      } else {
+        showTopNotification('ERROR', res?.error || 'Failed to update game configuration.', 'error');
+      }
+    } catch (e) {
+      showTopNotification('ERROR', 'Network error saving game settings.', 'error');
+    } finally {
+      setGameConfigSaving(false);
+    }
+  };
+
   const handleLookup = async () => {
     if (!lookupId.trim()) return;
     setSearching(true);
@@ -701,6 +758,7 @@ export default function AdminView({ isActive = false }) {
         {[
           { id: 'lookup', label: 'User Lookup', icon: 'fa-solid fa-magnifying-glass' },
           { id: 'promos', label: 'Promo Codes', icon: 'fa-solid fa-ticket' },
+          { id: 'game', label: 'Wolf Game', icon: 'fa-solid fa-gamepad' },
           { id: 'ads', label: 'Monetag & Task Ads', icon: 'fa-solid fa-sliders' },
           { id: 'adsr', label: 'AdsGram Video Block', icon: 'fa-solid fa-gift' },
           { id: 'featured', label: 'Featured Tasks', icon: 'fa-solid fa-star' },
@@ -1701,6 +1759,126 @@ export default function AdminView({ isActive = false }) {
             style={{ width: '100%', background: 'var(--accent-main)', color: '#000', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
           >
             {qtSaving ? 'Saving...' : 'Save Quick Tasks Settings'}
+          </button>
+        </div>
+      )}
+
+      {/* TAB: Wolf Game Controls */}
+      {activeTab === 'game' && (
+        <div className="glass-card">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+            <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', margin: 0 }}>
+              <i className="fa-solid fa-gamepad" style={{ color: 'var(--accent-main)' }}></i> Wolf Runner Game Controls
+            </h3>
+            <button
+              onClick={loadGameConfig}
+              style={{ background: 'none', border: 'none', color: 'var(--accent-main)', fontSize: '12px', cursor: 'pointer' }}
+            >
+              <i className="fa-solid fa-rotate"></i> Refresh
+            </button>
+          </div>
+
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#fff', fontWeight: 800, margin: '12px 0', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={gameConfig.enabled}
+              onChange={(e) => setGameConfig({ ...gameConfig, enabled: e.target.checked })}
+              style={{ width: '18px', height: '18px', accentColor: 'var(--accent-main)' }}
+            />
+            Game Enabled (Active for Players)
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '14px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              MIN REWARD (HOWL)
+              <input
+                type="number"
+                value={gameConfig.min_reward}
+                onChange={(e) => setGameConfig({ ...gameConfig, min_reward: parseInt(e.target.value, 10) || 1 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              MAX REWARD (HOWL)
+              <input
+                type="number"
+                value={gameConfig.max_reward}
+                onChange={(e) => setGameConfig({ ...gameConfig, max_reward: parseInt(e.target.value, 10) || 10 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              TARGET SCORE FOR MAX REWARD
+              <input
+                type="number"
+                value={gameConfig.target_score}
+                onChange={(e) => setGameConfig({ ...gameConfig, target_score: parseInt(e.target.value, 10) || 10 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              RUNS PER SESSION
+              <input
+                type="number"
+                value={gameConfig.runs_per_session}
+                onChange={(e) => setGameConfig({ ...gameConfig, runs_per_session: parseInt(e.target.value, 10) || 1 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              COOLDOWN (MINUTES)
+              <input
+                type="number"
+                value={gameConfig.cooldown_min}
+                onChange={(e) => setGameConfig({ ...gameConfig, cooldown_min: parseInt(e.target.value, 10) || 1 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              DIMINISHING RATE (%) PER RUN
+              <input
+                type="number"
+                value={gameConfig.diminishing_pct}
+                onChange={(e) => setGameConfig({ ...gameConfig, diminishing_pct: parseInt(e.target.value, 10) || 0 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+
+            <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              MAX REVIVES PER RUN
+              <input
+                type="number"
+                value={gameConfig.max_revives}
+                onChange={(e) => setGameConfig({ ...gameConfig, max_revives: parseInt(e.target.value, 10) || 0 })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border-soft)', borderRadius: '12px', padding: '12px', marginTop: '16px', fontSize: '11px', color: '#94a3b8', lineHeight: 1.5 }}>
+            <b style={{ color: '#fff' }}>Game Economy Summary:</b>
+            <br />
+            • Dynamic reward scales linearly between Min ({gameConfig.min_reward}) and Max ({gameConfig.max_reward}) according to score up to {gameConfig.target_score} pts.
+            <br />
+            • Consecutive runs inside a session reduce rewards by {gameConfig.diminishing_pct}% per run.
+            <br />
+            • When {gameConfig.runs_per_session} runs are completed, player gets locked out for {gameConfig.cooldown_min} minutes.
+            <br />
+            • Revive triggers Adsgram Interstitial + Monetag ads (up to {gameConfig.max_revives} revives). Ad click on claim grants +20% engagement bonus.
+          </div>
+
+          <button
+            onClick={saveGameConfig}
+            disabled={gameConfigSaving}
+            className="primary-btn"
+            style={{ width: '100%', marginTop: '16px', padding: '14px', borderRadius: '12px', fontWeight: 800 }}
+          >
+            {gameConfigSaving ? 'Saving Settings...' : 'Save Game Settings'}
           </button>
         </div>
       )}

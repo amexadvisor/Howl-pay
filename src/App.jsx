@@ -22,6 +22,7 @@ import TeamView from './components/Views/TeamView/TeamView';
 import ProfileView from './components/Views/ProfileView/ProfileView';
 import HistoryView from './components/Views/HistoryView/HistoryView';
 import LeaderboardView from './components/Views/LeaderboardView/LeaderboardView';
+import GameView from './components/Views/GameView/GameView';
 import AdminView from './components/Views/AdminView/AdminView';
 
 export default function App() {
@@ -154,6 +155,7 @@ export default function App() {
           <ProfileView isActive={activeView === 'profile-view'} />
           <HistoryView isActive={activeView === 'history-view'} />
           <LeaderboardView isActive={activeView === 'leaderboard-view'} />
+          <GameView isActive={activeView === 'game-view'} />
           {isAdmin && <AdminView isActive={activeView === 'admin-view'} />}
         </main>
 

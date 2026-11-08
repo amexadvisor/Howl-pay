@@ -262,3 +262,77 @@ export async function claimPromoCode({ code, adType, adClicked, clicks = 0 }) {
   });
   return res.json();
 }
+
+// -------------------------------------------------------------
+// Wolf Runner Game API Methods
+// -------------------------------------------------------------
+export async function getGameStatus() {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/game?action=status`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ action: 'status', initData }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+export async function startGameRun() {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/game`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ action: 'start_run', initData }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+export async function reviveGameRun(sessionToken) {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/game`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ action: 'revive', session_token: sessionToken, initData }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+export async function claimGameReward(sessionToken, score, clickedAd = false) {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/game`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({
+      action: 'claim',
+      session_token: sessionToken,
+      score: Math.max(0, parseInt(score, 10) || 0),
+      clicked_ad: Boolean(clickedAd),
+      initData
+    }),
+    cache: 'no-store'
+  });
+  return res.json();
+}
+
+export async function getAdminGameConfig() {
+  return adminCall('get_game_config');
+}
+
+export async function setAdminGameConfig(gameConfig) {
+  return adminCall('set_game_config', { game_config: gameConfig });
+}
+

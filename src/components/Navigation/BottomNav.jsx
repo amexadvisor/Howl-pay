@@ -13,6 +13,8 @@ export default function BottomNav({ activeView, leaderboardSource, onViewChange,
 
   const isTasksActive = activeView === 'tasks-view';
 
+  const isGameActive = activeView === 'game-view';
+
   const isTeamActive = activeView === 'team-view';
 
   const isProfileActive =
@@ -37,8 +39,8 @@ export default function BottomNav({ activeView, leaderboardSource, onViewChange,
       </button>
 
       <button
-        className="nav-item center-btn"
-        onClick={() => handleNavClick('home-view')}
+        className={`nav-item center-btn ${isGameActive ? 'active' : ''}`}
+        onClick={() => handleNavClick('game-view')}
       >
         <div className="center-icon-wrap">
           <div className="center-inner" id="nav-wolf-lottie" style={{ padding: '12px' }}>
