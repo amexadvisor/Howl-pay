@@ -3,7 +3,7 @@ export const API_BASE_URL = (typeof window !== 'undefined' && window.API_BASE_UR
 export const BOT_USERNAME = 'howl_paybot';
 export const ADMIN_IDS = ['8026237972'];
 export const ADSGRAM_INTERSTITIAL_BLOCK_ID = 'int-58148';
-export const ADSR_BLOCK_ID = '58149';
+export const ADSR_BLOCK_ID = '59121';
 export const ADSGRAM_BLOCK_ID = 'task-58147';
 
 export function getInitData() {
