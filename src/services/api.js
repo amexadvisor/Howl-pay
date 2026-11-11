@@ -193,6 +193,19 @@ export async function submitWithdrawal(data) {
   return res.json();
 }
 
+export async function fetchWithdrawEligibility() {
+  const initData = getInitData();
+  const res = await fetch(`${API_BASE_URL}/api/withdraw`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Telegram-Init-Data': initData
+    },
+    body: JSON.stringify({ action: 'eligibility', initData })
+  });
+  return res.json();
+}
+
 export async function fetchHistory(userId) {
   const res = await fetch(`${API_BASE_URL}/api/history?userId=${encodeURIComponent(userId)}`, {
     headers: { 'Content-Type': 'application/json' }

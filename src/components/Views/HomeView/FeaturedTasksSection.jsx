@@ -14,6 +14,11 @@ const FT_TG_SVG = (
 export default function FeaturedTasksSection() {
   const { triggerHaptic, showTopNotification, refreshBalance, setFtModal } = useApp();
   const [tasks, setTasks] = useState([]);
+  const [youtubeSub, setYoutubeSub] = useState(null);
+  const [ytHandle, setYtHandle] = useState('');
+  const [ytClaiming, setYtClaiming] = useState(false);
+  const [ytError, setYtError] = useState('');
+  const ytOpenedAtRef = useRef(0);
   const [loading, setLoading] = useState(true);
   const [miniappTimers, setMiniappTimers] = useState({});
   const [resetCountdowns, setResetCountdowns] = useState({});
@@ -58,8 +63,13 @@ export default function FeaturedTasksSection() {
   const loadTasks = async () => {
     try {
       const res = await quickTasksCall('featured_list');
-      if (res && res.success && Array.isArray(res.tasks)) {
-        setTasks(sortTasks(res.tasks));
+      if (res && res.success) {
+        if (Array.isArray(res.tasks)) {
+          setTasks(sortTasks(res.tasks));
+        }
+        if (res.youtube_sub) {
+          setYoutubeSub(res.youtube_sub);
+        }
       }
     } catch (e) {
       console.error('Failed to load featured tasks:', e);
@@ -206,7 +216,81 @@ export default function FeaturedTasksSection() {
     }
   };
 
-  if (loading || tasks.length === 0) return null;
+  const copyText = (text) => {
+    triggerHaptic('light');
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      ta.remove();
+    }
+    showTopNotification('COPIED!', 'Copied to clipboard', 'cyan');
+  };
+
+  const handleOpenYouTube = () => {
+    triggerHaptic('light');
+    setYtError('');
+    ytOpenedAtRef.current = Date.now();
+    // Open YouTube app/home without a direct channel referrer link (organic search requirement)
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink('https://www.youtube.com');
+    } else {
+      window.open('https://www.youtube.com', '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleClaimYouTube = async () => {
+    if (ytClaiming || youtubeSub?.done) return;
+    setYtError('');
+
+    const cleanHandle = ytHandle.trim();
+    if (!cleanHandle) {
+      triggerHaptic('warning');
+      setYtError('Please enter your YouTube @handle first!');
+      return;
+    }
+
+    const elapsedMs = ytOpenedAtRef.current ? Date.now() - ytOpenedAtRef.current : 0;
+    if (!ytOpenedAtRef.current || elapsedMs < 15000) {
+      triggerHaptic('warning');
+      const searchHint = youtubeSub?.target_handle || youtubeSub?.target_title || 'our channel';
+      const msg = !ytOpenedAtRef.current
+        ? `Please tap "1. Open YouTube App" first, search ${searchHint}, and subscribe!`
+        : `Please subscribe on YouTube first (${Math.ceil((15000 - elapsedMs) / 1000)}s left).`;
+      setYtError(msg);
+      return;
+    }
+
+    setYtClaiming(true);
+    triggerHaptic('medium');
+
+    try {
+      const res = await quickTasksCall('claim_youtube', { yt_handle: cleanHandle });
+      if (res && res.success) {
+        triggerHaptic('success');
+        showTopNotification('YOUTUBE REWARD!', `+${res.reward || youtubeSub?.reward || 0} HOWL credited!`, 'gold');
+        refreshBalance();
+        loadTasks();
+      } else {
+        triggerHaptic('error');
+        const errMsg = res?.error || res?.message || 'Could not verify subscription. Try again.';
+        setYtError(errMsg);
+        showTopNotification('VERIFICATION FAILED', errMsg, 'error');
+      }
+    } catch (err) {
+      const msg = 'Network error verifying YouTube subscription. Please try again.';
+      setYtError(msg);
+      showTopNotification('ERROR', msg, 'error');
+    } finally {
+      setYtClaiming(false);
+    }
+  };
+
+  if (loading || (tasks.length === 0 && !youtubeSub?.enabled)) return null;
 
   return (
     <div id="featured-tasks-section" style={{ marginTop: '20px' }}>
@@ -217,6 +301,202 @@ export default function FeaturedTasksSection() {
       </div>
 
       <div id="featured-tasks-list" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {/* Pinned #1 (Above Boinkers): Official YouTube Channel Subscription */}
+        {youtubeSub && youtubeSub.enabled && (
+          youtubeSub.done ? (
+            <div
+              className="glass-card featured-task-card"
+              id="ft-card-youtube-sub"
+              style={{
+                border: '1px solid rgba(34, 197, 94, 0.4)',
+                background: 'linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(15, 20, 32, 0.9))'
+              }}
+            >
+              <div
+                className="ft-icon-col"
+                style={{
+                  background: 'rgba(239, 68, 68, 0.16)',
+                  borderColor: 'rgba(239, 68, 68, 0.35)',
+                  color: '#ef4444'
+                }}
+              >
+                <i className="fa-brands fa-youtube" style={{ fontSize: '20px' }}></i>
+              </div>
+              <div className="ft-info-col">
+                <div className="ft-title">
+                  Subscribe on YouTube
+                  <span
+                    className="golden-partner-badge"
+                    style={{
+                      background: 'rgba(34, 197, 94, 0.18)',
+                      borderColor: 'rgba(34, 197, 94, 0.45)',
+                      color: '#4ade80'
+                    }}
+                  >
+                    VERIFIED
+                  </span>
+                </div>
+                <div className="ft-desc">
+                  {youtubeSub.claimed_handle ? `Linked: ${youtubeSub.claimed_handle}` : 'Withdrawal requirement unlocked'}
+                </div>
+                <div className="ft-reward">
+                  <i className="fa-solid fa-paw"></i> +{Number(youtubeSub.reward || 0).toLocaleString()} HOWL
+                </div>
+              </div>
+              <div className="ft-actions-col">
+                <button className="ft-btn ft-btn-done" disabled>
+                  <i className="fa-solid fa-check"></i> DONE
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div
+              className="glass-card"
+              id="ft-card-youtube-sub"
+              style={{
+                padding: '14px 16px',
+                marginBottom: 0,
+                border: '1px solid rgba(239, 68, 68, 0.48)',
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.12) 0%, rgba(18, 16, 26, 0.94) 100%)',
+                boxShadow: 'inset 0 1px 0 rgba(239, 68, 68, 0.22)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                  <div
+                    className="ft-icon-col"
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.2)',
+                      borderColor: 'rgba(239, 68, 68, 0.45)',
+                      color: '#ef4444'
+                    }}
+                  >
+                    <i className="fa-brands fa-youtube" style={{ fontSize: '21px' }}></i>
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div className="ft-title" style={{ flexWrap: 'wrap' }}>
+                      Subscribe on YouTube
+                      <span
+                        className="golden-partner-badge"
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.24)',
+                          borderColor: 'rgba(239, 68, 68, 0.5)',
+                          color: '#fca5a5'
+                        }}
+                      >
+                        REQUIRED TO WITHDRAW
+                      </span>
+                    </div>
+                    <div className="ft-reward" style={{ marginTop: '2px' }}>
+                      <i className="fa-solid fa-paw"></i> +{Number(youtubeSub.reward || 0).toLocaleString()} HOWL
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <ol
+                className="qt-muted"
+                style={{ paddingLeft: '18px', margin: '0 0 10px 0', lineHeight: 1.5, fontSize: '12px' }}
+              >
+                <li>
+                  Tap <b>1. Open YouTube App</b> below.
+                </li>
+                <li>
+                  Search{' '}
+                  <b style={{ color: '#fff' }}>
+                    {youtubeSub.target_handle || youtubeSub.target_title || 'our channel'}
+                  </b>{' '}
+                  and tap <b>Subscribe</b>.
+                </li>
+                <li>
+                  Make sure <i>&ldquo;Keep all my subscriptions private&rdquo;</i> is turned <b>OFF</b> in YouTube Privacy Settings.
+                </li>
+                <li>
+                  Enter your own YouTube <b>@handle</b> below and tap <b>Check</b>.
+                </li>
+              </ol>
+
+              {youtubeSub.target_handle && (
+                <div className="qt-text-item" style={{ marginBottom: '10px' }}>
+                  <span>Search: {youtubeSub.target_handle}</span>
+                  <button className="qt-copy" onClick={() => copyText(youtubeSub.target_handle)}>
+                    <i className="fa-regular fa-copy"></i>
+                  </button>
+                </div>
+              )}
+
+              <button
+                className="qt-btn"
+                style={{
+                  width: '100%',
+                  flex: 'none',
+                  marginBottom: '8px',
+                  background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                  color: '#fff'
+                }}
+                onClick={handleOpenYouTube}
+              >
+                <i className="fa-brands fa-youtube"></i> 1. OPEN YOUTUBE APP
+              </button>
+
+              <input
+                type="text"
+                id="ft-yt-handle-input"
+                placeholder="Your YouTube @handle (e.g. @alex123)"
+                value={ytHandle}
+                onChange={(e) => {
+                  setYtHandle(e.target.value);
+                  if (ytError) setYtError('');
+                }}
+                style={{
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  background: 'rgba(0, 0, 0, 0.35)',
+                  border: '1px solid var(--border-soft)',
+                  color: '#fff',
+                  padding: '10px 12px',
+                  borderRadius: '10px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  marginBottom: '4px',
+                  outline: 'none'
+                }}
+              />
+              <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.35 }}>
+                Tip: In YouTube App, tap <b>You</b> (bottom-right) to see your <b>@handle</b> under your name.
+              </div>
+
+              {ytError && (
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#fca5a5',
+                    background: 'rgba(239, 68, 68, 0.14)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    lineHeight: 1.4
+                  }}
+                >
+                  {ytError}
+                </div>
+              )}
+
+              <button
+                className="qt-btn"
+                id="ft-yt-check-btn"
+                style={{ width: '100%', flex: 'none' }}
+                disabled={ytClaiming}
+                onClick={handleClaimYouTube}
+              >
+                {ytClaiming ? 'VERIFYING WITH YOUTUBE...' : '2. CHECK SUBSCRIPTION'}
+              </button>
+            </div>
+          )
+        )}
+
         {tasks.map((task) => {
           const isGolden = task.golden_glow || (task.id && task.id.startsWith('boinkers_'));
           const glowClass = isGolden ? ' golden-glow-task' : '';

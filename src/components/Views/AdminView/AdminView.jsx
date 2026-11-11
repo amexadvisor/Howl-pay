@@ -344,7 +344,26 @@ export default function AdminView({ isActive = false }) {
         bio: {
           enabled: qtConfig.bio.enabled,
           reward: Number(qtConfig.bio.reward)
-        },
+        }
+      };
+      const res = await adminCall('set_quick_tasks', { config: updated });
+      if (res?.success) {
+        showTopNotification('SAVED', 'Quick tasks settings saved', 'success');
+      } else {
+        showTopNotification('ERROR', res?.error || 'Could not save quick task settings', 'error');
+      }
+    } catch (e) {
+      showTopNotification('ERROR', 'Network error', 'error');
+    } finally {
+      setQtSaving(false);
+    }
+  };
+
+  const saveYoutubeSubConfig = async () => {
+    setQtSaving(true);
+    triggerHaptic('medium');
+    try {
+      const updated = {
         youtube_sub: {
           enabled: !!qtConfig.youtube_sub?.enabled,
           reward: Number(qtConfig.youtube_sub?.reward),
@@ -367,9 +386,9 @@ export default function AdminView({ isActive = false }) {
             }
           }));
         }
-        showTopNotification('SAVED', 'Quick tasks settings saved', 'success');
+        showTopNotification('SAVED', 'YouTube Subscribe (#1 Featured) saved', 'success');
       } else {
-        showTopNotification('ERROR', res?.error || 'Could not save quick task settings', 'error');
+        showTopNotification('ERROR', res?.error || 'Could not save YouTube task settings', 'error');
       }
     } catch (e) {
       showTopNotification('ERROR', 'Network error', 'error');
@@ -1224,14 +1243,14 @@ export default function AdminView({ isActive = false }) {
             Add Channel/Group tasks or Mini App visits.
           </p>
 
-          <div style={{ display: 'flex', gap: '8px', margin: '12px 0' }}>
+          <div style={{ display: 'flex', gap: '6px', margin: '12px 0' }}>
             <button
               onClick={() => setFtSubTab('channel')}
               style={{
                 flex: 1,
-                padding: '10px',
+                padding: '10px 6px',
                 borderRadius: '10px',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 800,
                 border: ftSubTab === 'channel' ? 'none' : '1px solid var(--border-soft)',
                 background: ftSubTab === 'channel' ? 'var(--accent-main)' : 'rgba(0,0,0,0.3)',
@@ -1239,15 +1258,15 @@ export default function AdminView({ isActive = false }) {
                 cursor: 'pointer'
               }}
             >
-              <i className="fa-brands fa-telegram"></i> Telegram Channel
+              <i className="fa-brands fa-telegram"></i> Channel
             </button>
             <button
               onClick={() => setFtSubTab('miniapp')}
               style={{
                 flex: 1,
-                padding: '10px',
+                padding: '10px 6px',
                 borderRadius: '10px',
-                fontSize: '12px',
+                fontSize: '11px',
                 fontWeight: 800,
                 border: ftSubTab === 'miniapp' ? 'none' : '1px solid var(--border-soft)',
                 background: ftSubTab === 'miniapp' ? 'var(--accent-main)' : 'rgba(0,0,0,0.3)',
@@ -1255,11 +1274,94 @@ export default function AdminView({ isActive = false }) {
                 cursor: 'pointer'
               }}
             >
-              <i className="fa-solid fa-gamepad"></i> Mini App / Bot
+              <i className="fa-solid fa-gamepad"></i> Mini App
+            </button>
+            <button
+              onClick={() => setFtSubTab('youtube')}
+              style={{
+                flex: 1,
+                padding: '10px 6px',
+                borderRadius: '10px',
+                fontSize: '11px',
+                fontWeight: 800,
+                border: ftSubTab === 'youtube' ? 'none' : '1px solid rgba(239, 68, 68, 0.35)',
+                background: ftSubTab === 'youtube' ? '#ef4444' : 'rgba(239, 68, 68, 0.12)',
+                color: ftSubTab === 'youtube' ? '#fff' : '#fca5a5',
+                cursor: 'pointer'
+              }}
+            >
+              <i className="fa-brands fa-youtube"></i> YouTube (#1)
             </button>
           </div>
 
-          {ftSubTab === 'channel' ? (
+          {ftSubTab === 'youtube' ? (
+            <div>
+              <div
+                style={{
+                  background: 'rgba(239, 68, 68, 0.08)',
+                  border: '1px solid rgba(239, 68, 68, 0.28)',
+                  borderRadius: '10px',
+                  padding: '10px 12px',
+                  fontSize: '11px',
+                  color: '#fca5a5',
+                  marginBottom: '12px',
+                  lineHeight: 1.45
+                }}
+              >
+                Pinned at <b>#1 at the very top of Featured Tasks</b> (above Boinkers Bot). When enabled, users <b>must complete this task</b> to withdraw.
+              </div>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fff', fontWeight: 700, margin: '8px 0 12px 0', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={!!qtConfig.youtube_sub?.enabled}
+                  onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, enabled: e.target.checked } })}
+                />{' '}
+                Enabled (Pinned #1 &amp; Required to Withdraw)
+              </label>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  REWARD (HOWL)
+                  <input
+                    type="number"
+                    value={qtConfig.youtube_sub?.reward ?? ''}
+                    onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, reward: e.target.value } })}
+                    style={{ width: '100%', boxSizing: 'border-box', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+                  />
+                </label>
+                <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+                  YOUR YOUTUBE @HANDLE
+                  <input
+                    type="text"
+                    placeholder="@yourchannel"
+                    value={qtConfig.youtube_sub?.target_handle || ''}
+                    onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_handle: e.target.value } })}
+                    style={{ width: '100%', boxSizing: 'border-box', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+                  />
+                </label>
+              </div>
+
+              <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '14px' }}>
+                CHANNEL ID (UC... — AUTO-FILLED WHEN @HANDLE IS SAVED)
+                <input
+                  type="text"
+                  placeholder="UC_x5XG1OV2P6uZZ5FSM9Ttw"
+                  value={qtConfig.youtube_sub?.target_channel_id || ''}
+                  onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_channel_id: e.target.value } })}
+                  style={{ width: '100%', boxSizing: 'border-box', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+                />
+              </label>
+
+              <button
+                onClick={saveYoutubeSubConfig}
+                disabled={qtSaving}
+                style={{ width: '100%', background: '#ef4444', color: '#fff', border: 'none', padding: '12px', borderRadius: '10px', fontWeight: 800, fontSize: '13px', cursor: 'pointer' }}
+              >
+                {qtSaving ? 'Saving...' : 'Save YouTube Subscribe (#1 Featured)'}
+              </button>
+            </div>
+          ) : ftSubTab === 'channel' ? (
             <div>
               <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '4px' }}>
                 CHANNEL/GROUP @USERNAME OR CHAT ID
@@ -1791,51 +1893,6 @@ export default function AdminView({ isActive = false }) {
               type="number"
               value={qtConfig.bio?.reward ?? ''}
               onChange={(e) => setQtConfig({ ...qtConfig, bio: { ...qtConfig.bio, reward: e.target.value } })}
-              style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
-            />
-          </label>
-
-          <div style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', margin: '18px 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <i className="fa-brands fa-youtube"></i> YOUTUBE SUBSCRIBE TASK (ONE TIME)
-          </div>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fff', fontWeight: 700, margin: '8px 0', cursor: 'pointer' }}>
-            <input
-              type="checkbox"
-              checked={!!qtConfig.youtube_sub?.enabled}
-              onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, enabled: e.target.checked } })}
-            />{' '}
-            Enabled
-          </label>
-
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              REWARD (HOWL)
-              <input
-                type="number"
-                value={qtConfig.youtube_sub?.reward ?? ''}
-                onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, reward: e.target.value } })}
-                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
-              />
-            </label>
-            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
-              YOUR YOUTUBE @HANDLE
-              <input
-                type="text"
-                placeholder="@yourchannel"
-                value={qtConfig.youtube_sub?.target_handle || ''}
-                onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_handle: e.target.value } })}
-                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
-              />
-            </label>
-          </div>
-
-          <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '16px' }}>
-            CHANNEL ID (UC... — AUTO-FILLED IF @HANDLE IS SAVED)
-            <input
-              type="text"
-              placeholder="UC_x5XG1OV2P6uZZ5FSM9Ttw"
-              value={qtConfig.youtube_sub?.target_channel_id || ''}
-              onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_channel_id: e.target.value } })}
               style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
             />
           </label>

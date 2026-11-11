@@ -298,7 +298,7 @@ export default function HomeView({ isActive = true }) {
           </div>
           <div className="task-text">
             <h4>Quick Tasks</h4>
-            <p>Comment, bio &amp; YouTube tasks, fast HOWL rewards</p>
+            <p>Comment &amp; bio tasks, fast HOWL rewards</p>
           </div>
           <i className="fa-solid fa-chevron-right" style={{ color: 'var(--text-muted)' }}></i>
         </div>
