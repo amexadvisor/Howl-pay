@@ -36,8 +36,9 @@ export default function AdminView({ isActive = false }) {
 
   // Quick Tasks Admin State
   const [qtConfig, setQtConfig] = useState({
-    comment: { enabled: true, reward: 50, cooldown_hours: 1, chat_id: '', group_link: '', texts: [] },
-    bio: { enabled: true, reward: 200 }
+    comment: { enabled: true, reward: '50', cooldown_hours: '1', chat_id: '', group_link: '', texts: [] },
+    bio: { enabled: true, reward: '200' },
+    youtube_sub: { enabled: false, reward: '150', target_handle: '', target_channel_id: '', target_title: '' }
   });
   const [commentTextsStr, setCommentTextsStr] = useState('');
   const [qtSaving, setQtSaving] = useState(false);
@@ -294,18 +295,26 @@ export default function AdminView({ isActive = false }) {
       if (res?.success && res.config) {
         const c = res.config.comment || {};
         const b = res.config.bio || {};
+        const yt = res.config.youtube_sub || {};
         setQtConfig({
           comment: {
             enabled: !!c.enabled,
-            reward: c.reward || 50,
-            cooldown_hours: (c.cooldown_min || 60) / 60,
+            reward: String(c.reward ?? 50),
+            cooldown_hours: String((c.cooldown_min ?? 60) / 60),
             chat_id: c.chat_id || '',
             group_link: c.group_link || '',
             texts: c.texts || []
           },
           bio: {
             enabled: !!b.enabled,
-            reward: b.reward || 200
+            reward: String(b.reward ?? 200)
+          },
+          youtube_sub: {
+            enabled: !!yt.enabled,
+            reward: String(yt.reward ?? 150),
+            target_handle: yt.target_handle || '',
+            target_channel_id: yt.target_channel_id || '',
+            target_title: yt.target_title || ''
           }
         });
         if (Array.isArray(c.texts)) {
@@ -335,10 +344,29 @@ export default function AdminView({ isActive = false }) {
         bio: {
           enabled: qtConfig.bio.enabled,
           reward: Number(qtConfig.bio.reward)
+        },
+        youtube_sub: {
+          enabled: !!qtConfig.youtube_sub?.enabled,
+          reward: Number(qtConfig.youtube_sub?.reward),
+          target_handle: (qtConfig.youtube_sub?.target_handle || '').trim(),
+          target_channel_id: (qtConfig.youtube_sub?.target_channel_id || '').trim(),
+          target_title: (qtConfig.youtube_sub?.target_title || '').trim()
         }
       };
       const res = await adminCall('set_quick_tasks', { config: updated });
       if (res?.success) {
+        if (res.config?.youtube_sub) {
+          setQtConfig((prev) => ({
+            ...prev,
+            youtube_sub: {
+              enabled: !!res.config.youtube_sub.enabled,
+              reward: String(res.config.youtube_sub.reward ?? 150),
+              target_handle: res.config.youtube_sub.target_handle || '',
+              target_channel_id: res.config.youtube_sub.target_channel_id || '',
+              target_title: res.config.youtube_sub.target_title || ''
+            }
+          }));
+        }
         showTopNotification('SAVED', 'Quick tasks settings saved', 'success');
       } else {
         showTopNotification('ERROR', res?.error || 'Could not save quick task settings', 'error');
@@ -1696,7 +1724,7 @@ export default function AdminView({ isActive = false }) {
               REWARD (HOWL)
               <input
                 type="number"
-                value={qtConfig.comment?.reward || 50}
+                value={qtConfig.comment?.reward ?? ''}
                 onChange={(e) => setQtConfig({ ...qtConfig, comment: { ...qtConfig.comment, reward: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -1706,7 +1734,7 @@ export default function AdminView({ isActive = false }) {
               <input
                 type="number"
                 step="0.25"
-                value={qtConfig.comment?.cooldown_hours || 1}
+                value={qtConfig.comment?.cooldown_hours ?? ''}
                 onChange={(e) => setQtConfig({ ...qtConfig, comment: { ...qtConfig.comment, cooldown_hours: e.target.value } })}
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
@@ -1761,8 +1789,53 @@ export default function AdminView({ isActive = false }) {
             REWARD (HOWL)
             <input
               type="number"
-              value={qtConfig.bio?.reward || 200}
+              value={qtConfig.bio?.reward ?? ''}
               onChange={(e) => setQtConfig({ ...qtConfig, bio: { ...qtConfig.bio, reward: e.target.value } })}
+              style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+            />
+          </label>
+
+          <div style={{ fontSize: '12px', fontWeight: 800, color: '#ef4444', margin: '18px 0 8px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <i className="fa-brands fa-youtube"></i> YOUTUBE SUBSCRIBE TASK (ONE TIME)
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#fff', fontWeight: 700, margin: '8px 0', cursor: 'pointer' }}>
+            <input
+              type="checkbox"
+              checked={!!qtConfig.youtube_sub?.enabled}
+              onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, enabled: e.target.checked } })}
+            />{' '}
+            Enabled
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
+            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              REWARD (HOWL)
+              <input
+                type="number"
+                value={qtConfig.youtube_sub?.reward ?? ''}
+                onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, reward: e.target.value } })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+            <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>
+              YOUR YOUTUBE @HANDLE
+              <input
+                type="text"
+                placeholder="@yourchannel"
+                value={qtConfig.youtube_sub?.target_handle || ''}
+                onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_handle: e.target.value } })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+          </div>
+
+          <label style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700, display: 'block', marginBottom: '16px' }}>
+            CHANNEL ID (UC... — AUTO-FILLED IF @HANDLE IS SAVED)
+            <input
+              type="text"
+              placeholder="UC_x5XG1OV2P6uZZ5FSM9Ttw"
+              value={qtConfig.youtube_sub?.target_channel_id || ''}
+              onChange={(e) => setQtConfig({ ...qtConfig, youtube_sub: { ...qtConfig.youtube_sub, target_channel_id: e.target.value } })}
               style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
             />
           </label>

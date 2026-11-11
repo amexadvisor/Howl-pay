@@ -7,6 +7,10 @@ export default function QuickView({ isActive = false }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bioClaiming, setBioClaiming] = useState(false);
+  const [ytHandle, setYtHandle] = useState('');
+  const [ytClaiming, setYtClaiming] = useState(false);
+  const [ytError, setYtError] = useState('');
+  const ytOpenedAtRef = useRef(0);
   const [commentTimerStr, setCommentTimerStr] = useState('');
   const timerRef = useRef(null);
 
@@ -101,8 +105,69 @@ export default function QuickView({ isActive = false }) {
     }
   };
 
+  const handleOpenYouTube = () => {
+    triggerHaptic('light');
+    setYtError('');
+    ytOpenedAtRef.current = Date.now();
+    // Open YouTube app/home without a direct channel referrer link (organic search requirement)
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink('https://www.youtube.com');
+    } else {
+      window.open('https://www.youtube.com', '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleClaimYouTube = async () => {
+    if (ytClaiming || youtubeSub?.done) return;
+    setYtError('');
+
+    const cleanHandle = ytHandle.trim();
+    if (!cleanHandle) {
+      triggerHaptic('warning');
+      setYtError('Please enter your YouTube @handle first!');
+      return;
+    }
+
+    // 15-second anti-cheat timer matching Amanuel's spec
+    const elapsedMs = ytOpenedAtRef.current ? Date.now() - ytOpenedAtRef.current : 0;
+    if (!ytOpenedAtRef.current || elapsedMs < 15000) {
+      triggerHaptic('warning');
+      const searchHint = youtubeSub?.target_handle || youtubeSub?.target_title || 'our channel';
+      const msg = !ytOpenedAtRef.current
+        ? `Please tap "1. Open YouTube App" first, search ${searchHint}, and subscribe!`
+        : `Please subscribe on YouTube first (${Math.ceil((15000 - elapsedMs) / 1000)}s left).`;
+      setYtError(msg);
+      return;
+    }
+
+    setYtClaiming(true);
+    triggerHaptic('medium');
+
+    try {
+      const res = await quickTasksCall('claim_youtube', { yt_handle: cleanHandle });
+      if (res && res.success) {
+        triggerHaptic('success');
+        showTopNotification('YOUTUBE REWARD!', `+${res.reward || youtubeSub?.reward || 0} HOWL credited!`, 'gold');
+        refreshBalance();
+        loadQuickTasks();
+      } else {
+        triggerHaptic('error');
+        const errMsg = res?.error || res?.message || 'Could not verify subscription. Try again.';
+        setYtError(errMsg);
+        showTopNotification('VERIFICATION FAILED', errMsg, 'error');
+      }
+    } catch (err) {
+      const msg = 'Network error verifying YouTube subscription. Please try again.';
+      setYtError(msg);
+      showTopNotification('ERROR', msg, 'error');
+    } finally {
+      setYtClaiming(false);
+    }
+  };
+
   const comment = data?.comment;
   const bio = data?.bio;
+  const youtubeSub = data?.youtube_sub;
 
   return (
     <div id="quick-view" className={`view ${isActive ? 'active' : ''}`}>
@@ -244,7 +309,144 @@ export default function QuickView({ isActive = false }) {
             </div>
           )}
 
-          {(!comment?.enabled && !bio?.enabled) && (
+          {/* YouTube Channel Subscription Task */}
+          {youtubeSub && youtubeSub.enabled && (
+            <div className="glass-card" id="qt-youtube-card">
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '10px',
+                  marginBottom: '8px'
+                }}
+              >
+                <h3 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px', margin: 0 }}>
+                  <i className="fa-brands fa-youtube" style={{ color: '#ef4444' }}></i> Subscribe on YouTube{' '}
+                  <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 700 }}>ONE TIME</span>
+                </h3>
+                <span className="qt-chip" id="qt-yt-reward">
+                  +{Number(youtubeSub.reward || 0).toLocaleString()} HOWL
+                </span>
+              </div>
+
+              <ol
+                className="qt-muted"
+                style={{ paddingLeft: '18px', margin: '0 0 12px 0', lineHeight: 1.55 }}
+              >
+                <li>
+                  Tap <b>1. Open YouTube App</b> below.
+                </li>
+                <li>
+                  Search{' '}
+                  <b style={{ color: '#fff' }}>
+                    {youtubeSub.target_handle || youtubeSub.target_title || 'our channel'}
+                  </b>{' '}
+                  and tap <b>Subscribe</b>.
+                </li>
+                <li>
+                  Make sure <i>&ldquo;Keep all my subscriptions private&rdquo;</i> is turned <b>OFF</b> in your
+                  YouTube Privacy Settings.
+                </li>
+                <li>
+                  Enter your own YouTube <b>@handle</b> below and tap <b>Check Subscription</b>.
+                </li>
+              </ol>
+
+              {youtubeSub.target_handle && (
+                <div className="qt-text-item" style={{ marginBottom: '10px' }}>
+                  <span>Search: {youtubeSub.target_handle}</span>
+                  <button className="qt-copy" onClick={() => copyToClipboard(youtubeSub.target_handle)}>
+                    <i className="fa-regular fa-copy"></i>
+                  </button>
+                </div>
+              )}
+
+              {!youtubeSub.done && (
+                <>
+                  <button
+                    className="qt-btn"
+                    style={{
+                      width: '100%',
+                      flex: 'none',
+                      marginBottom: '10px',
+                      background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                      color: '#fff'
+                    }}
+                    onClick={handleOpenYouTube}
+                  >
+                    <i className="fa-brands fa-youtube"></i> 1. OPEN YOUTUBE APP
+                  </button>
+
+                  <input
+                    type="text"
+                    id="qt-yt-handle-input"
+                    placeholder="Your YouTube @handle (e.g. @alex123)"
+                    value={ytHandle}
+                    onChange={(e) => {
+                      setYtHandle(e.target.value);
+                      if (ytError) setYtError('');
+                    }}
+                    style={{
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      background: 'rgba(0, 0, 0, 0.35)',
+                      border: '1px solid var(--border-soft)',
+                      color: '#fff',
+                      padding: '11px 12px',
+                      borderRadius: '10px',
+                      fontSize: '13px',
+                      fontWeight: 600,
+                      marginBottom: '4px',
+                      outline: 'none'
+                    }}
+                  />
+                  <div style={{ fontSize: '10px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.35 }}>
+                    Tip: In YouTube App, tap <b>You</b> (bottom-right) to see your <b>@handle</b> under your name.
+                  </div>
+                </>
+              )}
+
+              {ytError && (
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontWeight: 700,
+                    color: '#fca5a5',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    padding: '8px 10px',
+                    borderRadius: '8px',
+                    marginBottom: '8px',
+                    lineHeight: 1.4
+                  }}
+                >
+                  {ytError}
+                </div>
+              )}
+
+              <button
+                className="qt-btn"
+                id="qt-yt-btn"
+                style={{ width: '100%', flex: 'none', marginTop: '2px' }}
+                disabled={youtubeSub.done || ytClaiming}
+                onClick={handleClaimYouTube}
+              >
+                {youtubeSub.done ? (
+                  <>
+                    <i className="fa-solid fa-circle-check"></i> COMPLETED
+                    {youtubeSub.claimed_handle ? ` (${youtubeSub.claimed_handle})` : ''}
+                  </>
+                ) : ytClaiming ? (
+                  'VERIFYING WITH YOUTUBE...'
+                ) : (
+                  '2. CHECK SUBSCRIPTION'
+                )}
+              </button>
+            </div>
+          )}
+
+          {(!comment?.enabled && !bio?.enabled && !youtubeSub?.enabled) && (
             <div className="glass-card" style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
               No quick tasks are available right now. Check back soon!
             </div>
