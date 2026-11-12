@@ -60,11 +60,6 @@ export default function WithdrawView({ isActive = false }) {
     setActiveView('tasks-view');
   };
 
-  const goToInvite = () => {
-    triggerHaptic('light');
-    setActiveView('team-view');
-  };
-
   const handleSubmit = async () => {
     triggerHaptic('medium');
 
@@ -299,56 +294,6 @@ export default function WithdrawView({ isActive = false }) {
               )}
             </div>
 
-            {/* Rule 3: 1 Invited Friend with 10+ YouTube Tasks */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '10px',
-                padding: '9px 10px',
-                borderRadius: '10px',
-                background: eligibility.referral_youtube?.passed ? 'rgba(34, 197, 94, 0.1)' : 'rgba(255,255,255,0.03)',
-                border: `1px solid ${eligibility.referral_youtube?.passed ? 'rgba(34, 197, 94, 0.3)' : 'var(--border-soft)'}`
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '9px', minWidth: 0 }}>
-                <i
-                  className={`fa-solid ${eligibility.referral_youtube?.passed ? 'fa-circle-check' : 'fa-circle-xmark'}`}
-                  style={{ color: eligibility.referral_youtube?.passed ? '#22c55e' : '#f59e0b', fontSize: '14px', flexShrink: 0 }}
-                ></i>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: '#fff' }}>
-                    Invite 1 Friend (10+ YouTube Tasks)
-                  </div>
-                  <div style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                    {eligibility.referral_youtube?.passed
-                      ? `${eligibility.referral_youtube.qualified_count} qualified friend(s)`
-                      : eligibility.referral_youtube?.total_referrals > 0
-                        ? `${eligibility.referral_youtube.qualified_count}/1 qualified • Closest friend: ${eligibility.referral_youtube.best_ref_tasks}/10 tasks`
-                        : '0/1 qualified referral yet'}
-                  </div>
-                </div>
-              </div>
-              {!eligibility.referral_youtube?.passed && (
-                <button
-                  onClick={goToInvite}
-                  style={{
-                    background: 'var(--accent-main)',
-                    color: '#000',
-                    border: 'none',
-                    borderRadius: '8px',
-                    padding: '6px 10px',
-                    fontSize: '10px',
-                    fontWeight: 800,
-                    cursor: 'pointer',
-                    flexShrink: 0
-                  }}
-                >
-                  INVITE
-                </button>
-              )}
-            </div>
           </div>
         )}
       </div>
