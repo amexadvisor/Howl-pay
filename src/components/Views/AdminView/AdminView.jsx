@@ -247,8 +247,10 @@ export default function AdminView({ isActive = false }) {
     const tier1 = Number(adsrConfig.tier1_pct);
     const tier2 = Number(adsrConfig.tier2_pct);
     const winSec = Number(adsrConfig.click_window_sec);
-    const maxExtra = Number(adsrConfig.max_extra_ads);
-    const extraReward = Number(adsrConfig.extra_ad_reward);
+    const maxExtraRaw = String(adsrConfig.max_extra_ads ?? '').trim();
+    const extraRewardRaw = String(adsrConfig.extra_ad_reward ?? '').trim();
+    const maxExtra = Number(maxExtraRaw);
+    const extraReward = Number(extraRewardRaw);
 
     if (isNaN(start) || start < 1) {
       showTopNotification('INVALID', 'AdsGram block starting reward must be at least 1 HOWL', 'error');
@@ -262,12 +264,12 @@ export default function AdminView({ isActive = false }) {
       showTopNotification('INVALID', 'Cycle lock must be between 0.1 and 168 hours', 'error');
       return;
     }
-    if (isNaN(maxExtra) || maxExtra < 0 || maxExtra > 100) {
-      showTopNotification('INVALID', 'Max extra ads per cycle must be between 0 and 100', 'error');
+    if (maxExtraRaw === '' || !Number.isInteger(maxExtra) || maxExtra < 0 || maxExtra > 100) {
+      showTopNotification('INVALID', 'Max extra ads per cycle must be a whole number between 0 and 100', 'error');
       return;
     }
-    if (isNaN(extraReward) || extraReward < 1 || extraReward > 100000) {
-      showTopNotification('INVALID', 'Extra ad reward must be between 1 and 100,000 HOWL', 'error');
+    if (extraRewardRaw === '' || !Number.isInteger(extraReward) || extraReward < 1 || extraReward > 100000) {
+      showTopNotification('INVALID', 'Extra ad reward must be a whole number between 1 and 100,000 HOWL', 'error');
       return;
     }
 

@@ -368,20 +368,15 @@ export default function WatchAndEarn() {
     }
 
     let credited = false;
-    let flowFinished = false;
-    let sentClicks = 0;
     let totalRewardedSoFar = baseViewReward;
     let extraUnlockedNow = 0;
-    let clickReqInFlight = false;
 
-    const submitClicksToServer = async (rawClicksCount, { openModalOnResult = false } = {}) => {
-      const clampedClicks = Math.min(3, Math.max(0, Number(rawClicksCount) || 0));
-      if (!credited || clampedClicks <= 0 || clampedClicks <= sentClicks || clickReqInFlight) return null;
-      clickReqInFlight = true;
+    const submitClicksToServer = async (rawClicksCount) => {
+      const clampedClicks = Math.min(3, Math.max(0, Math.floor(Number(rawClicksCount) || 0)));
+      if (!credited || clampedClicks <= 0) return null;
       try {
         const res = await sendAdsrClick(clampedClicks, 3);
         if (res && res.success) {
-          sentClicks = clampedClicks;
           if (res.total_reward) {
             totalRewardedSoFar = res.total_reward;
           } else if (res.bonus > 0) {
@@ -402,31 +397,15 @@ export default function WatchAndEarn() {
               icon: 'fa-solid fa-bolt'
             });
           }
-          if (openModalOnResult && (res.bonus > 0 || res.extra_ads_added > 0)) {
-            setAdsrCompletedModal({
-              open: true,
-              adsCount: 3,
-              clicksCount: clampedClicks,
-              rewardHowl: totalRewardedSoFar,
-              extraAdsAdded: extraUnlockedNow
-            });
-          }
           refreshBalance();
         }
         return res;
       } catch (e) {
         return null;
-      } finally {
-        clickReqInFlight = false;
       }
     };
 
-    const watcher = adsrWatchClicks((newCount) => {
-      // Wait until the full ad cascade finishes before submitting; after that, submit any upgraded clicks
-      if (flowFinished && credited && newCount > sentClicks) {
-        submitClicksToServer(newCount, { openModalOnResult: true });
-      }
-    });
+    const watcher = adsrWatchClicks();
     adsrWatcherRef.current = watcher;
 
     try {
@@ -460,12 +439,16 @@ export default function WatchAndEarn() {
       }
     }
 
-    flowFinished = true;
+    // Stop watching clicks immediately once the ad cascade finishes so unrelated app links aren't counted
+    const finalClicks = Math.min(3, watcher.clicks);
+    if (adsrWatcherRef.current === watcher) {
+      watcher.stop();
+      adsrWatcherRef.current = null;
+    }
 
     if (credited) {
-      const finalClicks = Math.min(3, watcher.clicks);
       if (finalClicks > 0) {
-        await submitClicksToServer(finalClicks, { openModalOnResult: false });
+        await submitClicksToServer(finalClicks);
       }
 
       setAdsrCompletedModal({
@@ -483,14 +466,16 @@ export default function WatchAndEarn() {
     if (updated?.success && updated.reward) {
       setAdsrState(updated.reward);
     }
+  };
 
-    setTimeout(() => {
-      if (adsrWatcherRef.current === watcher) {
-        watcher.stop();
+  useEffect(() => {
+    return () => {
+      if (adsrWatcherRef.current) {
+        adsrWatcherRef.current.stop();
         adsrWatcherRef.current = null;
       }
-    }, (adsrState.click_window_sec || 300) * 1000);
-  };
+    };
+  }, []);
 
   useEffect(() => {
     setAdsrWatchHandler(startAdsGramRewardFlow);
