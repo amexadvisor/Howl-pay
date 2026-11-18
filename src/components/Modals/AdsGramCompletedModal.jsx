@@ -4,7 +4,7 @@ import LottieAnimation from '../Common/LottieAnimation';
 export default function AdsGramCompletedModal({ data, onClose }) {
   if (!data || !data.open) return null;
 
-  const { adsCount = 3, clicksCount = 0, rewardHowl = 45 } = data;
+  const { adsCount = 3, clicksCount = 0, rewardHowl = 45, extraAdsAdded = 0 } = data;
   const showTutorial = clicksCount < 3;
 
   return (
@@ -120,6 +120,27 @@ export default function AdsGramCompletedModal({ data, onClose }) {
             </span>
           </div>
         </div>
+
+        {extraAdsAdded > 0 && (
+          <div
+            style={{
+              background: 'rgba(34, 197, 94, 0.12)',
+              border: '1px solid rgba(34, 197, 94, 0.35)',
+              borderRadius: '14px',
+              padding: '10px 12px',
+              marginBottom: '14px',
+              color: '#4ade80',
+              fontSize: '12px',
+              fontWeight: 800,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '6px'
+            }}
+          >
+            <i className="fa-solid fa-bolt"></i> +{extraAdsAdded} Bonus Ads Unlocked!
+          </div>
+        )}
 
         {showTutorial && (
           <div

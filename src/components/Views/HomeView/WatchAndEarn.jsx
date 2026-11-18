@@ -368,28 +368,64 @@ export default function WatchAndEarn() {
     }
 
     let credited = false;
-    let clickSent = false;
+    let flowFinished = false;
+    let sentClicks = 0;
+    let totalRewardedSoFar = baseViewReward;
+    let extraUnlockedNow = 0;
+    let clickReqInFlight = false;
 
-    const sendClickBonus = async (clicksCount) => {
-      if (clickSent || !credited) return;
-      if (!clicksCount || clicksCount <= 0) return;
-      clickSent = true;
-      const total = Math.max(1, Math.min(3, clicksCount));
-      const res = await sendAdsrClick(clicksCount, total);
-      if (res && res.bonus > 0) {
-        const totalRewarded = res.total_reward || baseViewReward + res.bonus;
-        setAdsrCompletedModal({
-          open: true,
-          adsCount: total,
-          clicksCount: clicksCount,
-          rewardHowl: totalRewarded
-        });
-        refreshBalance();
+    const submitClicksToServer = async (rawClicksCount, { openModalOnResult = false } = {}) => {
+      const clampedClicks = Math.min(3, Math.max(0, Number(rawClicksCount) || 0));
+      if (!credited || clampedClicks <= 0 || clampedClicks <= sentClicks || clickReqInFlight) return null;
+      clickReqInFlight = true;
+      try {
+        const res = await sendAdsrClick(clampedClicks, 3);
+        if (res && res.success) {
+          sentClicks = clampedClicks;
+          if (res.total_reward) {
+            totalRewardedSoFar = res.total_reward;
+          } else if (res.bonus > 0) {
+            totalRewardedSoFar += res.bonus;
+          }
+          if (res.reward) {
+            setAdsrState(res.reward);
+          }
+          if (res.extra_ads_added > 0) {
+            extraUnlockedNow += res.extra_ads_added;
+            adsrCooldownEndRef.current = Date.now() + adsrCooldownSec * 1000;
+            setAdsrInterCooldown(adsrCooldownSec);
+            triggerHaptic('success');
+            showTopNotification({
+              title: `+${res.extra_ads_added} BONUS ADS UNLOCKED!`,
+              message: `Great clicks! ${res.extra_ads_added} extra ads added to your cycle.`,
+              type: 'gold',
+              icon: 'fa-solid fa-bolt'
+            });
+          }
+          if (openModalOnResult && (res.bonus > 0 || res.extra_ads_added > 0)) {
+            setAdsrCompletedModal({
+              open: true,
+              adsCount: 3,
+              clicksCount: clampedClicks,
+              rewardHowl: totalRewardedSoFar,
+              extraAdsAdded: extraUnlockedNow
+            });
+          }
+          refreshBalance();
+        }
+        return res;
+      } catch (e) {
+        return null;
+      } finally {
+        clickReqInFlight = false;
       }
     };
 
-    const watcher = adsrWatchClicks(() => {
-      sendClickBonus(watcher.clicks);
+    const watcher = adsrWatchClicks((newCount) => {
+      // Wait until the full ad cascade finishes before submitting; after that, submit any upgraded clicks
+      if (flowFinished && credited && newCount > sentClicks) {
+        submitClicksToServer(newCount, { openModalOnResult: true });
+      }
     });
     adsrWatcherRef.current = watcher;
 
@@ -424,25 +460,20 @@ export default function WatchAndEarn() {
       }
     }
 
+    flowFinished = true;
+
     if (credited) {
       const finalClicks = Math.min(3, watcher.clicks);
-      let totalRewarded = baseViewReward;
-
-      if (finalClicks > 0 && !clickSent) {
-        clickSent = true;
-        const clickRes = await sendAdsrClick(finalClicks, 3);
-        if (clickRes?.total_reward) {
-          totalRewarded = clickRes.total_reward;
-        } else if (clickRes?.bonus) {
-          totalRewarded = baseViewReward + clickRes.bonus;
-        }
+      if (finalClicks > 0) {
+        await submitClicksToServer(finalClicks, { openModalOnResult: false });
       }
 
       setAdsrCompletedModal({
         open: true,
         adsCount: 3,
         clicksCount: finalClicks,
-        rewardHowl: totalRewarded
+        rewardHowl: totalRewardedSoFar,
+        extraAdsAdded: extraUnlockedNow
       });
       refreshBalance();
     }
@@ -586,6 +617,24 @@ export default function WatchAndEarn() {
           {adsrState.enabled && !adsrState.locked && (adsrState.noclick_pct || 100) < 100 && adsrFull > adsrLow && (
             <div id="adsrHint" className="adsr-hint" style={{ display: 'block' }}>
               <i className="fa-solid fa-arrow-pointer"></i> <b>+{adsrLow}</b> base view · up to <b>+{adsrFull} HOWL</b> with in-ad clicks
+            </div>
+          )}
+
+          {adsrState.enabled && !adsrState.locked && adsrState.is_last_ad && (
+            <div
+              style={{
+                fontSize: '10px',
+                fontWeight: 700,
+                color: '#4ade80',
+                background: 'rgba(34, 197, 94, 0.1)',
+                border: '1px solid rgba(34, 197, 94, 0.25)',
+                borderRadius: '8px',
+                padding: '5px 8px',
+                marginBottom: '10px',
+                lineHeight: 1.35
+              }}
+            >
+              <i className="fa-solid fa-bolt"></i> Last ad! Click {adsrState.extra_ads_min_clicks || 2}+ ads to unlock +{adsrState.extra_ads_step || 2} bonus ads
             </div>
           )}
 

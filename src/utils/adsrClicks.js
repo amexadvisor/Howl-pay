@@ -1,6 +1,6 @@
 // Detects "the user clicked CTA button(s) inside the ad".
 // Signals: the ad calls window.open / Telegram openLink / openTelegramLink / TelegramWebviewProxy / parent.postMessage / webkit notification.
-export function adsrWatchClicks(onFirstClick) {
+export function adsrWatchClicks(onClick) {
   const w = { clicks: 0, clicked: false, reasons: [], stop: function () {} };
   const undo = [];
   const seenUrls = new Set();
@@ -20,10 +20,10 @@ export function adsrWatchClicks(onFirstClick) {
     if (w.reasons.indexOf(why) < 0) w.reasons.push(why);
     if (!w.clicked) {
       w.clicked = true;
-      try {
-        if (onFirstClick) onFirstClick();
-      } catch (e) {}
     }
+    try {
+      if (onClick) onClick(w.clicks);
+    } catch (e) {}
   };
 
   const wrap = (obj, name, why) => {

@@ -30,7 +30,9 @@ export default function AdminView({ isActive = false }) {
     noclick_pct: '25',
     tier1_pct: '33',
     tier2_pct: '75',
-    click_window_sec: '300'
+    click_window_sec: '300',
+    max_extra_ads: '4',
+    extra_ad_reward: '60'
   });
   const [adsrSaving, setAdsrSaving] = useState(false);
 
@@ -227,7 +229,9 @@ export default function AdminView({ isActive = false }) {
           noclick_pct: String(c.noclick_pct ?? 25),
           tier1_pct: String(c.tier1_pct ?? 33),
           tier2_pct: String(c.tier2_pct ?? 75),
-          click_window_sec: String(c.click_window_sec ?? 300)
+          click_window_sec: String(c.click_window_sec ?? 300),
+          max_extra_ads: String(c.max_extra_ads ?? 4),
+          extra_ad_reward: String(c.extra_ad_reward ?? 60)
         });
       }
     } catch (e) {}
@@ -243,6 +247,8 @@ export default function AdminView({ isActive = false }) {
     const tier1 = Number(adsrConfig.tier1_pct);
     const tier2 = Number(adsrConfig.tier2_pct);
     const winSec = Number(adsrConfig.click_window_sec);
+    const maxExtra = Number(adsrConfig.max_extra_ads);
+    const extraReward = Number(adsrConfig.extra_ad_reward);
 
     if (isNaN(start) || start < 1) {
       showTopNotification('INVALID', 'AdsGram block starting reward must be at least 1 HOWL', 'error');
@@ -254,6 +260,14 @@ export default function AdminView({ isActive = false }) {
     }
     if (isNaN(hours) || hours < 0.1 || hours > 168) {
       showTopNotification('INVALID', 'Cycle lock must be between 0.1 and 168 hours', 'error');
+      return;
+    }
+    if (isNaN(maxExtra) || maxExtra < 0 || maxExtra > 100) {
+      showTopNotification('INVALID', 'Max extra ads per cycle must be between 0 and 100', 'error');
+      return;
+    }
+    if (isNaN(extraReward) || extraReward < 1 || extraReward > 100000) {
+      showTopNotification('INVALID', 'Extra ad reward must be between 1 and 100,000 HOWL', 'error');
       return;
     }
 
@@ -272,7 +286,9 @@ export default function AdminView({ isActive = false }) {
             noclick_pct: isNaN(noclick) ? 25 : noclick,
             tier1_pct: isNaN(tier1) ? 33 : tier1,
             tier2_pct: isNaN(tier2) ? 75 : tier2,
-            click_window_sec: isNaN(winSec) ? 300 : winSec
+            click_window_sec: isNaN(winSec) ? 300 : winSec,
+            max_extra_ads: Math.round(maxExtra),
+            extra_ad_reward: Math.round(extraReward)
           }
         }
       });
@@ -1221,6 +1237,44 @@ export default function AdminView({ isActive = false }) {
                 style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-soft)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
               />
             </label>
+            <label style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
+              MAX EXTRA ADS / CYCLE (0 = OFF)
+              <input
+                type="number"
+                min="0"
+                max="100"
+                value={adsrConfig.max_extra_ads ?? ''}
+                onChange={(e) => setAdsrConfig({ ...adsrConfig, max_extra_ads: e.target.value })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34, 197, 94, 0.35)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+            <label style={{ fontSize: '10px', color: '#4ade80', fontWeight: 700 }}>
+              EXTRA AD FULL REWARD (HOWL)
+              <input
+                type="number"
+                min="1"
+                max="100000"
+                value={adsrConfig.extra_ad_reward ?? ''}
+                onChange={(e) => setAdsrConfig({ ...adsrConfig, extra_ad_reward: e.target.value })}
+                style={{ width: '100%', marginTop: '4px', background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(34, 197, 94, 0.35)', color: '#fff', padding: '10px', borderRadius: '10px', fontSize: '14px', fontWeight: 700, outline: 'none' }}
+              />
+            </label>
+          </div>
+
+          <div
+            style={{
+              fontSize: '11px',
+              color: 'var(--text-muted)',
+              background: 'rgba(34, 197, 94, 0.08)',
+              border: '1px solid rgba(34, 197, 94, 0.2)',
+              borderRadius: '10px',
+              padding: '9px 11px',
+              marginBottom: '14px',
+              lineHeight: 1.45
+            }}
+          >
+            <i className="fa-solid fa-bolt" style={{ color: '#4ade80', marginRight: '5px' }}></i>
+            <b>Bonus Ads Rule:</b> When a user clicks <b>2+ ads</b> on their last available ad, <b>+2 extra ads</b> unlock immediately (repeatable up to <b>Max Extra Ads</b> per cycle). Each extra ad pays <b>Extra Ad Full Reward</b> scaled by the click tiers above (No Click / 1-Click / 2-Clicks / 3-Clicks).
           </div>
 
           <button
